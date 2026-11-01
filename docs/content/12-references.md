@@ -58,3 +58,7 @@ The architecture documents, Quartz site, build scripts and Railway deployment co
 ## This site
 
 Built with [Jacky Zhao's Quartz](https://github.com/jackyzha0/quartz), with Markdown sources, search, chapter links, Mermaid diagrams, a complete reading page and Markdown export. Diagrams are technical design illustrations; fallback step tables explain the same critical flow when scripts are unavailable. Railway hosts static output through a small HTTP server; it hosts no GRAMStack application, identities or registry data.
+
+## Versioned implementation contracts
+
+Use the [implementation specifications](specifications/) for the normative API, message and adapter contracts. [OpenAPI](specifications/openapi), [message schemas](specifications/schemas), [adapter requirements](specifications/adapter) and [conformance scenarios](specifications/conformance) are published from the repository’s canonical `specs/` sources.

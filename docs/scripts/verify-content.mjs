@@ -28,3 +28,10 @@ assert.ok(readFileSync('public/static/GRAMStack-Design.md','utf8').length>45000)
 assert.ok(!existsSync('public/reference'), 'Internal historical pages must not be published')
 assert.doesNotMatch(readFileSync('public/static/contentIndex.json','utf8'), /Historical baseline|LLD|sign.off|parked|ChatGPT|Claude/i)
 console.log(`Verified ${sources.length} documents, ${diagrams} diagram blocks, ${json} JSON examples and ${links} local links/assets.`)
+
+for (const file of walk('../specs')) {
+ const published = file.replace('../specs/', 'public/static/specs/')
+ assert.equal(readFileSync(published, 'utf8'), readFileSync(file, 'utf8'), `Stale specification export: ${file}`)
+}
+assert.ok(readFileSync('public/specifications/index.html','utf8').includes('Implementation specifications'))
+console.log('Verified exact canonical specification downloads and specification index.')

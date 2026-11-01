@@ -27,6 +27,10 @@ Start with the [purpose and scenario](01-purpose), then the [architecture](02-ar
 | [11 · Architecture choices](11-decisions) | Component responsibilities, registry integration and deployment profiles |
 | [12 · Standards and references](12-references) | Protocol standards, implementation references and integration sources |
 
+## Implementation specifications
+
+The [versioned contract set](specifications/) defines the HTTP APIs, message schemas, consent and grant rules, independently hosted adapter contract, evidence and lifecycle behavior. It includes downloadable OpenAPI and JSON Schema files, example payloads and conformance scenarios, generated directly from the repository’s `specs/` directory.
+
 ## The central distinction
 
 ```mermaid

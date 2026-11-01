@@ -113,3 +113,7 @@ An equivalent atomic store can implement the enforcement contract. Independent s
 The one-use profile is conservative: the grant remains consumed after source failure, evidence failure or ambiguous timeout. Do not reauthorize automatically or cache a response to make retries easy. A fresh disclosure request and approval may be required. This preserves one-use semantics even when a failure requires the user to authorize a new attempt.
 
 Record failed, attempted and uncertain outcomes separately. A server completing transmission is not proof of complete client receipt. Evidence of attempted disclosure and a spent grant remain valid even when the consumer reports a timeout.
+
+## Versioned grant profile
+
+The [0.1.0 authorization contract](specifications/authorization) specifies ES256 signed grants and an mTLS presenter-binding profile. The consumer certificate is checked at the gateway, and trusted presenter context crosses authenticated service transport to the adapter. DPoP requires a separately specified proof-verification profile.

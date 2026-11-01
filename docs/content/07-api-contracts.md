@@ -167,3 +167,7 @@ Consumer tokens, browser sessions, service tokens, grants and evidence signature
 ## Registry verification integration
 
 Capability discovery and verification workflows are adapter responsibilities. The gateway consumes a trusted verified context bound to the principal, registry and access request. Native verification mechanisms and assurance profiles are registry-specific; the architecture does not require every registry to operate an IdP.
+
+## Versioned implementation contracts
+
+Use the [implementation specifications](specifications/) for the normative API, message and adapter contracts. [OpenAPI](specifications/openapi), [message schemas](specifications/schemas), [adapter requirements](specifications/adapter) and [conformance scenarios](specifications/conformance) are published from the repository’s canonical `specs/` sources.

@@ -542,6 +542,10 @@ The one-use profile is conservative: the grant remains consumed after source fai
 
 Record failed, attempted and uncertain outcomes separately. A server completing transmission is not proof of complete client receipt. Evidence of attempted disclosure and a spent grant remain valid even when the consumer reports a timeout.
 
+## Versioned grant profile
+
+The [0.1.0 authorization contract](specifications/authorization) specifies ES256 signed grants and an mTLS presenter-binding profile. The consumer certificate is checked at the gateway, and trusted presenter context crosses authenticated service transport to the adapter. DPoP requires a separately specified proof-verification profile.
+
 
 ---
 
@@ -798,6 +802,10 @@ Consumer tokens, browser sessions, service tokens, grants and evidence signature
 ## Registry verification integration
 
 Capability discovery and verification workflows are adapter responsibilities. The gateway consumes a trusted verified context bound to the principal, registry and access request. Native verification mechanisms and assurance profiles are registry-specific; the architecture does not require every registry to operate an IdP.
+
+## Versioned implementation contracts
+
+Use the [implementation specifications](specifications/) for the normative API, message and adapter contracts. [OpenAPI](specifications/openapi), [message schemas](specifications/schemas), [adapter requirements](specifications/adapter) and [conformance scenarios](specifications/conformance) are published from the repository’s canonical `specs/` sources.
 
 
 ---
@@ -1336,3 +1344,7 @@ The architecture documents, Quartz site, build scripts and Railway deployment co
 ## This site
 
 Built with [Jacky Zhao's Quartz](https://github.com/jackyzha0/quartz), with Markdown sources, search, chapter links, Mermaid diagrams, a complete reading page and Markdown export. Diagrams are technical design illustrations; fallback step tables explain the same critical flow when scripts are unavailable. Railway hosts static output through a small HTTP server; it hosts no GRAMStack application, identities or registry data.
+
+## Versioned implementation contracts
+
+Use the [implementation specifications](specifications/) for the normative API, message and adapter contracts. [OpenAPI](specifications/openapi), [message schemas](specifications/schemas), [adapter requirements](specifications/adapter) and [conformance scenarios](specifications/conformance) are published from the repository’s canonical `specs/` sources.

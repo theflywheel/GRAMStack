@@ -20,11 +20,12 @@
     "profile": "0x -D prof ./quartz/bootstrap-cli.mjs build --concurrency=1",
     "install-plugins": "npx tsx ./quartz/plugins/loader/install-plugins.ts",
     "prebuild": "npm run install-plugins",
-    "build": "node scripts/assemble-design.mjs && node quartz/bootstrap-cli.mjs build && node scripts/export-design.mjs",
+    "build": "npm run verify:specs && node scripts/publish-specs.mjs && node scripts/assemble-design.mjs && node quartz/bootstrap-cli.mjs build && node scripts/export-design.mjs",
     "start": "node server.mjs",
     "verify:content": "node scripts/verify-content.mjs",
     "assemble": "node scripts/assemble-design.mjs",
-    "verify:server": "node scripts/verify-server.mjs"
+    "verify:server": "node scripts/verify-server.mjs",
+    "verify:specs": "node scripts/verify-specs.mjs"
   },
   "engines": {
     "npm": ">=10.9.2",
@@ -59,7 +60,6 @@
     "@quartz-community/content-meta": "^1.0.0",
     "@quartz-community/content-page": "^1.0.0",
     "@quartz-community/crawl-links": "^1.0.0",
-    "@quartz-themes/core": "^2.0.0",
     "@quartz-community/created-modified-date": "^1.0.0",
     "@quartz-community/darkmode": "^1.0.0",
     "@quartz-community/description": "^1.0.0",
@@ -91,6 +91,7 @@
     "@quartz-community/tag-list": "^1.0.0",
     "@quartz-community/tag-page": "^1.0.0",
     "@quartz-community/unlisted-pages": "^1.0.0",
+    "@quartz-themes/core": "^2.0.0",
     "ansi-truncate": "^1.4.0",
     "async-mutex": "^0.5.0",
     "chokidar": "^5.0.0",
@@ -123,6 +124,7 @@
     "yargs": "^18.0.0"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^13.1.0",
     "@quartz-community/types": "^1.0.0",
     "@quartz-community/utils": "^1.0.1",
     "@types/hast": "^3.0.4",
@@ -131,6 +133,8 @@
     "@types/source-map-support": "^0.5.10",
     "@types/ws": "^8.18.1",
     "@types/yargs": "^17.0.35",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "esbuild": "^0.28.2",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",

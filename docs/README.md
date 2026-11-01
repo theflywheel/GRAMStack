@@ -22,14 +22,14 @@ Project: `gramstack-design`; service: `design-site`.
 
 The multi-stage Dockerfile builds Quartz and runs a dependency-free static server. Only the static output and server enter the runtime image. It does not run GRAMStack, connect registries or store identities. Railway health check: `/healthz`, port 8080.
 
-From this directory, with Railway authenticated and linked:
+From the repository root, with Railway authenticated and linked:
 
 ```sh
 railway up . --path-as-root --service design-site --detach
 railway logs --build
 ```
 
-The source folder is the deployment root. `railway.toml`, `.railwayignore` and `.dockerignore` control packaging. Set the public host in `quartz.config.yaml` before changing domains. The source repository is `theflywheel/GRAMStack`, with this site under `docs/`. Railway deployments upload this directory through the CLI; GitHub CI validates the build without deploying.
+The repository root is the Docker build context so the build can include the canonical sibling `specs/` directory. The application and Markdown remain under `docs/`. `railway.toml`, `.railwayignore` and `.dockerignore` control packaging. Set the public host in `quartz.config.yaml` before changing domains. The source repository is `theflywheel/GRAMStack`, with this site under `docs/`. Railway deployments upload the repository root through the CLI; GitHub CI validates the build without deploying.
 
 The deployed URL is public to anyone who has it. Robots metadata requests no indexing; that is not access control. The content contains design material and fictional examples, not private transcript dumps.
 
@@ -40,3 +40,9 @@ The deployed URL is public to anyone who has it. Robots metadata requests no ind
 Upstream Quartz revision at creation: `97a2d05f80c4c50534959b1d0d41cc4b3895625e`. Retain upstream MIT licensing. The lockfile pins npm dependencies. The configured plugins are npm-backed; no separate Git plugin checkout is required.
 
 Dependency audit after non-breaking fixes: two moderate advisories remain in upstream build/development glob-serving dependencies (`minimatch` / `serve-handler`). They are not copied into the dependency-free production runtime image. Avoid running Quartz's development server with untrusted inputs; review upstream fixes when upgrading. High-severity advisories found on the initial install were resolved with non-breaking updates.
+
+## Versioned specifications
+
+Edit `../specs/` for normative contracts. `npm run verify:specs` checks the OpenAPI document, schema references, fixtures and lifecycle. The build generates `content/specifications/` from those sources and copies exact downloads to `public/static/specs/`. Generated Markdown is committed alongside the architecture export; public build output is ignored by Git. Do not edit generated specification pages.
+
+The Railway service must use Dockerfile path `docs/Dockerfile`, repository-root build context and health check `/healthz`; these service settings match the root `railway.toml`.

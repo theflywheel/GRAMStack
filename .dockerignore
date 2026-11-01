@@ -1,0 +1,16 @@
+.git/
+**/node_modules/
+docs/public/
+docs/.quartz/
+docs/.quartz-cache/
+docs/content/specifications/
+docs/.github/
+docs/design/
+docs/internal/
+.codex/
+.agents/
+.railway/
+**/.env
+**/.env.*
+**/private/
+**/.obsidian/
