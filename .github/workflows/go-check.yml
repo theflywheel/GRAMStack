@@ -2,9 +2,9 @@ name: Verify Go services and SDK
 on:
   push:
     branches: [main]
-    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-dedi.sh", "go.work", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "go.work", "specs/**", ".github/workflows/go-check.yml"]
   pull_request:
-    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-dedi.sh", "go.work", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "go.work", "specs/**", ".github/workflows/go-check.yml"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -42,3 +42,16 @@ jobs:
           export DEDI_SOURCE="$GITHUB_WORKSPACE/dedi"
           export PG_BIN="$(pg_config --bindir)"
           ./scripts/test-dedi.sh
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.8'
+          cache-dependency-path: services/gateway/go.sum
+      - name: Test real PostgreSQL races, migrations and lifecycle CAS
+        run: |
+          export PG_BIN="$(pg_config --bindir)"
+          ./scripts/test-postgres.sh

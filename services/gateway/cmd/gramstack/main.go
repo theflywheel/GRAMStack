@@ -13,12 +13,18 @@ import (
 
 func main() {
 	if len(os.Args) > 1 {
-		if os.Args[1] != "anchor" {
-			log.Fatal("usage: gramstack [anchor flags]")
-		}
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		if err := anchor(ctx, os.Args[2:], os.Stdout); err != nil {
+		var err error
+		switch os.Args[1] {
+		case "anchor":
+			err = anchor(ctx, os.Args[2:], os.Stdout)
+		case "migrate":
+			err = migrate(ctx, os.Args[2:], os.Stdout)
+		default:
+			err = errors.New("usage: gramstack [anchor flags | migrate]")
+		}
+		if err != nil {
 			log.Fatal(err)
 		}
 		return
