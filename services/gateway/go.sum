@@ -1,0 +1,4 @@
+github.com/looplab/fsm v1.0.4 h1:UydovCL/p39HLvmBsLNsX/WgpfyfTZ+3e7YEFywkLMI=
+github.com/looplab/fsm v1.0.4/go.mod h1:PmD3fFvQEIsjMEfvZdrCDZ6y8VwKTwWNjlpEr6IKPO4=
+golang.org/x/mod v0.38.0 h1:MECBjubtXD7yj4HrhIUcywNaGeNVUdfVnxmPajOk4yk=
+golang.org/x/mod v0.38.0/go.mod h1:V6Xz0pq8TQ3dGqVQ1FVHuelZpAL0uNhSkk9ogYP3c40=

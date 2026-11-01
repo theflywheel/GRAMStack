@@ -54,3 +54,17 @@ The documentation site vendors [Jacky Zhao's Quartz](https://github.com/jackyzha
 ## Specifications
 
 [Versioned specifications](specs/README.md) are the source for language-independent contracts, OpenAPI, JSON Schema, lifecycle transitions and fixtures. The docs build validates them and generates the Quartz specification section and exact downloadable copies. Run `npm run verify:specs` from `docs/` for contract checks alone.
+
+## Go implementation
+
+The internal [implementation task ledger](IMPLEMENTATION.md) tracks the build. Independent modules live in `services/gateway/`, `sdk/go/adapter/` and `adapters/lokos/`; the root `go.work` supports local development. There is no root Go module. LokOS imports and exercises the SDK.
+
+```sh
+./scripts/check-go.sh
+# Process liveness only; application readiness remains unavailable until configured.
+go -C services/gateway run ./cmd/gramstack
+```
+
+Go service checks build modules explicitly with `GOWORK=off`, run race tests and vet, compare the FSM graph to the spec and launch both executables for HTTP/shutdown smoke tests. Before the SDK's first published release, the independent adapter check uses a temporary module-file replacement for the local SDK source.
+
+DeDi uses the actual [DeDi-node publication and proof protocol](services/gateway/internal/evidence/dedi/README.md). For an isolated real-node integration test, set `DEDI_SOURCE` and `PG_BIN`, then run `scripts/test-dedi.sh`. It creates and removes a temporary local PostgreSQL cluster and publishes only synthetic commitments.

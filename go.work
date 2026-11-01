@@ -1,0 +1,11 @@
+go 1.26.0
+
+toolchain go1.26.8
+
+use (
+    ./services/gateway
+    ./sdk/go/adapter
+    ./adapters/lokos
+)
+
+replace github.com/theflywheel/GRAMStack/sdk/go/adapter v0.0.0 => ./sdk/go/adapter
