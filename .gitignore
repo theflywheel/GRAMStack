@@ -1,0 +1,25 @@
+# Dependencies and generated output
+**/node_modules/
+design-site/public/
+design-site/.quartz/
+design-site/.quartz-cache/
+design-site/prof/
+**/tsconfig.tsbuildinfo
+
+# Local configuration, credentials, and internal review material
+.DS_Store
+**/.DS_Store
+.env
+.env.*
+!.env.example
+.railway/
+**/.railway/
+.codex/
+.agents/
+docs/internal/
+**/.obsidian/
+**/private/
+
+# Quartz upstream documentation/release automation is not this project's CI
+design-site/docs/
+design-site/.github/

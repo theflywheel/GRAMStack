@@ -1,0 +1,28 @@
+name: Verify design site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: design-site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: design-site/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm run verify:content
+      - run: npm run verify:server
