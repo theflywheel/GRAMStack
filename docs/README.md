@@ -12,7 +12,7 @@ Public architecture documentation built on [Quartz 5](https://github.com/jackyzh
 
 ## Authoring
 
-Edit `content/01-*.md` through `content/12-*.md`. Run `npm run assemble` to regenerate the continuous reading page, then build. The build emits a downloadable Markdown document. Original design artefacts and internal review notes remain outside this project under `../docs/design/` and `../docs/internal/`. They are excluded from publication.
+Edit `content/01-*.md` through `content/12-*.md`. Run `npm run assemble` to regenerate the continuous reading page, then build. The build emits a downloadable Markdown document. Original design artefacts and internal review notes are retained locally under `design/` and `internal/`. They are excluded from publication.
 
 The public site presents the architecture directly. Illustrative payloads and technical security requirements remain explicit. Internal approval and delivery tracking are maintained separately. Raw private transcripts, credentials and team-chat attachments are not published.
 
@@ -29,7 +29,7 @@ railway up . --path-as-root --service design-site --detach
 railway logs --build
 ```
 
-The source folder is the deployment root. `railway.toml`, `.railwayignore` and `.dockerignore` control packaging. Set the public host in `quartz.config.yaml` before changing domains. The source repository is `theflywheel/GRAMStack`, with this site under `design-site/`. Railway deployments upload this directory through the CLI; GitHub CI validates the build without deploying.
+The source folder is the deployment root. `railway.toml`, `.railwayignore` and `.dockerignore` control packaging. Set the public host in `quartz.config.yaml` before changing domains. The source repository is `theflywheel/GRAMStack`, with this site under `docs/`. Railway deployments upload this directory through the CLI; GitHub CI validates the build without deploying.
 
 The deployed URL is public to anyone who has it. Robots metadata requests no indexing; that is not access control. The content contains design material and fictional examples, not private transcript dumps.
 

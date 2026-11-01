@@ -1331,7 +1331,7 @@ The operating model defines the applicable consent profile, legal operator roles
 
 ## Source repository
 
-The architecture documents, Quartz site, build scripts and Railway deployment configuration are maintained in [theflywheel/GRAMStack](https://github.com/theflywheel/GRAMStack). The site source lives under `design-site/`, with chapter Markdown under `design-site/content/`.
+The architecture documents, Quartz site, build scripts and Railway deployment configuration are maintained in [theflywheel/GRAMStack](https://github.com/theflywheel/GRAMStack). The site source lives under `docs/`, with chapter Markdown under `docs/content/`.
 
 ## This site
 

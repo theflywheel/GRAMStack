@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: design-site
+        working-directory: docs
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: design-site/package-lock.json
+          cache-dependency-path: docs/package-lock.json
       - run: npm ci
       - run: npm run build
       - run: npm run verify:content

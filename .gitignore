@@ -1,9 +1,9 @@
 # Dependencies and generated output
 **/node_modules/
-design-site/public/
-design-site/.quartz/
-design-site/.quartz-cache/
-design-site/prof/
+docs/public/
+docs/.quartz/
+docs/.quartz-cache/
+docs/prof/
 **/tsconfig.tsbuildinfo
 
 # Local configuration, credentials, and internal review material
@@ -21,5 +21,4 @@ docs/internal/
 **/private/
 
 # Quartz upstream documentation/release automation is not this project's CI
-design-site/docs/
-design-site/.github/
+docs/.github/
