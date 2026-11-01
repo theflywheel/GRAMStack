@@ -12,6 +12,9 @@ Read-only, consent-first interoperability for Indian DPI registries. GRAMStack c
 | Path | Contents |
 |---|---|
 | `infra/railway/` | Project-level Railway configuration and isolated deployment tooling |
+| `services/gateway/` | Independent Go core module, including Consent Manager and enforcement |
+| `sdk/go/adapter/` | Independent adapter Go SDK module |
+| `adapters/lokos/` | Reference adapter implemented using the SDK |
 | `specs/` | Versioned API, adapter, consent, grant, evidence and lifecycle contracts |
 | `docs/` | Quartz 5 source, public architecture chapters and Railway deployment |
 | `docs/content/` | Chapter Markdown and generated continuous reading document |

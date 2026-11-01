@@ -46,14 +46,14 @@ Add another `service(...)` to the same definition and include it in `resources`.
 ```ts
 import { github, service } from "railway/iac";
 
-const gramstack = service("gramstack", {
+const gateway = service("gateway", {
   source: github("theflywheel/GRAMStack", { branch: "main", rootDirectory: "/" }),
   build: {
     builder: "DOCKERFILE",
-    dockerfilePath: "infra/containers/gramstack/Dockerfile",
+    dockerfilePath: "infra/containers/gateway/Dockerfile",
     watchPatterns: [
-      "/cmd/gramstack/**", "/internal/**", "/go.mod", "/go.sum",
-      "/specs/**", "/infra/containers/gramstack/**", "/.dockerignore",
+      "/services/gateway/**",
+      "/specs/**", "/infra/containers/gateway/**", "/.dockerignore",
     ],
   },
   healthcheck: "/healthz",
@@ -61,7 +61,7 @@ const gramstack = service("gramstack", {
 });
 ```
 
-This is an onboarding example, not an active service or an assertion that the backend exists. The code service can instead omit `source` and use targeted CLI uploads, as docs does today. Connecting a GitHub source enables the repository deployment path; configure its branch and checks deliberately. For an independent component with no shared files, use its subdirectory as root and make all build commands/Dockerfile COPY paths relative to that directory. Mocks remain under `mocks/`, separate from core `cmd/` and production services.
+This is an onboarding example, not an active Railway service; the gateway module exists under `services/gateway/`, while its application routes and deployment image are still being built. The code service can instead omit `source` and use targeted CLI uploads, as docs does today. Connecting a GitHub source enables the repository deployment path; configure its branch and checks deliberately. For an independent component with no shared files, use its subdirectory as root and make all build commands/Dockerfile COPY paths relative to that directory. Mocks remain under `mocks/`, separate from core `cmd/` and production services.
 
 ## Adding an upstream image service
 
