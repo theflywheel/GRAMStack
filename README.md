@@ -11,6 +11,7 @@ Read-only, consent-first interoperability for Indian DPI registries. GRAMStack c
 
 | Path | Contents |
 |---|---|
+| `infra/railway/` | Project-level Railway configuration and isolated deployment tooling |
 | `specs/` | Versioned API, adapter, consent, grant, evidence and lifecycle contracts |
 | `docs/` | Quartz 5 source, public architecture chapters and Railway deployment |
 | `docs/content/` | Chapter Markdown and generated continuous reading document |
@@ -35,9 +36,16 @@ The site runs on `http://localhost:8080`. Edit the numbered Markdown chapters in
 
 ## Deployment
 
-Railway project: `gramstack-design`; service: `docs`. Run `railway up . --path-as-root --service docs --detach` from the repository root after authenticating and linking the CLI. For a Git-based deployment, use repository root `/` with `docs/Dockerfile`. The repository-root build context includes `specs/`; the app remains in `docs/`. The Dockerfile builds Quartz and serves only generated static output through a dependency-free server.
+Railway project: `gramstack-design`; current service: `docs`. [Infrastructure configuration and onboarding examples](infra/railway/README.md) cover code-built services, upstream container images and per-service deployment settings.
 
-GitHub Actions validates the documentation; it does not publish automatically.
+```sh
+npm ci --prefix infra/railway
+npm run --prefix infra/railway plan
+npm run --prefix infra/railway apply
+railway up . --path-as-root --service docs --detach
+```
+
+The active project graph is `infra/railway/railway.ts`. Docs uses the repository-root context with `docs/Dockerfile` to include `specs/`; other services have independent sources and builds. GitHub Actions validates the repository without publishing automatically.
 
 ## Upstream
 
@@ -46,5 +54,3 @@ The documentation site vendors [Jacky Zhao's Quartz](https://github.com/jackyzha
 ## Specifications
 
 [Versioned specifications](specs/README.md) are the source for language-independent contracts, OpenAPI, JSON Schema, lifecycle transitions and fixtures. The docs build validates them and generates the Quartz specification section and exact downloadable copies. Run `npm run verify:specs` from `docs/` for contract checks alone.
-
-The Railway service must use Dockerfile path `docs/Dockerfile`, repository-root build context and health check `/healthz`; these service settings match the root `railway.toml`.

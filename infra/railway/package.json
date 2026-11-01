@@ -1,0 +1,16 @@
+{
+  "name": "@gramstack/railway-infra",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "plan": "railway config plan --file railway.ts --environment production",
+    "apply": "railway config apply --file railway.ts --environment production",
+    "check": "node verify.mjs"
+  },
+  "devDependencies": {
+    "railway": "3.16.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

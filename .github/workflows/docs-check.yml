@@ -3,7 +3,9 @@ name: Verify design site
 on:
   push:
     branches: [main]
+    paths: ["docs/**", "specs/**", ".dockerignore", ".railwayignore", ".github/workflows/docs-check.yml"]
   pull_request:
+    paths: ["docs/**", "specs/**", ".dockerignore", ".railwayignore", ".github/workflows/docs-check.yml"]
   workflow_dispatch:
 
 permissions:

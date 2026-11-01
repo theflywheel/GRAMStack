@@ -22,3 +22,6 @@ docs/internal/
 
 # Quartz upstream documentation/release automation is not this project's CI
 docs/.github/
+
+# Local Railway CLI state/import scratch (canonical config is infra/railway/railway.ts)
+**/.railway/

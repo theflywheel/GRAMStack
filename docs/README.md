@@ -26,10 +26,10 @@ From the repository root, with Railway authenticated and linked:
 
 ```sh
 railway up . --path-as-root --service docs --detach
-railway logs --build
+railway logs --build --service docs
 ```
 
-The repository root is the Docker build context so the build can include the canonical sibling `specs/` directory. The application and Markdown remain under `docs/`. `railway.toml`, `.railwayignore` and `.dockerignore` control packaging. Set the public host in `quartz.config.yaml` before changing domains. The source repository is `theflywheel/GRAMStack`, with this site under `docs/`. Railway deployments upload the repository root through the CLI; GitHub CI validates the build without deploying.
+The repository root is the Docker build context so the build can include the canonical sibling `specs/` directory. The application and Markdown remain under `docs/`. The project definition is `infra/railway/railway.ts`; root `.railwayignore` and `.dockerignore` control packaging. Set the public host in `quartz.config.yaml` before changing domains. The source repository is `theflywheel/GRAMStack`, with this site under `docs/`. Railway deployments upload the repository root through the CLI; GitHub CI validates the build without deploying.
 
 The deployed URL is public to anyone who has it. Robots metadata requests no indexing; that is not access control. The content contains design material and fictional examples, not private transcript dumps.
 
@@ -45,4 +45,4 @@ Dependency audit after non-breaking fixes: two moderate advisories remain in ups
 
 Edit `../specs/` for normative contracts. `npm run verify:specs` checks the OpenAPI document, schema references, fixtures and lifecycle. The build generates `content/specifications/` from those sources and copies exact downloads to `public/static/specs/`. Generated Markdown is committed alongside the architecture export; public build output is ignored by Git. Do not edit generated specification pages.
 
-The Railway service must use Dockerfile path `docs/Dockerfile`, repository-root build context and health check `/healthz`; these service settings match the root `railway.toml`.
+See [Railway infrastructure and service onboarding](../infra/railway/README.md). The docs service has its own build, watch paths and health check; other monorepo services use independent settings.
