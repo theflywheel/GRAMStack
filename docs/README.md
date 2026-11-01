@@ -18,14 +18,14 @@ The public site presents the architecture directly. Illustrative payloads and te
 
 ## Railway
 
-Project: `gramstack-design`; service: `design-site`.
+Project: `gramstack-design`; service: `docs`.
 
 The multi-stage Dockerfile builds Quartz and runs a dependency-free static server. Only the static output and server enter the runtime image. It does not run GRAMStack, connect registries or store identities. Railway health check: `/healthz`, port 8080.
 
 From the repository root, with Railway authenticated and linked:
 
 ```sh
-railway up . --path-as-root --service design-site --detach
+railway up . --path-as-root --service docs --detach
 railway logs --build
 ```
 

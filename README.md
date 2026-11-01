@@ -35,7 +35,7 @@ The site runs on `http://localhost:8080`. Edit the numbered Markdown chapters in
 
 ## Deployment
 
-Railway project: `gramstack-design`; service: `design-site`. Run `railway up . --path-as-root --service design-site --detach` from the repository root after authenticating and linking the CLI. For a Git-based deployment, use repository root `/` with `docs/Dockerfile`. The repository-root build context includes `specs/`; the app remains in `docs/`. The Dockerfile builds Quartz and serves only generated static output through a dependency-free server.
+Railway project: `gramstack-design`; service: `docs`. Run `railway up . --path-as-root --service docs --detach` from the repository root after authenticating and linking the CLI. For a Git-based deployment, use repository root `/` with `docs/Dockerfile`. The repository-root build context includes `specs/`; the app remains in `docs/`. The Dockerfile builds Quartz and serves only generated static output through a dependency-free server.
 
 GitHub Actions validates the documentation; it does not publish automatically.
 
