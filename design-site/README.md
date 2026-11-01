@@ -25,7 +25,7 @@ The multi-stage Dockerfile builds Quartz and runs a dependency-free static serve
 From this directory, with Railway authenticated and linked:
 
 ```sh
-railway up --service design-site --detach
+railway up . --path-as-root --service design-site --detach
 railway logs --build
 ```
 
