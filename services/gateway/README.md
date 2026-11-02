@@ -8,6 +8,6 @@ Run `go run ./cmd/gramstack`. PORT defaults to 8080. `/healthz` reports process 
 
 `migrations/` contains embedded, checksummed migrations applied under a database advisory lock. Run `DATABASE_URL=... go run ./cmd/gramstack migrate` as an explicit deployment operation. The access repository commits FSM transitions with version checks and metadata outbox events. The enforcement repository serializes withdrawal and single-use redemption by locking the same consent row, retaining consumed reservations across later withdrawal.
 
-These repositories are internal primitives. Authenticating actors, validating signed grants and recording valid human approval/activation must precede their protected use; no HTTP bypass is exposed. The integration tests create ACTIVE consent only as isolated SQL fixtures while the Consent Manager's signing/activation flow is implemented.
+These repositories are internal primitives. Authenticating actors, validating signed grants and recording valid human approval/activation must precede their protected use; no HTTP bypass is exposed. Enforcement-only tests seed ACTIVE rows as isolated fixtures. The [Consent Manager tests](internal/consentmanager/README.md) additionally create notices, record decisions and activate through actual ES256 signing before exercising one-use enforcement.
 
 Run `PG_BIN=... scripts/test-postgres.sh` from repository root for real database concurrency tests. The runner owns and removes its own private-socket PostgreSQL cluster and never connects to production.

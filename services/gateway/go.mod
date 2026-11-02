@@ -7,6 +7,8 @@ toolchain go1.26.8
 require github.com/looplab/fsm v1.0.4
 
 require (
+	github.com/go-jose/go-jose/v4 v4.1.7
+	github.com/gowebpki/jcs v1.0.1
 	github.com/jackc/pgx/v5 v5.12.0
 	golang.org/x/mod v0.38.0
 )

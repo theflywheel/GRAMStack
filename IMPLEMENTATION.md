@@ -56,8 +56,9 @@ This is the internal delivery ledger. Versioned protocol contracts live under `s
 
 - Completed: T01 (independent development modules/CI), T02 (library-backed request and consent FSMs), T03 (process shells and live HTTP/shutdown checks), T04 (SDK provider contract and field projection), T14 (signed DeDi client, proof verification, actual-node and gateway CLI integration).
 - In progress: T09/T11 persistence slice adds embedded checksummed migrations, request FSM CAS, transactional outbox and the common withdrawal/redemption row-lock authority. Real PostgreSQL tests cover concurrent single-use admission, retries, conflicting grants, expiry and withdrawal ordering.
-- Consent notice/decision/signing, full activation, jobs/outbox delivery, authorization checks and protected HTTP routes remain separate tasks; a SQL ACTIVE fixture exists only in integration tests.
-- Next: complete Consent Manager notice/decision/signing and activation on this SQL boundary, then implement the protected SDK retrieval pipeline.
+- Completed T11 application-core slice: immutable English notices, trusted context/terms bindings, principal-bound decisions, ES256 signed artefacts, atomic verified activation, read-only artefact retrieval and idempotent expiry. Real database tests exercise the signed activation → one-use redemption → withdrawal path.
+- Remaining T09/T11 integration: durable worker scheduling/event delivery and authenticated HTTP/session/CSRF wiring. Enforcement-only fixtures still isolate SQL race behavior; Consent Manager integration tests use the actual signed workflow.
+- Next: wire consumer authentication and first-party sessions/subject contexts, then scoped grant issuance/validation and the protected SDK retrieval pipeline.
 - T03 readiness intentionally reports unavailable until application dependencies are implemented; the process shells do not claim an operational data-sharing service.
 - DeDi inclusion is verified, while witness/consistency policy and durable custody/outbox recovery remain T15. No full-system conformance claim is made.
 - `looplab/fsm` is used for FSM decisions. SQL expected-version updates will own concurrency; an in-memory FSM lock does not provide distributed consistency.
