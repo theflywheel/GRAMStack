@@ -288,7 +288,7 @@ func (s *Service) upstreamCallback(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	principal := Principal{Reference: rand.Text(), Issuer: token.Issuer, Subject: token.Subject, AuthenticatedAt: time.Unix(claims.AuthTime, 0).UTC(), Methods: claims.Methods}
+	principal := Principal{Reference: rand.Text(), Issuer: token.Issuer, Subject: token.Subject, AuthenticationTransactionID: inner.Outer.State, ExpiresAt: inner.Outer.ExpiresAt, AuthenticatedAt: time.Unix(claims.AuthTime, 0).UTC(), Methods: claims.Methods}
 	// Request-scoped reauthentication reuses an opaque reference only after the
 	// same issuer/subject is freshly verified. It creates no cross-registry index.
 	var previous Principal

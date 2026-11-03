@@ -29,9 +29,11 @@ type provider struct {
 	client   *http.Client
 }
 type Principal struct {
-	Reference, Issuer, Subject string
-	AuthenticatedAt            time.Time
-	Methods                    []string
+	Reference, Issuer, Subject  string
+	AuthenticationTransactionID string
+	ExpiresAt                   time.Time
+	AuthenticatedAt             time.Time
+	Methods                     []string
 }
 
 func trustedURL(raw string, loopback bool) bool {

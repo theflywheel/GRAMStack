@@ -4,7 +4,7 @@ set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 : "${PG_BIN:?Set PG_BIN to the PostgreSQL binary directory}"
 : "${HYDRA_BIN:?Set HYDRA_BIN to an official Ory Hydra v26.2.0 executable}"
-"$HYDRA_BIN" version | head -1 | grep -q 'v26.2.0'
+"$HYDRA_BIN" version | awk 'NR == 1 && $NF == "v26.2.0" {found=1} END {exit !found}'
 scratch=$(mktemp -d /tmp/gramstack-hydra.XXXXXX)
 hydra_pid=''
 gateway_pid=''
