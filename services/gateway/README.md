@@ -23,3 +23,7 @@ Request creation canonicalises and validates input, rejects duplicate JSON keys/
 This increment resolves terms/allowlists from immutable deployment configuration; dynamic source-policy administration and grant-time current-policy checks belong to D07. Production ingress rate limiting, snapshot cleanup workers and end-to-end readiness are not supplied by this increment.
 
 Run `PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` from the repository root to exercise actual Hydra client credentials, introspection and revocation, then create/poll/cancel against a configured running gateway. Use an official checksum-verified Hydra v26.2.0 binary. The runner creates isolated databases/processes, uses synthetic credentials and removes them on exit. CI pins the official Linux archive SHA-256. Unit/SQL tests additionally cover wrong issuer/audience/token-use, malformed requests, scope substitution, ownership, concurrent/restart idempotency, deadlines and rollback.
+
+## Optional citizen authentication increment
+
+The optional `authentication` configuration enables `/auth/*` federation handlers and `/interactions/{id}`. See [AuthN](internal/authn/README.md) for protocol boundaries, secrets, cookies and tests. A completed login advances to BINDING_PENDING and does not create registry ownership, disclosure consent or a grant. The interaction currently shows a plain authenticated checkpoint; the consent product UI and source verification are distinct subsequent tasks. `/readyz` continues to report unavailable for the full service.

@@ -15,6 +15,7 @@ Read-only, consent-first interoperability for Indian DPI registries. GRAMStack c
 | `services/gateway/` | Independent Go core module, including Consent Manager and enforcement |
 | `sdk/go/adapter/` | Independent adapter Go SDK module |
 | `adapters/lokos/` | Reference adapter implemented using the SDK |
+| `mocks/identity/` | Separately runnable fictional OIDC provider for demo/protocol tests |
 | `specs/` | Versioned API, adapter, consent, grant, evidence and lifecycle contracts |
 | `docs/` | Quartz 5 source, public architecture chapters and Railway deployment |
 | `docs/content/` | Chapter Markdown and generated continuous reading document |

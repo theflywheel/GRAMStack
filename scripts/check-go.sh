@@ -4,7 +4,7 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 cmp "$root/specs/0.2.0/lifecycle.json" "$root/services/gateway/internal/access/testdata/lifecycle.json"
-for module in sdk/go/adapter services/gateway; do
+for module in sdk/go/adapter services/gateway mocks/identity; do
   GOWORK=off go -C "$root/$module" test -race ./...
   GOWORK=off go -C "$root/$module" vet ./...
 done

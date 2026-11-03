@@ -58,6 +58,9 @@ jobs:
 
   hydra-integration:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        authn: [0, 1]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
@@ -74,4 +77,4 @@ jobs:
         run: |
           export HYDRA_BIN="$RUNNER_TEMP/hydra/hydra"
           export PG_BIN="$(pg_config --bindir)"
-          ./scripts/test-hydra.sh
+          GRAMSTACK_TEST_AUTHN=${{ matrix.authn }} ./scripts/test-hydra.sh

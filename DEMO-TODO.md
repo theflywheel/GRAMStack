@@ -15,7 +15,7 @@ Gate A: D01–D02 pass integration/contract checks; an authenticated consumer ca
 
 ## Phase B — person, subject and consent
 
-- [ ] D03 Authentication and first-party sessions. Federated code flow, state/nonce/PKCE, pinned issuer/audience verification, secure cookies, CSRF, expiry and reauthentication. Test callback replay, session substitution and untrusted redirects.
+- [x] D03 Authentication and first-party sessions. Federated code flow, state/nonce/PKCE, pinned issuer/audience verification, secure cookies, CSRF, expiry and reauthentication. Test callback replay, session substitution and untrusted redirects.
 - [ ] D04 Registry subject verification. Registry-approved demo verifier binds a fictional source record to request and principal. Locator/login alone is insufficient. Demonstrate incorrect-member denial and test-only verifier rejection in production configuration.
 - [ ] D05 Consent portal. Presentable exact notice with recipient/retention terms, approve/reject, withdrawal and receipts. Authenticated sessions and reviewed supported language templates; explicitly disclose unsupported languages.
 - [ ] D06 Durable workers. Lease/ack/retry signing, activation, expiry, notifications and reconciliation. Test competing workers, outage recovery and process restart without duplicated authority.
@@ -59,5 +59,6 @@ Gate E: D15–D17 pass. Final deliverables are a working product, reusable platf
 - D01 passed: `./scripts/check-go.sh`; `PG_BIN=/opt/homebrew/opt/postgresql@15/bin ./scripts/test-postgres.sh`; docs build/contract/content verification. Includes deterministic signing-stop tests, cancellation/redemption races, non-owner denial, idempotency, rollback and late-callback rejection. HTTP exposure follows in D02.
 - D02 passed: independent Go race/vet/process checks; real PostgreSQL HTTP/concurrency/restart/rollback/deadline tests; `PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` against official Hydra v26.2.0. Actual client credentials → introspection → configured running gateway create/poll/cancel passed; actual token revocation denied access. CI includes the same isolated real-Hydra test.
 - Gate A passed locally and in [Go CI](https://github.com/theflywheel/GRAMStack/actions/runs/41608478751): D01/D02. No data/grant/browser routes are exposed. Snapshot cleanup, ingress rate limits and full service readiness remain explicit D06/D12 responsibilities.
-- Active: Phase B, starting D03 first-party authentication/session flow.
+- D03 passed locally: race/vet/process checks; PostgreSQL encrypted TTL/one-use/restart/session tests; official Hydra v26.2.0 → separate fictional IdP → configured gateway federation. Negative issuer/audience/nonce/signature, callback replay, wrong browser, request expiry/cancellation and different-person takeover tests pass. Authentication stops at BINDING_PENDING and creates no disclosure consent. CI runs both consumer-only and federation variants.
+- Active: Phase B, D04 registry-approved subject verification, followed by D05 portal and D06 workers. Gate B remains open.
 - No demo video or end-to-end product exists at checklist creation. No D task is marked complete from documentation alone.

@@ -8,9 +8,11 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 scratch=$(mktemp -d /tmp/gramstack-hydra.XXXXXX)
 hydra_pid=''
 gateway_pid=''
+idp_pid=''
 cleanup(){
  if [[ -n "$gateway_pid" ]]; then kill "$gateway_pid" 2>/dev/null || true; wait "$gateway_pid" 2>/dev/null || true; fi
  if [[ -n "$hydra_pid" ]]; then kill "$hydra_pid" 2>/dev/null || true; wait "$hydra_pid" 2>/dev/null || true; fi
+ if [[ -n "$idp_pid" ]]; then kill "$idp_pid" 2>/dev/null || true; wait "$idp_pid" 2>/dev/null || true; fi
  "$PG_BIN/pg_ctl" -D "$scratch/pg" -m immediate -w stop >/dev/null 2>&1 || true
  rm -rf "$scratch"
 }
@@ -25,6 +27,9 @@ free_port(){ python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0
 public_port=$(free_port)
 admin_port=$(free_port)
 gateway_port=$(free_port)
+idp_port=$(free_port)
+export GRAMSTACK_TEST_GATEWAY_URL="http://127.0.0.1:$gateway_port"
+export URLS_LOGIN="$GRAMSTACK_TEST_GATEWAY_URL/auth/login" URLS_CONSENT="$GRAMSTACK_TEST_GATEWAY_URL/auth/oauth-consent"
 export GRAMSTACK_TEST_HYDRA_PUBLIC="http://127.0.0.1:$public_port"
 export GRAMSTACK_TEST_HYDRA_ADMIN="http://127.0.0.1:$admin_port"
 export URLS_SELF_ISSUER="$GRAMSTACK_TEST_HYDRA_PUBLIC/"
@@ -50,6 +55,29 @@ policy=dict(registry='lokos',resource='shg.membership',fields=['membership_statu
 config=dict(public_origin='http://127.0.0.1:'+os.environ['PORT'],hydra_introspection_url=os.environ['GRAMSTACK_TEST_HYDRA_ADMIN']+'/admin/oauth2/introspect',hydra_issuer=os.environ['GRAMSTACK_TEST_HYDRA_PUBLIC']+'/',audience='gramstack',scope='gramstack.access',allow_loopback_http=True,consumers={'consumer-one':[policy]})
 pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']).write_text(json.dumps(config))
 PY
+if [[ "${GRAMSTACK_TEST_AUTHN:-}" == 1 ]]; then
+ export GRAMSTACK_TEST_IDP_URL="http://127.0.0.1:$idp_port"
+ export OIDC_ISSUER="$GRAMSTACK_TEST_IDP_URL" OIDC_CLIENT_ID="gramstack-upstream" OIDC_CLIENT_SECRET="isolated-upstream-secret" OIDC_REDIRECT_URI="$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback"
+ export GRAMSTACK_AUTH_KEY=$(python3 -c 'import base64,secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())')
+ export GRAMSTACK_PORTAL_CLIENT_SECRET="isolated-portal-secret" GRAMSTACK_UPSTREAM_CLIENT_SECRET="$OIDC_CLIENT_SECRET"
+ GOWORK=off go -C "$root/mocks/identity" build -o "$scratch/demo-idp" ./cmd/demo-idp
+ PORT="$idp_port" "$scratch/demo-idp" > "$scratch/idp.log" 2>&1 &
+ idp_pid=$!
+ ready=false
+ for _ in $(seq 1 100); do
+  if curl -fsS "$GRAMSTACK_TEST_IDP_URL/healthz" >/dev/null 2>&1; then ready=true; break; fi
+  sleep 0.1
+ done
+ if [[ "$ready" != true ]]; then echo 'Demo IdP failed startup' >&2; cat "$scratch/idp.log" >&2; exit 1; fi
+ python3 - <<'PYA'
+import json,os,pathlib,urllib.request
+path=pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']);config=json.loads(path.read_text())
+config['authentication']=dict(client_id='gramstack-portal',hydra_admin_url=os.environ['GRAMSTACK_TEST_HYDRA_ADMIN'],upstream_issuer=os.environ['GRAMSTACK_TEST_IDP_URL'],upstream_client_id='gramstack-upstream',demo_upstream=True)
+path.write_text(json.dumps(config))
+body=dict(client_id='gramstack-portal',client_secret=os.environ['GRAMSTACK_PORTAL_CLIENT_SECRET'],grant_types=['authorization_code'],response_types=['code'],scope='openid',redirect_uris=[os.environ['GRAMSTACK_TEST_GATEWAY_URL']+'/auth/callback'],token_endpoint_auth_method='client_secret_basic')
+with urllib.request.urlopen(urllib.request.Request(os.environ['GRAMSTACK_TEST_HYDRA_ADMIN']+'/admin/clients',data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})) as response: assert response.status==201
+PYA
+fi
 "$scratch/gateway" > "$scratch/gateway.log" 2>&1 &
 gateway_pid=$!
 ready=false
@@ -75,6 +103,9 @@ except urllib.error.HTTPError as error: assert error.code==401
 else: raise AssertionError('unauthenticated access accepted')
 print('PASS: real Hydra client credentials -> running gateway create/status/cancel; anonymous access rejected')
 PY
+if [[ "${GRAMSTACK_TEST_AUTHN:-}" == 1 ]]; then
+ GOWORK=off go -C "$root/services/gateway" test -race -count=1 -v -run TestActualFederation ./internal/authn
+fi
 kill -TERM "$gateway_pid"
 wait "$gateway_pid"
 gateway_pid=''
