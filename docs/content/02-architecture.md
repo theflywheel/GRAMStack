@@ -156,7 +156,7 @@ sequenceDiagram
     P->>S: Bind the platform request to the application
     P-->>B: Saved progress and sharing handoff
     B->>G: Sign in, verify source record and decide in a separate tab
-    Note over G: Consent activation and lifecycle projection use durable workers
+    Note over G: Consent activation and lifecycle<br/>projection use durable workers
     B->>P: Check application progress
     P->>G: GET request status using consumer OAuth
     G-->>P: Current workflow status
@@ -166,7 +166,7 @@ sequenceDiagram
     G-->>P: Scoped short-lived retrieval grant
     P->>S: Commit one fixed-deadline fetch claim
     P->>G: GET data over consumer mTLS with the grant
-    Note over G: SDK admission, exact projection and durable evidence precede release
+    Note over G: SDK admission and exact projection<br/>with durable evidence before release
     G-->>P: Approved fields and access receipt reference
     P->>S: Commit encrypted received result
     P-->>B: Present the approved fields
