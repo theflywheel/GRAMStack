@@ -1,7 +1,7 @@
 ---
 title: 11 · Architecture choices
 description: The architectural choices behind federated identity, consent-first retrieval, registry adapters and verifiable evidence.
-date: 2026-11-01
+date: 2026-11-03
 ---
 # Architecture choices
 
@@ -45,6 +45,21 @@ A verified context contains the authorized issuer, opaque registry subject, inte
 | Canonical data | Resource semantics, field mappings, source freshness and supported operations |
 
 Profiles must preserve the same core guarantees. An integration cannot relax subject verification, human consent, scope enforcement or mandatory evidence by treating these as optional deployment details.
+
+## Channel-independent platform contracts
+
+| Concern | Architectural choice |
+|---|---|
+| Product logic | Voice/AI interpretation, credit/advisory decisions and conversational state remain outside the platform |
+| Fixed scope | Approve/reject the exact request; clients cancel and create a new request when scope changes |
+| Purpose and terms | Bind trusted, versioned purpose/processing snapshots and supported time bounds to the immutable request |
+| Presentation | Retain exact notice and channel/language confirmation evidence separately from authority |
+| Assistance and representation | Assistance confers no authority; representative profiles require explicit verified scope |
+| Downstream handling | Bind recipient obligations and record authenticated handling assertions without claiming guaranteed deletion |
+| Rights | Expose protected history/export and durable routing/status for responsible organisations |
+| Multi-source products | Independent per-source requests; product correlation never broadens authority |
+| Protocol evolution | Version and negotiate extensions; preserve the published v0.1 schema and adapter enforcement |
+
 
 ## Consistency boundaries
 

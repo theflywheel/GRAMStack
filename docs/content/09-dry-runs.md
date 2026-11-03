@@ -1,7 +1,7 @@
 ---
 title: 09 · Dry runs and user screens
 description: Concrete approved, rejected, withdrawn and failed retrievals with storage checkpoints.
-date: 2026-11-01
+date: 2026-11-03
 ---
 # Dry runs and user screens
 
@@ -215,3 +215,18 @@ The interaction explains this admission cutoff to the user. If stronger post-red
 Sunita presents an SHG passbook to an authenticated, registry-authorized CRP. The CRP follows the registry's approved verification process. The procedure establishes an auditable subject context at the registry verification gate; possession of the passbook number is insufficient. The consent screen or assisted presentation still records Sunita's actual decision.
 
 Assisted access profiles can restrict disclosure to one registry, one visit and a specific purpose. Advisory-only verification does not automatically authorize a credit-data disclosure. The registry defines the assurance and purpose limits of each assisted route.
+
+## Scope change and downstream rights
+
+| Step | Actor | Platform behaviour | User-visible meaning |
+|---|---|---|---|
+| 1 | Product | Submit exact membership and savings request A | Show the matching notice and handling terms |
+| 2 | Sunita | Ask the product to omit savings | No partial approval or inferred decision is recorded |
+| 3 | Client | Cancel A and await its authoritative result | Explain whether future admission was blocked or already occurred |
+| 4 | Client | Create independent membership-only request B | Present fresh scope, terms and approval/rejection |
+| 5 | Platform | Apply source policy and normal admission/evidence gates | No authority carries from A to B |
+| 6 | Recipient | Process the disclosed fields under the bound handling policy | History identifies recipient and disclosed scope |
+| 7 | Sunita | Submit an erasure or grievance request | Receive a case reference, responsible organisation and status |
+| 8 | Responsible organisation | Perform action or report a reasoned exception | Completion is distinct from acknowledgement and withdrawal |
+
+If membership alone cannot serve the product's purpose, the product explains that and does not request unusable data. A voice interface may implement these screens as speech, but interpretation and business decisions remain in the product. Platform authority still comes from authenticated, request-bound confirmation.

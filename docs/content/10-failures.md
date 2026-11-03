@@ -1,7 +1,7 @@
 ---
 title: 10 · Failure and security review
 description: Negative cases, race conditions, recovery and conformance requirements.
-date: 2026-11-01
+date: 2026-11-03
 ---
 # Failure and security review
 
@@ -65,6 +65,22 @@ The consent authority signature is evidence of its process, not a cryptographic 
 8. Expiration is evaluated against deadlines even when cleanup has not run.
 9. Worker recovery records are durable before asynchronous acknowledgement.
 10. No local citizen provisioning is introduced by a convenient consent or IdP SDK default.
+
+## Additional platform assurance scenarios
+
+| Scenario | Required outcome |
+|---|---|
+| Scope changes after notice presentation | Old authority is cancelled through the admission gate; new request requires fresh notice/decision |
+| Cancellation races activation or redemption | Late activation cannot bypass cancellation; return the actual admission ordering |
+| Client/model claims a different approver or representative | Reject without a supported verified authority context |
+| Presented language/content differs from approved notice | Reject mismatched decision binding; retain presentation evidence |
+| Purpose, time bounds or processing terms change | Reject substitution; require a new request and approval |
+| Handler reports erasure before downstream work completes | Keep pending; receipt acceptance does not mean action completion |
+| Duplicate receipt ID has different content | Integrity error; preserve original and investigate |
+| Rights/export request targets another person's records | Deny without enumeration; audit the access attempt |
+| Retention exception or missing handling receipt | Preserve accountable status and apply deployment escalation policy |
+| Product correlates several source requests | No cross-request consent/grant reuse |
+
 
 ## Conformance plan before a real implementation
 

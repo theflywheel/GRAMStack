@@ -1,7 +1,7 @@
 ---
 title: 07 · API contracts
 description: Public, browser and internal APIs with payloads and processing rules.
-date: 2026-11-01
+date: 2026-11-03
 ---
 # API contracts
 
@@ -167,6 +167,25 @@ Consumer tokens, browser sessions, service tokens, grants and evidence signature
 ## Registry verification integration
 
 Capability discovery and verification workflows are adapter responsibilities. The gateway consumes a trusted verified context bound to the principal, registry and access request. Native verification mechanisms and assurance profiles are registry-specific; the architecture does not require every registry to operate an IdP.
+
+## Platform extension interfaces
+
+These architecture interfaces expose the additional platform responsibilities described in [consent](04-consent) and [data handling](08-state-and-evidence). Route shapes below are illustrative; they are not additions to the published v0.1 OpenAPI contract. A versioned capability/schema defines each extension before client adoption.
+
+| Interface | Authorised caller | Contract and timing |
+|---|---|---|
+| Cancel access request | Owning consumer | Idempotent command; atomically block future admission and return the authoritative cutoff result |
+| Resolve purpose/processing profile | Gateway and authorised clients | Read approved versions/digests; reject arbitrary URLs and incompatible scope |
+| Record presentation evidence | Trusted consent presentation component | Bind exact notice, channel, language and authenticated decision; durable before activation |
+| Consent/disclosure history and export | Reauthenticated subject or supported representative | Access-controlled, paginated/minimised history and machine-readable export |
+| Create/read rights case | Verified requester and responsible case handler | Durable acceptance and safe status; asynchronous routing/outcome |
+| Submit handling receipt | Registered recipient or authorised processor | Authenticate producer, verify disclosure/policy binding and commit idempotently |
+| Pause source or suspend consumer | Authorised source owner/operator | Audited current-policy change enforced at issuance and admission |
+
+Cancellation and receipt submission use operation-scoped idempotency keys; same key with changed content conflicts. Rights-case creation acknowledges acceptance, not erasure or correction. Public statuses distinguish pending, acknowledged, in progress, completed, exception and failed without exposing private internal diagnostics. Reliable notifications use authenticated outbox delivery and deduplication; polling/status remains authoritative.
+
+Neither case IDs nor export locators grant access. Browser mutations require session/CSRF protection; service mutations require scoped service credentials. Receipt lookup, export and administrative access are audited. The platform derives organisation/subject authority from trusted context, never from an arbitrary payload identity.
+
 
 ## Versioned implementation contracts
 

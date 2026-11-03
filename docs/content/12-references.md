@@ -1,7 +1,7 @@
 ---
 title: 12 · Standards and references
 description: Protocol standards, open implementations and integration references for the GRAMStack architecture.
-date: 2026-11-01
+date: 2026-11-03
 ---
 # Standards and references
 
@@ -21,6 +21,11 @@ GRAMStack combines federated authentication, consent-based sharing, scoped capab
 | [DPDP Act — India Code](https://www.indiacode.nic.in/bitstream/123456789/22037/2/a2023-22.pdf) | Legal role definition; deployment software is not operator registration |
 
 DEPA supplies the architectural reference for consented sharing. ReBIT maintains domain-specific financial-data-sharing standards. iSPIRT's [training](https://github.com/iSPIRT/depa-training) and [inferencing](https://github.com/iSPIRT/depa-inferencing) projects address additional privacy-preserving sharing/processing scenarios; they are not drop-in consent-manager successors.
+
+## DPDP operating requirements
+
+The [official DPDP Rules, 2025](https://www.meity.gov.in/static/uploads/2025/11/53450e6e5dc0bfa85ebd78686cadad39.pdf) inform notice accessibility, security, breach handling, retention, rights and registered Consent Manager obligations. Consult the [MeitY publication page](https://www.meity.gov.in/documents/act-and-policies/digital-personal-data-protection-rules-2025-gDOxUjMtQWa) for associated notifications and corrigenda. Deployments track applicable legal roles, commencement dates and current text in their responsibility/retention matrices. These obligations are distinct from DEPA architectural alignment and protocol conformance.
+
 
 ## Open implementation reading list
 

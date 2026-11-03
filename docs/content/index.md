@@ -1,12 +1,12 @@
 ---
 title: GRAMStack — System Architecture
 description: Read-only, consent-first interoperability for Indian DPI registries. Architecture, contracts, state and evidence.
-date: 2026-11-01
+date: 2026-11-03
 ---
-<div class="hero-kicker">System architecture / v0.13</div>
+<div class="hero-kicker">System architecture / v0.14</div>
 <div class="hero-title">One request.<br>Explicit consent.<br>Verifiable access.</div>
 <p class="hero-summary">GRAMStack connects applications to authoritative Indian DPI registries through common read APIs, federated authentication, registry-specific subject verification, human consent and narrowly scoped retrieval grants.</p>
-<div class="design-meta"><span>Architecture and protocols</span><span>1 November 2026</span><span>Read-only interoperability</span></div>
+<div class="design-meta"><span>Architecture and protocols</span><span>3 November 2026</span><span>Read-only interoperability</span></div>
 
 ## Explore the architecture
 
@@ -17,11 +17,11 @@ Start with the [purpose and scenario](01-purpose), then the [architecture](02-ar
 | [01 · Purpose and scenario](01-purpose) | Scope, actors and architectural invariants |
 | [02 · High-level architecture](02-architecture) | Components, trust boundaries, deployment and request paths |
 | [03 · Authentication](03-authentication) | Hydra, IdP adapters, browser sessions, eSignet and Indian identity integrations |
-| [04 · Consent manager](04-consent) | Notice, approval, artefacts, withdrawal and DEPA references |
+| [04 · Consent manager](04-consent) | Purpose/processing profiles, notice evidence, consent, cancellation and rights |
 | [05 · Authorization and grants](05-authorization) | Policy, single-use access, withdrawal ordering and sender binding |
 | [06 · Request lifecycle](06-lifecycle) | Sync/async boundaries, transitions, deadlines, retries and recovery |
 | [07 · API contracts](07-api-contracts) | Endpoint catalogue and illustrative requests/responses |
-| [08 · State and evidence](08-state-and-evidence) | Storage, retention, evidence custody and DeDi guarantees |
+| [08 · State and evidence](08-state-and-evidence) | Storage, downstream handling, retention, evidence custody and DeDi guarantees |
 | [09 · Dry runs and screens](09-dry-runs) | SakhiCredit → Sunita → LokOS, including assisted interaction |
 | [10 · Failure and security](10-failures) | Negative cases, concurrency, threat boundaries and conformance |
 | [11 · Architecture choices](11-decisions) | Component responsibilities, registry integration and deployment profiles |

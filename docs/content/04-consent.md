@@ -1,7 +1,7 @@
 ---
 title: 04 · Consent manager
 description: Request-bound human consent, durable artefacts, withdrawal and implementation boundaries.
-date: 2026-11-01
+date: 2026-11-03
 ---
 # Consent manager
 
@@ -29,7 +29,7 @@ graph TD
 
 The notice identifies SakhiCredit, LokOS, the requested membership and savings fields, credit-eligibility purpose, frequency, validity, recipient retention terms, withdrawal method, consequences of refusal and help/grievance channel. It is presented in an accessible language; language, template revision and exact rendered content are retained as evidence.
 
-For the single-disclosure profile, approval covers one bounded disclosure. Repeated/recurring consent, partial field approval, minors, guardians and delegated consent require explicit profiles. The interaction approves or rejects the exact request as a whole. If scope changes, create a new request rather than mutate a signed decision.
+For the single-disclosure profile, approval covers one bounded disclosure. Repeated/recurring consent, minors, guardians and delegated consent require explicit profiles. The interaction approves or rejects the exact request as a whole. There is no partial-refusal state, request-revision object or scope negotiation in the platform. If the person wants a narrower scope, the client cancels the old request and creates an independent new request with a fresh notice and decision. Cancellation must be acknowledged before treating the old authority as blocked; it cannot undo an admitted disclosure.
 
 The browser session must correspond to the trusted verified-subject context. The module derives the approver from validated session state, never caller-provided `subject` JSON. CRP assistance does not make the CRP the approver.
 
@@ -100,6 +100,105 @@ Use a standard signature envelope and trusted issuer/key discovery. The consent 
 An authenticated subject can review the notice/artefact and request withdrawal while future access remains possible. A permanent citizen account is not required. Later access uses reauthentication, an authorized evidence lookup and request-bound recovery correlation. A raw receipt ID or SMS link alone cannot authorize withdrawal.
 
 The reference flow admits retrieval at atomic redemption; withdrawal before that point blocks admission. Consent status and redemption must share one atomic enforcement boundary to prevent check-then-use races. See [authorization](05-authorization). After plaintext release, withdrawal cannot recall copied data. Applicable downstream obligations need operational enforcement beyond token revocation.
+
+## Product and platform boundary
+
+Products supply use cases and user interfaces; GRAMStack supplies bounded disclosure authority and accountable evidence. A voice assistant, a credit application and a mobile field application use the same platform contracts. Speech recognition, conversational memory, AI interpretation and credit/advisory decisions remain in the product. A model may propose a request; it cannot establish identity, row ownership, representative authority or consent.
+
+| Platform contract | Product responsibility | Platform enforcement |
+|---|---|---|
+| Purpose manifest | Declare the processing purpose and why each field is needed | Resolve an approved version; bind requirements, scope and time window to the request |
+| Notice presentation | Present the approved notice in the selected language/channel | Bind presentation evidence to the exact notice and authenticated decision |
+| Processing profile | Declare recipients, processors and data-handling commitments | Resolve trusted versions; bind them to notice and consent; enforce source policy |
+| Authority context | Initiate an approved self/representative verification flow | Verify issuer, subject, request, assurance, authority scope and expiry |
+| Rights and handling interfaces | Provide user screens and perform downstream actions | Authorize requests, route to responsible organisations and retain authenticated outcomes |
+
+These are architecture extension contracts. Their illustrative records below do not add accepted fields to the published [v0.1 message schema](specifications/schemas). Extensions require explicit capability negotiation and a versioned contract before wire use. Unknown security-sensitive fields remain rejected.
+
+## Purpose and processing profiles
+
+A purpose manifest identifies its owner, version, field-level justifications, canonical resource and applicable time window. A processing profile identifies the responsible recipient, processor inventory, permitted uses, derived-data handling and retention policies. Approval of a registered purpose does not bypass the source owner's current policy.
+
+The platform resolves approved manifests from trusted configuration, validates their compatibility with the exact request and stores immutable snapshots or content digests. An arbitrary client URL is not a trusted manifest. Material changes to purpose, fields, recipients, time windows or processing terms require a new request and fresh approval. A processing/decision rules version is a reference supplied by the product; the platform does not execute business decisions or certify their correctness.
+
+Illustrative binding record, retained alongside the immutable request and committed by the extended request digest:
+
+```json
+{
+  "access_request_id": "req_8f21",
+  "purpose_manifest": {
+    "id": "sakhi-credit-eligibility",
+    "version": "1.0",
+    "digest": "sha256:purpose-manifest-A",
+    "requirements": [
+      {"field": "membership_status", "justification": "Verify eligible SHG membership"},
+      {"field": "savings_summary", "justification": "Assess savings history"}
+    ],
+    "period": {"from": "2025-11-01", "to": "2026-10-31"}
+  },
+  "processing_profile": {
+    "id": "sakhi-credit-assessment",
+    "version": "1.0",
+    "digest": "sha256:processing-profile-A",
+    "responsible_organisation": "sakhi-credit",
+    "processor_manifest_ref": "processors_123",
+    "data_handling_policy_ref": "handling_123",
+    "derived_data_policy_ref": "assessment_results_123",
+    "responsibility_manifest_ref": "responsibilities_123"
+  }
+}
+```
+
+Canonical resource semantics must define whether historical windows are supported and how dates, inclusivity, freshness and missing periods are interpreted. Do not silently add a date filter to a resource that cannot enforce it. The adapter enforces any supported time and field bounds independently.
+
+## Presentation and decision evidence
+
+The consent authority retains exact notice content; a hash without retrievable content is insufficient. A presentation record distinguishes the approved template from what was actually displayed or played. It records language, channel, content digest, timing, confirmation method and optional assistance. Evidence is access controlled and authenticated; a client-supplied claim that audio was played is not by itself proof of a person's informed approval.
+
+```json
+{
+  "presentation_id": "presentation_123",
+  "consent_request_id": "cr_123",
+  "notice_ref": "notice_789",
+  "notice_version": "consent-notice-v1",
+  "rendered_content_digest": "sha256:notice-HI-v1",
+  "language": "hi-IN",
+  "channel": "VOICE",
+  "presented_at": "2026-11-03T10:00:00Z",
+  "confirmation_method": "AUTHENTICATED_EXPLICIT_CONFIRMATION",
+  "confirmation_evidence_ref": "evidence_123",
+  "assistance": {"assistant_ref": "worker_123", "role": "FACILITATOR"}
+}
+```
+
+A voice integration can attach protected references to read-back evidence and interpreter/model versions. The product owns interpretation and ambiguity handling; the platform accepts only a structured decision bound to the authenticated subject and exact notice/request. A model confidence score is never approval authority. Audio retention is an explicit policy choice, not a default requirement; audio hashes also need privacy review. Translations and accessible renderings must preserve scope, recipient, retention and withdrawal meaning.
+
+Assistance records describe participation, not delegation. An office-bearer role does not automatically authorise members' personal data; household membership does not establish authority over other adults. Unsupported guardian or representative profiles fail closed. Where approved aggregate resources are used, compute and minimise them at the source/adapter before individual rows cross the boundary; aggregates still require disclosure/privacy assessment.
+
+## Explicit cancellation and a new request
+
+```mermaid
+graph TD
+    A["Product submits exact request A"] --> B["Person sees notice A"]
+    B --> C["Person wants different scope"]
+    C --> D["Client cancels request A"]
+    D --> E["Platform returns authoritative cutoff outcome"]
+    E --> F["Client creates independent request B"]
+    F --> G["Fresh notice and explicit decision for B"]
+```
+
+No approval, reservation or grant carries from A to B. The cancellation path authenticates the owning client, records its reason separately from a human rejection, invalidates unadmitted authority under the same transactional boundary as redemption and makes late activation/grant work fail. Before consent exists it terminates the request; after approval it also blocks consent activation or future admission. After redemption it reports that the admission cutoff has passed and preserves the attempt outcome. It does not falsely report that an in-flight disclosure was recalled. The person may independently reject or withdraw using subject-authorised interfaces.
+
+For multiple sources, the client creates separate bounded requests and handles product-level completeness. A conversation or parent application reference is correlation metadata, never authority to reuse consent across sources or subsequent questions.
+
+## Rights and responsible organisations
+
+The platform exposes authorised consent/disclosure history and machine-readable receipt export, with metadata minimised for the caller. It accepts and routes access, correction, erasure and grievance requests to the organisation responsible for the relevant records. Source correction happens in the registry's own process; read-only interoperability does not become registry mutation. Withdrawal, cancellation and erasure are distinct operations.
+
+Each rights case records the verified requester/authority reference, request type, affected consent/disclosure references, responsible organisation, acknowledgement, policy-defined deadline, status and authenticated outcome or exception. Acceptance is not completion. Products provide user interfaces and notifications; the platform provides durable case correlation and status. History lookup and export require reauthentication and subject/role checks, without introducing a universal citizen identity index. Never return other household members' records through an export.
+
+Registered external consent managers and wallet services are integrations with explicit trust, authority and conformance profiles. OAuth tokens and wallet authorisation are not substitutes for source-subject binding or disclosure consent. External redirects use one-time unpredictable state bound server-side to the transaction; token revocation stops future calls but does not erase fetched data.
+
 
 ## Implementation references
 
