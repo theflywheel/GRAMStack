@@ -9,7 +9,7 @@ A recorded, reproducible SakhiCredit journey: authenticated consumer request →
 ## Phase A — authority and request foundation
 
 - [x] D01 Cancellation and withdrawal enforcement. Owner-checked cancellation before consent and after approval blocks future activation/admission; after admission report cutoff passed. Test activation/redemption races, retries, rollback and late callbacks against PostgreSQL. No partial refusal/revision semantics.
-- [ ] D02 Consumer authentication and request APIs. Hydra authentication, immutable snapshot/digest, allowlists, terms binding, idempotent 202 creation, owner-only polling and cancellation. Test invalid/expired tokens, cross-consumer access, changed idempotency payloads and restarts.
+- [x] D02 Consumer authentication and request APIs. Hydra authentication, immutable snapshot/digest, allowlists, terms binding, idempotent 202 creation, owner-only polling and cancellation. Test invalid/expired tokens, cross-consumer access, changed idempotency payloads and restarts.
 
 Gate A: D01–D02 pass integration/contract checks; an authenticated consumer can create, read and cancel a durable request. No business data routes enabled yet.
 
@@ -57,5 +57,7 @@ Gate E: D15–D17 pass. Final deliverables are a working product, reusable platf
 
 - Baseline: `a1b6c32` — Go/SQL/DeDi CI passed; `d8d569b` — architecture v0.14 docs build/deployment passed. These are foundation checks, not end-to-end acceptance.
 - D01 passed: `./scripts/check-go.sh`; `PG_BIN=/opt/homebrew/opt/postgresql@15/bin ./scripts/test-postgres.sh`; docs build/contract/content verification. Includes deterministic signing-stop tests, cancellation/redemption races, non-owner denial, idempotency, rollback and late-callback rejection. HTTP exposure follows in D02.
-- Active: D02 — authenticated consumer request APIs.
+- D02 passed: independent Go race/vet/process checks; real PostgreSQL HTTP/concurrency/restart/rollback/deadline tests; `PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` against official Hydra v26.2.0. Actual client credentials → introspection → configured running gateway create/poll/cancel passed; actual token revocation denied access. CI includes the same isolated real-Hydra test.
+- Gate A passed locally: D01/D02. No data/grant/browser routes are exposed. Snapshot cleanup, ingress rate limits and full service readiness remain explicit D06/D12 responsibilities.
+- Active: Phase B, starting D03 first-party authentication/session flow.
 - No demo video or end-to-end product exists at checklist creation. No D task is marked complete from documentation alone.

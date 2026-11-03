@@ -95,7 +95,7 @@ func databaseTime(ctx context.Context, q queryer) (time.Time, error) {
 // Create is called by the authenticated gateway after subject verification.
 // Subject and terms bindings are independently checked through trusted resolvers.
 func (s *Service) Create(ctx context.Context, input CreateRequest) (Notice, error) {
-	if validateSnapshot(input.Snapshot) != nil || !identifier.MatchString(input.SubjectContextRef) {
+	if ValidateSnapshot(input.Snapshot) != nil || !identifier.MatchString(input.SubjectContextRef) {
 		return Notice{}, ErrBinding
 	}
 	if input.Language == "" {

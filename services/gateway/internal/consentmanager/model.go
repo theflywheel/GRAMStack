@@ -147,7 +147,9 @@ func validFields(fields []string) bool {
 	}
 	return true
 }
-func validateSnapshot(s Snapshot) error {
+
+// ValidateSnapshot checks structural bounds; it does not establish identity or consent.
+func ValidateSnapshot(s Snapshot) error {
 	for _, id := range []string{s.RequestID, s.ConsumerID, s.Request.Registry, s.Request.Resource, s.Request.Purpose, s.Request.SubjectHint.Type, s.Request.RecipientTerms.RetentionPolicyID} {
 		if !identifier.MatchString(id) {
 			return ErrBinding

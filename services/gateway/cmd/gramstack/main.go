@@ -42,6 +42,11 @@ func main() {
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "application dependencies not configured", http.StatusServiceUnavailable)
 	})
+	closeConsumers, err := configureConsumers(context.Background(), mux)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer closeConsumers()
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

@@ -2,9 +2,9 @@ name: Verify Go services and SDK
 on:
   push:
     branches: [main]
-    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "go.work", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "specs/**", ".github/workflows/go-check.yml"]
   pull_request:
-    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "go.work", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "specs/**", ".github/workflows/go-check.yml"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -55,3 +55,23 @@ jobs:
         run: |
           export PG_BIN="$(pg_config --bindir)"
           ./scripts/test-postgres.sh
+
+  hydra-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.8'
+          cache-dependency-path: services/gateway/go.sum
+      - name: Fetch pinned official Hydra release
+        run: |
+          mkdir -p "$RUNNER_TEMP/hydra"
+          curl -fsSL https://github.com/ory/hydra/releases/download/v26.2.0/hydra_26.2.0-linux_64bit.tar.gz -o "$RUNNER_TEMP/hydra/release.tar.gz"
+          echo '88f5112cfa594968592eb4bbba9a0b0274790f4fec909ee5874ae080506cf890  '"$RUNNER_TEMP/hydra/release.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/hydra/release.tar.gz" -C "$RUNNER_TEMP/hydra" hydra
+      - name: Test actual Hydra and configured gateway
+        run: |
+          export HYDRA_BIN="$RUNNER_TEMP/hydra/hydra"
+          export PG_BIN="$(pg_config --bindir)"
+          ./scripts/test-hydra.sh

@@ -1,0 +1,19 @@
+{
+  "public_origin": "https://gateway.example",
+  "hydra_introspection_url": "https://hydra-admin.internal.example/admin/oauth2/introspect",
+  "hydra_issuer": "https://hydra.example/",
+  "audience": "gramstack",
+  "scope": "gramstack.access",
+  "allow_loopback_http": false,
+  "consumers": {
+    "sakhi-credit": [{
+      "registry": "lokos",
+      "resource": "shg.membership",
+      "fields": ["membership_status", "savings_summary"],
+      "purposes": ["credit_eligibility"],
+      "hint_types": ["member_reference"],
+      "terms_version": "demo-retention-v1",
+      "terms_text": "Fictional demo records only. Use for this assessment; no onward sharing."
+    }]
+  }
+}
