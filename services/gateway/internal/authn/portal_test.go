@@ -21,6 +21,10 @@ var hiddenInput = regexp.MustCompile(`<input type="hidden" name="([a-z_]+)" valu
 func reviewRequest(t *testing.T, base, token string) (string, *http.Client, url.Values, string) {
 	t.Helper()
 	id := liveRequestMember(t, base, token, "member-12345")
+	return reviewExistingRequest(t, base, id)
+}
+func reviewExistingRequest(t *testing.T, base, id string) (string, *http.Client, url.Values, string) {
+	t.Helper()
 	browser, csrf := bindingBrowser(t, base, id, "sunita")
 	request := bindingRequest(base, id, csrf)
 	request.Header.Set("Accept", "text/html")

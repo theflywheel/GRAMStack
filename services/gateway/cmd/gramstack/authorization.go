@@ -22,6 +22,7 @@ import (
 	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/consumer"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/evidence/custody"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/retrieval"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/subjectbinding"
 )
 
@@ -49,7 +50,10 @@ type authorizationConfig struct {
 		} `json:"evidence_keys"`
 	} `json:"adapters"`
 	Presenters map[string]string `json:"presenter_certificates"`
-	Evidence   *struct {
+	Retrieval  *struct {
+		MaxConcurrent int `json:"max_concurrent"`
+	} `json:"retrieval"`
+	Evidence *struct {
 		ReleaseProfile string `json:"release_profile"`
 	} `json:"evidence"`
 }
@@ -85,7 +89,7 @@ func publicKey(path string) (*ecdsa.PublicKey, error) {
 	}
 	return key, nil
 }
-func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpool.Pool, auth consumer.Authenticator, subjects *subjectbinding.Service, terms *consumer.Service, consents *cm.Service, verifier *cm.Verifier, origin string, loopback bool, c authorizationConfig) (func(), error) {
+func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpool.Pool, auth consumer.Authenticator, subjects *subjectbinding.Service, terms *consumer.Service, registries []subjectbinding.Registry, consents *cm.Service, verifier *cm.Verifier, origin string, loopback bool, c authorizationConfig) (func(), error) {
 	if c.Issuer == "" {
 		c.Issuer = origin
 	}
@@ -173,6 +177,10 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 	}
 	privateHandler := http.NewServeMux()
 	privateHandler.Handle("/", service.InternalHandler(consents))
+	var dataService *retrieval.Service
+	if c.Retrieval != nil && c.Evidence == nil {
+		return nil, errors.New("protected retrieval requires evidence custody")
+	}
 	if c.Evidence != nil {
 		entries := []custody.Adapter{}
 		for _, a := range c.Adapters {
@@ -185,6 +193,10 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 				if err != nil {
 					return nil, err
 				}
+				if entry.Keys[k.KeyID].Equal(&key.PublicKey) || entry.Keys[k.KeyID].Equal(&consentKey.PublicKey) || entry.Keys[k.KeyID].Equal(leaf.PublicKey) {
+					return nil, errors.New("adapter evidence keys must be distinct from gateway signing/TLS keys")
+				}
+
 			}
 			entries = append(entries, entry)
 		}
@@ -193,6 +205,38 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 			return nil, err
 		}
 		privateHandler.Handle("POST /internal/v1/evidence", custodian.Handler())
+		if c.Retrieval != nil {
+			endpoints := []retrieval.Endpoint{}
+			for _, a := range c.Adapters {
+				found := false
+				for _, registry := range registries {
+					if registry.ID == a.Registry {
+						if registry.ServerName != a.Peer {
+							return nil, errors.New("adapter identities disagree")
+						}
+						endpoints = append(endpoints, retrieval.Endpoint{Registry: a.Registry, AdapterID: a.ID, Audience: a.Audience, Origin: registry.Origin, ServerName: registry.ServerName})
+						found = true
+					}
+				}
+				if !found {
+					return nil, errors.New("retrieval registry descriptor missing")
+				}
+			}
+			certificate, err := readBounded(os.Getenv("SERVICE_CERT_FILE"), 16384)
+			if err != nil {
+				return nil, err
+			}
+			secret, err := readBounded(os.Getenv("SERVICE_KEY_FILE"), 16384)
+			if err != nil {
+				return nil, err
+			}
+			dataService, err = retrieval.New(retrieval.Config{Pool: pool, Authority: service, Receipts: custodian, Endpoints: endpoints, CA: ca, Certificate: certificate, Key: secret, MaxConcurrent: c.Retrieval.MaxConcurrent})
+			if err != nil {
+				return nil, err
+			}
+			privateHandler.Handle("GET /v1/access-requests/{id}/data", dataService.Handler())
+		}
+
 	}
 	listener, err := net.Listen("tcp", c.ListenAddress)
 	if err != nil {
@@ -211,7 +255,7 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 	public := service.PublicHandler(auth)
 	mux.Handle("POST /v1/access-requests/{id}/grant", public)
 	mux.Handle("GET /.well-known/gramstack-jwks.json", public)
-	server := &http.Server{Handler: privateHandler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{pair}, ClientCAs: roots, ClientAuth: tls.RequireAndVerifyClientCert}}
+	server := &http.Server{Handler: privateHandler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 30 * time.Second, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{pair}, ClientCAs: roots, ClientAuth: tls.RequireAndVerifyClientCert}}
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -219,7 +263,15 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 			log.Print("authorization private listener stopped")
 		}
 	}()
+	closeData := func() {}
+	if dataService != nil {
+		workerCtx, cancel := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() { defer close(done); dataService.Run(workerCtx) }()
+		closeData = func() { cancel(); <-done }
+	}
 	return func() {
+		closeData()
 		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if server.Shutdown(shutdown) != nil {

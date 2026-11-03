@@ -1066,9 +1066,9 @@ Use the [implementation specifications](specifications/) for the normative API, 
 | External IdP | Citizen accounts, credentials, recovery and upstream authentication | External authority's lifecycle |
 | Registry | Native person mappings, membership, savings and business policy | Authoritative source lifecycle |
 | Hydra SQL | Consumer configuration, keys and OAuth/OIDC operational state | Durable config plus tested cleanup; inspect sessions/logs/backups |
-| Gateway TTL store | Status/version, canonical request, digest, deadlines and opaque references | Workflow plus bounded terminal/recovery window |
-| Authentication TTL store | State, nonce, PKCE, callback correlation, session and transient principal context | Short transaction/session lifetime |
-| Registry adapter SQL | Immutable request/digest/principal context, encrypted native mapping handle and private issuer/subject binding digest | Short verified-context TTL; stable keys across restarts; checksummed schema migration |
+| Gateway SQL metadata | Status/version, canonical request digest, bounded accepted snapshot, one dispatch and response outcome | Workflow plus bounded terminal/recovery window; spent attempts survive restarts |
+| Encrypted authentication TTL store | State, nonce, PKCE, callback correlation, session and transient principal context | Short transaction/session lifetime, with SQL TTL and one-use checks |
+| Registry adapter SQL | Verified context, encrypted native mapping, durable attempt/outcome, encrypted signed evidence and private response-commitment salt | Short context TTL plus controlled attempt/evidence retention; no resource plaintext |
 | Consent SQL | Request/notice snapshots, decisions, artefacts, current status, history and outbox | Enforcement window plus approved evidence retention |
 | Enforcement SQL (shared transaction boundary) | Consent use reservation, grant issuance/redemption and attempt outcomes | Validity plus bounded recovery; retain necessary event evidence |
 | Key management | Signing keys and versioned trust material | Controlled access, rotation and retirement |
@@ -1081,12 +1081,12 @@ Opaque references and hashes can still be personal or linkable data. Encryption,
 
 ## Storage responsibilities
 
-Gateway workflow state and authentication transactions use shared TTL storage. Durable consent metadata and reliable notifications use SQL. Consent enforcement and grant redemption share an atomic transaction boundary so withdrawal cannot race a separate status check.
+Gateway workflow checkpoints use SQL, with bounded accepted snapshots and encrypted TTL authentication transactions. Durable consent metadata and reliable notifications use SQL. Consent enforcement and grant redemption share an atomic transaction boundary so withdrawal cannot race a separate status check.
 
 | Concern | Storage | Consistency requirement |
 |---|---|---|
-| Gateway workflow | Redis or equivalent TTL store | Conditional state/version transitions |
-| Authentication transaction | Ephemeral transaction/session store | One-time callback completion |
+| Gateway workflow | SQL metadata, immutable dispatch scope and bounded snapshots | FSM plus transactional expected-version checks and outbox |
+| Authentication transaction | Encrypted SQL transaction/session TTL store | One-time callback completion and expiry |
 | Consent and notices | SQL metadata and protected evidence | Durable decisions, artefact references and history |
 | Grant redemption | SQL unique redemption and consent-use reservation | One admitted attempt per authorized use |
 | Withdrawal | Same enforcement boundary as redemption | Atomic ordering against retrieval admission |
@@ -1210,6 +1210,53 @@ graph TD
 ```
 
 Protected data crosses boundaries when the adapter sends it to the gateway, not only when the gateway sends to SakhiCredit. Adapter-side required evidence must precede that release. If the gateway creates a separate outward release receipt, its gate also precedes transmission. We must avoid falsely labelling one receipt as confirmation of successful delivery through both hops.
+
+## One dispatch through two release boundaries
+
+```mermaid
+sequenceDiagram
+    participant S as SakhiCredit backend
+    participant G as Gateway
+    participant A as Registry adapter / Go SDK
+    participant R as Native registry
+    S->>G: GET data with grant and original consumer mTLS
+    G->>G: Verify certificate cnf and commit one dispatch in core SQL
+    G->>A: Service mTLS with snapshot, grant and trusted presenter
+    A->>A: Verify grant, context and exact fields, claim local SQL attempt
+    A->>G: Private AuthZ redemption with stable attempt ID
+    G->>G: Core SQL checks current authority and atomically reserves use
+    G-->>A: New reservation
+    A->>A: Persist source-start in adapter SQL
+    A->>R: Fetch once
+    R-->>A: Source record
+    A->>A: Map, project approved fields and sign salted commitment
+    A->>A: Encrypt evidence and salt in adapter SQL
+    A->>G: Private custody call with signed metadata
+    G->>G: Atomically commit receipt, anchoring outbox and lifecycle
+    G-->>A: Durable acknowledgement
+    A->>A: Persist evidence and release checkpoints
+    A-->>G: Projected data and receipt ID
+    G->>G: Verify receipt scope and commit release intent
+    G-->>S: Projected data and receipt ID
+    G->>G: Core SQL records server-write outcome
+    Note over G: AuthZ and custody are modules in this service
+    Note over A: Recovery never fetches again or serves cached data
+```
+
+The original consumer certificate terminates at the retrieval gateway. The reference transport uses its private TLS listener, or an ingress that preserves that actual mTLS proof; a generic forwarded certificate string is insufficient. Public request/status/interaction traffic and authenticated data traffic have separate ingress responsibilities. The adapter accepts presenter context only from its authenticated gateway and attests that binding to AuthZ over its own service identity.
+
+| Boundary | Durable state before proceeding | Data kept in memory | Client-visible result |
+|---|---|---|---|
+| Gateway dispatch | One request/attempt, grant digest, presenter and fixed deadline | Accepted snapshot while forwarding | Duplicate dispatch is 409, with no second adapter call |
+| Adapter admission | Local attempt plus central consent-use reservation | Verified source mapping during the call | An admitted slot cannot be restored by a timeout |
+| Native read | Source-start checkpoint | Source record, then exact projection | Only approved `membership_status` and/or `savings_summary` in this resource |
+| Adapter release | Encrypted evidence/salt plus verified durable custody acknowledgement | Projected resource response | Data and receipt ID |
+| Gateway release | Verified signed receipt and release-intent FSM/outbox checkpoint | Projected response during this write | Data and receipt ID, or a safe error |
+| Recovery | Terminal failure/uncertainty and occupied attempt | No cached resource response | Status/receipt metadata, requiring fresh authorization for another disclosure |
+
+A reference gateway dispatch has a fixed 60-second deadline that cannot be extended to revive it. Recovery classifies at most 32 expired running dispatches per pass: FAILED before admission, DELIVERY_UNKNOWN after admission. It never resends the adapter request. Adapter calls are bounded, and the reference native transport disables implicit retries on a reused connection. HEAD requests cannot consume a disclosure.
+
+A failure to commit dispatch performs no adapter call. A failure at custody or the gateway release-intent checkpoint withholds outward data. A partial response write becomes DELIVERY_UNKNOWN; a lost final checkpoint stays occupied until conservative recovery. COMPLETED describes the server finishing its write, with the client-receipt limits below. Withdrawal before admission blocks the source read; withdrawal after the reservation reports the cutoff and does not create another slot.
 
 Deployments select one of two evidence anchoring profiles:
 

@@ -22,3 +22,22 @@ Run `lokos-adapter migrate` explicitly before startup. `lokos-adapter` then serv
 ## Verification
 
 `./scripts/check-go.sh` tests/vets independent modules and process shells. `GRAMSTACK_TEST_BINDING=1 PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` exercises separate processes, mTLS boundaries, incorrect-member denial, concurrency, encrypted custody, rollback, cancellation, source failure and restart. Add `GRAMSTACK_TEST_ESIGNET=1` for the official eSignet variant with fictional native ownership and source data.
+
+## Protected retrieval runtime
+
+Set `ADAPTER_RETRIEVAL_CONFIG_FILE` and a separate PKCS8 `ADAPTER_EVIDENCE_SIGNING_KEY_FILE` to enable the SDK's service-mTLS POST `/internal/v1/retrievals`. The reference adapter supplies the provider/verifier/store and approved resource; all grant, attempt, projection, evidence and release processing uses the Go SDK. An explicit `migrate` installs both context and attempt schemas. No retrieval configuration keeps the runtime verification-only.
+
+```json
+{
+  "grant_issuer":"https://gateway.example",
+  "grant_audience":"lokos-adapter",
+  "grant_keys":[{"key_id":"grant-v1","file":"/run/keys/grant.pub"}],
+  "authority_origin":"https://gateway.internal:8444",
+  "authority_service_identity":"gateway.gramstack.internal",
+  "evidence_key_id":"adapter-key-v1",
+  "release_profile":"batch",
+  "max_concurrent":4
+}
+```
+
+Private authority/custody calls use the adapter's service identity and pinned gateway server name. Evidence, grant and service signing keys must be distinct. The native client disables connection reuse to prevent implicit retries of its GET after an ambiguous disconnect; application-level retries are absent. Neither the gateway nor adapter serves cached business responses. The batch release profile requires real durable custody acknowledgement; a pending anchor does not claim DeDi publication. Shared conformance/discovery and real registry onboarding remain separate from the fictional native transport.

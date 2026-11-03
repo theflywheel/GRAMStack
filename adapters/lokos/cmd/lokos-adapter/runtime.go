@@ -54,6 +54,8 @@ func configureAdapter(ctx context.Context, migrate bool) (*adapterRuntime, error
 	if err != nil {
 		return nil, err
 	}
+	// Native source GETs must not be implicitly retried on a reused connection.
+	sourceClient.Transport.(*http.Transport).DisableKeepAlives = true
 	stateKey, err := base64.StdEncoding.DecodeString(os.Getenv("ADAPTER_STATE_KEY"))
 	if err != nil {
 		return nil, errors.New("adapter state key required")
@@ -108,9 +110,15 @@ func configureAdapter(ctx context.Context, migrate bool) (*adapterRuntime, error
 		db.Close()
 		return nil, err
 	}
+	mux := http.NewServeMux()
+	mux.Handle("/", service.Handler())
+	if err = configureRetrieval(mux, store, attempts, provider, method, ca, cert, key, mode); err != nil {
+		db.Close()
+		return nil, err
+	}
 	port := os.Getenv("ADAPTER_TLS_PORT")
 	if port == "" {
 		port = "8443"
 	}
-	return &adapterRuntime{db: db, server: &http.Server{Addr: ":" + port, Handler: service.Handler(), TLSConfig: tlsConfig, ReadHeaderTimeout: 5e9, ReadTimeout: 15e9, WriteTimeout: 15e9, IdleTimeout: 60e9}, cert: certPath, key: keyPath}, nil
+	return &adapterRuntime{db: db, server: &http.Server{Addr: ":" + port, Handler: mux, TLSConfig: tlsConfig, ReadHeaderTimeout: 5e9, ReadTimeout: 30e9, WriteTimeout: 30e9, IdleTimeout: 60e9}, cert: certPath, key: keyPath}, nil
 }

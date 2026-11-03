@@ -10,7 +10,7 @@ Verification recomputes the accepted snapshot digest, enforces supported fields 
 
 `NewSQLContextStore` requires a host-managed PostgreSQL connection and stable random 32-byte key. `Migrate` is an explicit, serialized, checksummed operator action; startup never runs DDL. Mapping payloads and their private principal digest are AES-GCM encrypted with authenticated request/context/digest/principal/expiry metadata. SQL enforces TTL on every read. Fresh verification may replace an expired tuple; live contexts cannot be mutated. Physical cleanup and overlapping key rotation are separate operator responsibilities. No production keys or database credentials are provided by this package.
 
-`ReadSelected` is a projection primitive, not an authorization boundary. The protected grant/redemption/evidence pipeline must admit a disclosure before calling it. The reference runtime currently exposes the authenticated verification route and no business-data retrieval route. SDK release/publication and complete retrieval conformance are tracked in D08/D13.
+`ReadSelected` is a projection primitive, not an authorization boundary. The protected grant/redemption/evidence pipeline must admit a disclosure before calling it. The reference runtime enables the protected retrieval handler through explicit configuration; verification-only hosting remains available. SDK release/publication and external conformance are tracked separately in D13.
 
 Use the root Go workspace for local SDK + LokOS development. Independent check scripts use temporary module files before release; no local replace is committed in module files. Published SDK tags use `sdk/go/adapter/vX.Y.Z`.
 
@@ -27,4 +27,4 @@ Processing order is durable local claim → new atomic reservation → durable s
 
 Provider implementations must issue at most one native source request per `Fetch`, disable implicit transport retries that could repeat a read, and respect cancellation/timeouts. The SDK bounds provider invocations; it cannot infer hidden retries inside a custom provider. Hosts supply pinned mTLS clients, source/evidence secrets and release/retention policy. `NewAuthorityClient` supplies strict bounded private redemption/evidence RPCs without redirect following or application retries.
 
-Current reference-runtime acceptance still exposes verification only: the SDK handler and durable stores have unit/SQL acceptance, while the actual gateway/custodian/retrieval wiring is the remaining D08 work. This does not claim a working business-data demo or completed D08. Independently published SDK versions and external conformance remain D13.
+Configured reference-runtime acceptance now exercises the actual gateway → SDK → fictional native source → durable custodian → response path over mTLS, including exact projection, outages and restart. This does not claim a complete product UI, published SDK or verified automatic anchoring. Independently published SDK versions and external conformance remain D13.

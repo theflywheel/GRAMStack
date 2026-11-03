@@ -25,7 +25,7 @@ func main() {
 	if len(raw) > 16384 || json.Unmarshal(raw, &bindings) != nil {
 		log.Fatal("invalid fictional subject bindings")
 	}
-	native, err := source.New(source.Config{Issuer: os.Getenv("OIDC_ISSUER"), AdapterIdentity: "lokos-adapter.gramstack.internal", DemoEnabled: true, GateDirectory: os.Getenv("MOCK_VERIFICATION_GATE_DIRECTORY"), Bindings: bindings})
+	native, err := source.New(source.Config{Issuer: os.Getenv("OIDC_ISSUER"), AdapterIdentity: "lokos-adapter.gramstack.internal", DemoEnabled: true, GateDirectory: os.Getenv("MOCK_VERIFICATION_GATE_DIRECTORY"), ReadGateDirectory: os.Getenv("MOCK_READ_GATE_DIRECTORY"), Bindings: bindings})
 	if err != nil {
 		log.Fatal(err)
 	}

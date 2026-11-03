@@ -160,7 +160,7 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 			}
 			mux.Handle("POST /interactions/{id}/verify", binding.Handler())
 			if config.Consent != nil {
-				if closeWorkers, err = configureConsentPortal(ctx, mux, pool, federation, binding, service, config.PublicOrigin, config.AllowLoopbackHTTP, *config.Consent, config.Authorization, auth); err != nil {
+				if closeWorkers, err = configureConsentPortal(ctx, mux, pool, federation, binding, service, config.Registries, config.PublicOrigin, config.AllowLoopbackHTTP, *config.Consent, config.Authorization, auth); err != nil {
 					pool.Close()
 					return nil, err
 				}

@@ -114,3 +114,10 @@ The existing Hydra job now sets `GRAMSTACK_TEST_CUSTODY=1`, which implies all pr
 
 
 Custody `e2df4b1` passed [all four jobs](https://github.com/theflywheel/GRAMStack/actions/runs/41675212665). Measured verify 45s, PostgreSQL 49s, DeDi 30s and Hydra 49s: 49s execution window / 173 summed job seconds. The preceding SDK/cache-order checkpoint measured 51s / 159s; single-run source-compilation/setup variation and additional custody/expiry checks prevent attributing this difference solely to the feature. Complete exact dependency keys and all prior checks remain retained. Official eSignet custody/restart acceptance also passed locally; the hosted job uses the existing fast test provider.
+
+
+## Protected disclosure coverage
+
+The existing Hydra job now sets `GRAMSTACK_TEST_RETRIEVAL=1`, which includes custody and all earlier flags. It reuses the same gateway, SDK adapter, native mock, databases and race-test processes. The final recovery check restarts gateway/adapter/native together. New source read counters and offline/disconnect/block controls are operator-only temporary fixture files, with no public fault-control API. Tests cover original consumer mTLS, exact projection, at-most-one native request including HTTP disconnect ambiguity, source/custody failure, pre/post-admission withdrawal and restart. SQL tests add gateway dispatch/release/final-checkpoint rollback, partial writes and expired-attempt recovery. No new dependency, CI job, cache fallback or Docker pull is introduced.
+
+For setup speed, the retrieval test queues seven explicit approvals before waiting for worker activation. Production one-second polling, real signing/notification, real SQL and every request/session/notice check stay unchanged. The expanded main process group measured about 13.5s, versus 18.6s for the preceding smaller sequential-approval version; this is a local observation of setup sharing, not a hosted latency guarantee. Official eSignet passed the same expanded flow locally and remains outside every-push hosted coverage. Hosted timings follow the tested push.

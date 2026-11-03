@@ -21,6 +21,7 @@ import (
 
 type Config struct {
 	GateDirectory           string
+	ReadGateDirectory       string
 	Issuer, AdapterIdentity string
 	DemoEnabled             bool
 	Bindings                map[string]string
@@ -163,6 +164,13 @@ func (s *Source) mappingReference(member string) string {
 	return "native_" + hex.EncodeToString(digest[:16])
 }
 func (s *Source) member(w http.ResponseWriter, r *http.Request) {
+	if err := s.readGate(r.Context()); err != nil {
+		http.Error(w, "Fictional source unavailable", 503)
+		return
+	}
+	if s.disconnect(w) {
+		return
+	}
 	member := ""
 	for id := range s.config.Bindings {
 		if s.mappingReference(id) == r.PathValue("id") {

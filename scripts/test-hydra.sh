@@ -2,6 +2,7 @@
 # Isolated, real Hydra/PostgreSQL integration. No production URLs or credentials.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then export GRAMSTACK_TEST_CUSTODY=1; fi
 if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then export GRAMSTACK_TEST_AUTHZ=1; fi
 if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then export GRAMSTACK_TEST_WORKERS=1; fi
 if [[ "${GRAMSTACK_PREVIEW:-}" == 1 && "${GRAMSTACK_TEST_PORTAL:-}" != 1 && "${GRAMSTACK_TEST_WORKERS:-}" != 1 ]]; then
@@ -86,7 +87,7 @@ stop_gateway(){
 }
 start_binding(){
  SERVICE_CERT_FILE="$scratch/certs/mock-lokos.pem" SERVICE_KEY_FILE="$scratch/certs/mock-lokos.key" OIDC_ISSUER="$GRAMSTACK_TEST_IDP_URL" \
- OIDC_SUBJECT_BINDINGS_FILE="$scratch/source-bindings.json" SOURCE_TLS_PORT="$source_port" MOCK_VERIFICATION_GATE_DIRECTORY="$scratch/source-gate" \
+ OIDC_SUBJECT_BINDINGS_FILE="$scratch/source-bindings.json" SOURCE_TLS_PORT="$source_port" MOCK_VERIFICATION_GATE_DIRECTORY="$scratch/source-gate" MOCK_READ_GATE_DIRECTORY="$scratch/source-read-gate" \
  "$scratch/mock-lokos" > "$scratch/source.log" 2>&1 &
  source_pid=$!
  SERVICE_CERT_FILE="$scratch/certs/lokos-adapter.pem" SERVICE_KEY_FILE="$scratch/certs/lokos-adapter.key" PORT="$adapter_health_port" \
@@ -171,7 +172,8 @@ PYA
   export ADAPTER_STATE_KEY=$(python3 -c 'import base64,secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())')
   export SERVICE_CA_FILE="$scratch/certs/ca.pem" SERVICE_CERT_FILE="$scratch/certs/gateway.pem" SERVICE_KEY_FILE="$scratch/certs/gateway.key"
   export GRAMSTACK_TEST_CERTS="$scratch/certs" GRAMSTACK_TEST_BINDING_RESUME="$scratch/binding-resume.json" GRAMSTACK_TEST_SOURCE_GATE="$scratch/source-gate"
-  mkdir -m 700 "$scratch/source-gate"
+  mkdir -m 700 "$scratch/source-gate" "$scratch/source-read-gate"
+  export GRAMSTACK_TEST_SOURCE_READ_GATE="$scratch/source-read-gate"
   source_port=$(free_port);adapter_port=$(free_port);adapter_health_port=$(free_port)
   export LOKOS_SOURCE_URL="https://127.0.0.1:$source_port" LOKOS_SOURCE_SERVER_NAME="mock-lokos.gramstack.internal" ADAPTER_TLS_PORT="$adapter_port"
   export GRAMSTACK_TEST_ADAPTER_URL="https://127.0.0.1:$adapter_port" GRAMSTACK_TEST_SOURCE_URL="$LOKOS_SOURCE_URL"
@@ -204,7 +206,8 @@ PYC
   if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then
    authz_port=$(free_port)
    export GRAMSTACK_TEST_AUTHZ_URL="https://127.0.0.1:$authz_port" GRAMSTACK_GRANT_SIGNING_KEY_FILE="$scratch/certs/grant-signing.key"
-   export GRAMSTACK_TEST_AUTHZ_RESUME="$scratch/authz-resume.json" GRAMSTACK_TEST_CUSTODY_RESUME="$scratch/custody-resume.json"
+   export GRAMSTACK_TEST_AUTHZ_RESUME="$scratch/authz-resume.json" GRAMSTACK_TEST_CUSTODY_RESUME="$scratch/custody-resume.json" GRAMSTACK_TEST_RETRIEVAL_RESUME="$scratch/retrieval-resume.json"
+   if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then export ADAPTER_RETRIEVAL_CONFIG_FILE="$scratch/adapter-retrieval.json" ADAPTER_EVIDENCE_SIGNING_KEY_FILE="$scratch/certs/adapter-evidence.key"; fi
    python3 - <<'PYZ'
 import json,os,pathlib,urllib.parse
 path=pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']);config=json.loads(path.read_text());certs=path.parent/'certs'
@@ -215,6 +218,10 @@ config['authorization']=dict(key_id='demo-grant-key',listen_address=urllib.parse
 if os.environ.get('GRAMSTACK_TEST_CUSTODY')=='1':
  config['authorization']['evidence']=dict(release_profile='batch')
  config['authorization']['adapters'][0].update(adapter_id='lokos-adapter',evidence_keys=[dict(key_id='demo-adapter-key',file=str(certs/'adapter-evidence.pub'))])
+if os.environ.get('GRAMSTACK_TEST_RETRIEVAL')=='1':
+ config['authorization']['retrieval']=dict(max_concurrent=4)
+ adapter=dict(grant_issuer=config['public_origin'],grant_audience='lokos-adapter',grant_keys=[dict(key_id='demo-grant-key',file=str(certs/'grant-signing.pub'))],authority_origin=os.environ['GRAMSTACK_TEST_AUTHZ_URL'],authority_service_identity='gateway.gramstack.internal',evidence_key_id='demo-adapter-key',release_profile='batch',max_concurrent=4)
+ pathlib.Path(os.environ['ADAPTER_RETRIEVAL_CONFIG_FILE']).write_text(json.dumps(adapter))
 path.write_text(json.dumps(config))
 PYZ
    "$scratch/gateway" sign-policy -input "$scratch/policy.json" -key "$scratch/certs/policy-signing.key" -key-id demo-policy-key -output "$scratch/policy.jws"
@@ -241,12 +248,16 @@ PYW
   if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then pattern="$pattern|^TestActualConsentWorkers$"; fi
   if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then pattern="$pattern|^TestActualAuthorization$"; fi
   if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceCustody$"; fi
+  if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then pattern="$pattern|^TestActualProtectedRetrieval$"; fi
   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then
-   stop_gateway; start_gateway
+   stop_gateway
+   if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then stop_binding; start_binding; fi
+   start_gateway
    pattern='^TestActualConsentWorkersRestart$'
    if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then pattern="$pattern|^TestActualAuthorizationRestart$"; fi
    if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceCustodyRestart$"; fi
+   if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then pattern="$pattern|^TestActualProtectedRetrievalRestart$"; fi
    gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   fi
  else

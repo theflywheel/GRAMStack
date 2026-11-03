@@ -56,7 +56,7 @@ func signingKey(path string) (*ecdsa.PrivateKey, error) {
 	}
 	return key, nil
 }
-func configureConsentPortal(ctx context.Context, mux *http.ServeMux, pool *pgxpool.Pool, auth *authn.Service, bindings *subjectbinding.Service, terms *consumer.Service, origin string, loopback bool, c consentConfig, authorization *authorizationConfig, authenticator consumer.Authenticator) (func(), error) {
+func configureConsentPortal(ctx context.Context, mux *http.ServeMux, pool *pgxpool.Pool, auth *authn.Service, bindings *subjectbinding.Service, terms *consumer.Service, registries []subjectbinding.Registry, origin string, loopback bool, c consentConfig, authorization *authorizationConfig, authenticator consumer.Authenticator) (func(), error) {
 	key, err := signingKey(os.Getenv("GRAMSTACK_CONSENT_SIGNING_KEY_FILE"))
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func configureConsentPortal(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 	}
 	closeAuthorization := func() {}
 	if authorization != nil {
-		closeAuthorization, err = configureAuthorization(ctx, mux, pool, authenticator, bindings, terms, service, verifier, origin, loopback, *authorization)
+		closeAuthorization, err = configureAuthorization(ctx, mux, pool, authenticator, bindings, terms, registries, service, verifier, origin, loopback, *authorization)
 		if err != nil {
 			return nil, err
 		}

@@ -48,8 +48,13 @@ func liveRequest(t *testing.T, base, token string) string {
 	return liveRequestMember(t, base, token, "fictional-member")
 }
 func liveRequestMember(t *testing.T, base, token, member string) string {
+	return liveRequestFields(t, base, token, member, []string{"membership_status"})
+}
+func liveRequestFields(t *testing.T, base, token, member string, fields []string) string {
 	t.Helper()
 	input := `{"registry":"lokos","resource":"shg.membership","subject_hint":{"type":"member_reference","value":"fictional-member"},"fields":["membership_status"],"purpose":"credit_eligibility","access":{"mode":"single_use","valid_for_seconds":300},"recipient_terms":{"retention_policy_id":"terms-v1"}}`
+	selected, _ := json.Marshal(fields)
+	input = strings.Replace(input, `["membership_status"]`, string(selected), 1)
 	encoded, _ := json.Marshal(member)
 	input = strings.Replace(input, `"fictional-member"`, string(encoded), 1)
 	req, _ := http.NewRequest("POST", base+"/v1/access-requests", strings.NewReader(input))
