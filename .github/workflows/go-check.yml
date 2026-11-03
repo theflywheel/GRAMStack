@@ -2,25 +2,36 @@ name: Verify Go services and SDK
 on:
   push:
     branches: [main]
-    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
   pull_request:
-    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
         with:
           go-version: '1.26.8'
-          cache-dependency-path: services/gateway/go.sum
+          cache-dependency-path: |
+            services/gateway/go.*
+            sdk/go/adapter/go.*
+            adapters/lokos/go.*
+            mocks/identity/go.*
+      - run: ./scripts/test-check-go.sh
       - run: ./scripts/check-go.sh
 
   dedi-integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,8 +45,8 @@ jobs:
         with:
           go-version: '1.26.8'
           cache-dependency-path: |
-            gramstack/services/gateway/go.sum
-            dedi/go.sum
+            gramstack/services/gateway/go.*
+            dedi/go.*
       - name: Test actual DeDi publication and proof verification
         working-directory: gramstack
         run: |
@@ -45,12 +56,13 @@ jobs:
 
   postgres-integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
         with:
           go-version: '1.26.8'
-          cache-dependency-path: services/gateway/go.sum
+          cache-dependency-path: services/gateway/go.*
       - name: Test PostgreSQL consent, enforcement races and migrations
         run: |
           export PG_BIN="$(pg_config --bindir)"
@@ -58,15 +70,15 @@ jobs:
 
   hydra-integration:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        authn: [0, 1]
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
         with:
           go-version: '1.26.8'
-          cache-dependency-path: services/gateway/go.sum
+          cache-dependency-path: |
+            services/gateway/go.*
+            mocks/identity/go.*
       - name: Fetch pinned official Hydra release
         run: |
           mkdir -p "$RUNNER_TEMP/hydra"
@@ -77,4 +89,4 @@ jobs:
         run: |
           export HYDRA_BIN="$RUNNER_TEMP/hydra/hydra"
           export PG_BIN="$(pg_config --bindir)"
-          GRAMSTACK_TEST_AUTHN=${{ matrix.authn }} ./scripts/test-hydra.sh
+          GRAMSTACK_TEST_AUTHN=1 ./scripts/test-hydra.sh

@@ -8,12 +8,17 @@ on:
     paths: ["infra/railway/**", ".github/workflows/infra-check.yml", "docs/Dockerfile"]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: infra/railway

@@ -53,6 +53,10 @@ Gate D: D11–D14 pass; a fresh environment runs the browser journey using the s
 
 Gate E: D15–D17 pass. Final deliverables are a working product, reusable platform, reproducible environment, acceptance evidence, capability report and playable recording.
 
+## Continuous CI acceptance
+
+CI speed is part of each phase gate. Measure critical-path and total job time, remove duplicate setup/build work, maintain complete cache keys, and keep local feedback fast without weakening race, security, live-integration or usability checks. See [CI.md](CI.md) for coverage, optimisations and measured evidence.
+
 ## Evidence and current work
 
 - Baseline: `a1b6c32` — Go/SQL/DeDi CI passed; `d8d569b` — architecture v0.14 docs build/deployment passed. These are foundation checks, not end-to-end acceptance.
