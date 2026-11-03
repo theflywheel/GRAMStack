@@ -16,11 +16,12 @@ Gate A: D01–D02 pass integration/contract checks; an authenticated consumer ca
 ## Phase B — person, subject and consent
 
 - [x] D03 Authentication and first-party sessions. Federated code flow, state/nonce/PKCE, pinned issuer/audience verification, secure cookies, CSRF, expiry and reauthentication. Test callback replay, session substitution and untrusted redirects.
+- [ ] D03a Real eSignet provider integration. Use the official eSignet service and UI with its mock identity backend; versioned auth-provider contract/profile, private_key_jwt client authentication and PS256 ID-token verification. Exercise successful login, invalid assertion, state/nonce/PKCE and request-bound reauthentication. Generic OIDC test coverage alone does not close this gate.
 - [ ] D04 Registry subject verification. Registry-approved demo verifier binds a fictional source record to request and principal. Locator/login alone is insufficient. Demonstrate incorrect-member denial and test-only verifier rejection in production configuration.
 - [ ] D05 Consent portal. Presentable exact notice with recipient/retention terms, approve/reject, withdrawal and receipts. Authenticated sessions and reviewed supported language templates; explicitly disclose unsupported languages.
 - [ ] D06 Durable workers. Lease/ack/retry signing, activation, expiry, notifications and reconciliation. Test competing workers, outage recovery and process restart without duplicated authority.
 
-Gate B: D03–D06 pass. A real browser journey can activate consent or reject it; cancellation/withdrawal cannot be undone by delayed work.
+Gate B: D03, D03a and D04–D06 pass. A real browser journey can activate consent or reject it; cancellation/withdrawal cannot be undone by delayed work.
 
 ## Phase C — protected disclosure
 
@@ -34,7 +35,7 @@ Gate C: D07–D10 pass. Exactly approved fields cross the adapter boundary once 
 ## Phase D — product and deployment
 
 - [ ] D11 SakhiCredit product. Independent consumer backend and presentable web UI: create application, progress, interaction handoff, approved result and graceful rejection/expiry/outage states. No business decision logic in platform core.
-- [ ] D12 Reproducible local and Railway stack. Fresh setup, isolated credentials, migrations, dependency readiness, correct public/private routing and service health. Docs stays an independent service; eSignet is optional.
+- [ ] D12 Reproducible local and Railway stack. Fresh setup, isolated credentials, migrations, dependency readiness, correct public/private routing and service health. Docs stays an independent service; eSignet is required for the demo.
 - [ ] D13 Published SDK and adapter conformance. Real module-prefixed version, independently buildable LokOS dependency, shared positive/negative contract suite and external consumer smoke check.
 - [ ] D14 Design additions exercised by the demo. Checklist below must pass or have an explicit, approved scope decision before this task can close. Unsupported features are visible in the capability report, never silently accepted.
   - [ ] Trusted versioned purpose/processing profile bindings, supported time bounds and recipient/processor responsibility metadata.
@@ -48,7 +49,7 @@ Gate D: D11–D14 pass; a fresh environment runs the browser journey using the s
 ## Phase E — acceptance and recording
 
 - [ ] D15 End-to-end acceptance. Automated happy path, rejection, expiry, cancellation/withdrawal races, replay, policy denial, source/evidence outage and restart recovery; check payload leakage and bounded concurrency/load. Save redacted results and operator instructions.
-- [ ] D16 Capability report and recording script. A committed working / mocked / unsupported matrix references actual test evidence and deployments. Clearly distinguish real Hydra/DeDi protocol integration from fictional LokOS records and demo identity/verifier. Explicitly list native registry onboarding, optional eSignet, unimplemented authority/channel profiles, legal registration/certification and deletion-proof limits.
+- [ ] D16 Capability report and recording script. A committed working / mocked / unsupported matrix references actual test evidence and deployments. Clearly distinguish real Hydra/DeDi protocol integration from fictional LokOS records and demo identity/verifier. Explicitly list native registry onboarding, mock identity backend behind real eSignet, unimplemented authority/channel profiles, legal registration/certification and deletion-proof limits.
 - [ ] D17 Record and verify the demo. Record the actual working product and platform evidence, show at least one denied/replayed path and the capability matrix, exclude credentials/personal data, play back the result and deliver the video plus reproducible run instructions. Never substitute a mockup or scripted UI animation for the live recording.
 
 Gate E: D15–D17 pass. Final deliverables are a working product, reusable platform, reproducible environment, acceptance evidence, capability report and playable recording.
@@ -66,3 +67,5 @@ CI speed is part of each phase gate. Measure critical-path and total job time, r
 - D03 passed locally: race/vet/process checks; PostgreSQL encrypted TTL/one-use/restart/session tests; official Hydra v26.2.0 → separate fictional IdP → configured gateway federation. Negative issuer/audience/nonce/signature, callback replay, wrong browser, request expiry/cancellation and different-person takeover tests pass. Authentication stops at BINDING_PENDING and creates no disclosure consent. [CI passed on 7c6b17a](https://github.com/theflywheel/GRAMStack/actions/runs/41612002970), including consumer-only and federation variants. A prior runner-only SIGPIPE failure was fixed by consuming complete Hydra version output.
 - Active: Phase B, D04 registry-approved subject verification, followed by D05 portal and D06 workers. Gate B remains open.
 - No demo video or end-to-end product exists at checklist creation. No D task is marked complete from documentation alone.
+
+- eSignet infrastructure checkpoint (2026-11-03): `open -a Docker` started Docker Desktop; repository `infra/esignet/compose.yaml` validated and ran official digest-pinned services. `python3 infra/esignet/check.py` passed before and after container recreation with persistent database/key volumes. UI, health, pinned issuer/endpoints and advertised private_key_jwt/PS256 verified. D03a and D12 remain open: gateway login, fresh fictional identity seeding and hosted routing are separate acceptance gates.

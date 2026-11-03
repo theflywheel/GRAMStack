@@ -1,0 +1,123 @@
+# Local demo only: all published ports bind to loopback.
+services:
+  database:
+    image: postgres:17-bookworm@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5
+    ports:
+      - 127.0.0.1:19455:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U postgres
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  mock-identity-system:
+    image: mosipid/mock-identity-system:0.14.0@sha256:4c3bbddfd280b5a6411c89db5f3b6ab231fc3a49fc25794e2e210db36f8cbb96
+    user: root
+    ports:
+      - 127.0.0.1:19082:8082
+    environment:
+      container_user: mosip
+      active_profile_env: default,local
+      MOSIP_KERNEL_KEYMANAGER_HSM_CONFIG_PATH: /keys/mock_local.p12
+      MOSIP_KERNEL_KEYMANAGER_HSM_KEYSTORE_TYPE: PKCS12
+      MOSIP_KERNEL_KEYMANAGER_HSM_KEYSTORE_PASS: localtest
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/mosip_mockidentitysystem?currentSchema=mockidentitysystem
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      MOSIP_ESIGNET_HOST: esignet:8080
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS
+          http://127.0.0.1:8082/v1/mock-identity-system/actuator/health
+          >/dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+    volumes:
+      - mock-keystore:/keys
+  esignet:
+    image: mosipid/esignet:2.0.0@sha256:e85ff415527b355765b8603c14c738512c185df537e3ad69feffbbbdb45358ee
+    user: root
+    ports:
+      - 127.0.0.1:19080:8080
+    environment:
+      container_user: mosip
+      PORT: "8080"
+      DATABASE_HOST: database
+      DATABASE_PORT: "5432"
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      KEYMANAGER_KEYSTORE_TYPE: PKCS12
+      KEYMANAGER_DB_SCHEMA: esignet
+      KEYMANAGER_PKCS12_FILE_PATH: /opt/mosip/keys/demo.pfx
+      KEYMANAGER_PKCS12_PASSWORD: localtest
+      KEYMANAGER_PKCS12_ALLOW_INSECURE_SOFTWARE_KEYSTORE: "true"
+      MOSIP_ESIGNET_CACHE_TYPE: redis
+      MOSIP_ESIGNET_HOST: http://127.0.0.1:19080
+      MOSIP_ESIGNET_OIDC_UI_HOSTNAME: 127.0.0.1
+      MOSIP_ESIGNET_CAPTCHA_SITE_PROVIDER: ""
+      MOSIP_ESIGNET_CAPTCHA_SITE_KEY: ""
+      MOSIP_ESIGNET_AUTHN_PROVIDER: mock
+      MOSIP_ESIGNET_MOCK_DOMAIN_URL: http://mock-identity-system:8082
+      MOSIP_ESIGNET_OIDC_UI_PORT: "19300"
+      MOSIP_ESIGNET_OIDC_UI_SCHEME: http
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      database:
+        condition: service_healthy
+      mock-identity-system:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - keystore:/opt/mosip/keys
+  esignet-ui:
+    image: mosipid/oidc-ui:2.0.0@sha256:9d87a526518d63922de6d2d987bdeddd1ef1c215d27656252f7d38e58ffb9708
+    user: root
+    ports:
+      - 127.0.0.1:19300:3000
+    environment:
+      container_user: mosip
+      DEFAULT_LANG: en
+      DEFAULT_WELLKNOWN: "%5B%7B%22name%22%3A%22OpenID%20Configuration%22%2C%22value%\
+        22%3A%22%2F.well-known%2Fopenid-configuration%22%7D%2C%7B%22name%22%3A%\
+        22Jwks%20Json%22%2C%22value%22%3A%22%2F.well-known%2Fjwks.json%22%7D%2C\
+        %7B%22name%22%3A%22Authorization%20Server%22%2C%22value%22%3A%22%2F.wel\
+        l-known%2Foauth-authorization-server%22%7D%5D"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - esignet
+  redis:
+    image: redis:8.2-bookworm@sha256:99ffb973380cc2f47bca06bd094f7f8c7138a0879a63cb8939896a22b7a65bba
+    command:
+      - redis-server
+      - --appendonly
+      - yes
+    volumes:
+      - redis:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  mock-keystore: {}
+  database: {}
+  keystore: {}
+  redis: {}
