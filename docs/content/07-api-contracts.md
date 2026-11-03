@@ -144,7 +144,7 @@ sequenceDiagram
   Gateway->>CoreDB: Transaction: recheck state, save context, advance FSM, append outbox
   alt Cancelled, expired, or write failed
     CoreDB-->>Gateway: Roll back and deny or report unavailable
-    Gateway-->>Person: Safe failure; no consent or data
+    Gateway-->>Person: Safe failure, no consent or data
   else Verification committed
     CoreDB-->>Gateway: CONSENT_PENDING
     Gateway-->>Person: Opaque context reference and review-consent action

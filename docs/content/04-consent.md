@@ -113,7 +113,7 @@ Products supply use cases and user interfaces; GRAMStack supplies bounded disclo
 | Authority context | Initiate an approved self/representative verification flow | Verify issuer, subject, request, assurance, authority scope and expiry |
 | Rights and handling interfaces | Provide user screens and perform downstream actions | Authorize requests, route to responsible organisations and retain authenticated outcomes |
 
-These are architecture extension contracts. Their illustrative records below do not add accepted fields to the published [v0.2 message schema](specifications/schemas). Extensions require explicit capability negotiation and a versioned contract before wire use. Unknown security-sensitive fields remain rejected.
+These are architecture extension contracts. Their illustrative records below do not add accepted fields to the published [current message schema](specifications/schemas). Extensions require explicit capability negotiation and a versioned contract before wire use. Unknown security-sensitive fields remain rejected.
 
 ## Purpose and processing profiles
 
@@ -274,7 +274,7 @@ sequenceDiagram
     N->>R: Lock request then current consent
     N->>R: Reconcile current authority plus request outbox atomically
     N->>O: Acknowledge notification subscriber
-    Note over S,R: Lost acknowledgements can replay effects safely; old event status creates no authority
+    Note over S,R: Lost acknowledgements can replay effects safely, old event status creates no authority
 ```
 
 Request lifecycle [0.3.0](specifications/lifecycle) includes withdrawal while CONSENT_PENDING, covering approval that is stopped before activation. Versions 0.1.0 and 0.2.0 remain unchanged. A late ACTIVE event is only a prompt to re-read current state; it cannot overwrite withdrawal/cancellation/expiry or restore a consumed disclosure. Recorded stops can be projected after the interaction deadline without creating new authority.

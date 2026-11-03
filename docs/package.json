@@ -20,12 +20,13 @@
     "profile": "0x -D prof ./quartz/bootstrap-cli.mjs build --concurrency=1",
     "install-plugins": "npx tsx ./quartz/plugins/loader/install-plugins.ts",
     "prebuild": "npm run install-plugins",
-    "build": "npm run verify:specs && node scripts/publish-specs.mjs && node scripts/assemble-design.mjs && node quartz/bootstrap-cli.mjs build && node scripts/export-design.mjs",
+    "build": "npm run verify:specs && node scripts/publish-specs.mjs && node scripts/assemble-design.mjs && npm run verify:diagrams && node quartz/bootstrap-cli.mjs build && node scripts/export-design.mjs",
     "start": "node server.mjs",
     "verify:content": "node scripts/verify-content.mjs",
     "assemble": "node scripts/assemble-design.mjs",
     "verify:server": "node scripts/verify-server.mjs",
-    "verify:specs": "node scripts/verify-specs.mjs"
+    "verify:specs": "node scripts/verify-specs.mjs",
+    "verify:diagrams": "node scripts/verify-diagrams.mjs"
   },
   "engines": {
     "npm": ">=10.9.2",
@@ -136,6 +137,8 @@
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "esbuild": "^0.28.2",
+    "jsdom": "27.4.0",
+    "mermaid": "11.4.0",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
