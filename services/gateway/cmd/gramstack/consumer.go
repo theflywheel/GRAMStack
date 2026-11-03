@@ -49,6 +49,7 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 		Consumers             map[string][]consumer.Policy `json:"consumers"`
 		Registries            []subjectbinding.Registry    `json:"registries"`
 		Consent               *consentConfig               `json:"consent"`
+		Authorization         *authorizationConfig         `json:"authorization"`
 		Authentication        *struct {
 			ClientID     string              `json:"client_id"`
 			HydraAdmin   string              `json:"hydra_admin_url"`
@@ -66,6 +67,9 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 	}
 	if c := config.Authentication; c != nil && c.DemoUpstream && os.Getenv("GRAMSTACK_ENV") != "development" && os.Getenv("GRAMSTACK_ENV") != "demo" {
 		return nil, errors.New("fictional identity provider requires explicit development/demo environment")
+	}
+	if config.Authorization != nil && config.Consent == nil {
+		return nil, errors.New("authorization requires configured consent authority")
 	}
 	if config.Consent != nil && (config.Authentication == nil || len(config.Registries) == 0) {
 		return nil, errors.New("consent portal requires authentication and registry verification")
@@ -156,7 +160,7 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 			}
 			mux.Handle("POST /interactions/{id}/verify", binding.Handler())
 			if config.Consent != nil {
-				if closeWorkers, err = configureConsentPortal(ctx, mux, pool, federation, binding, service, config.PublicOrigin, config.AllowLoopbackHTTP, *config.Consent); err != nil {
+				if closeWorkers, err = configureConsentPortal(ctx, mux, pool, federation, binding, service, config.PublicOrigin, config.AllowLoopbackHTTP, *config.Consent, config.Authorization, auth); err != nil {
 					pool.Close()
 					return nil, err
 				}

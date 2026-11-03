@@ -25,22 +25,22 @@ The v1 policy model uses a signed, versioned per-registry bundle evaluated throu
 
 ## Policy shape
 
-```yaml
-registry: lokos
-version: v1
-consumers:
-  sakhi-credit:
-    purposes: [credit_eligibility]
-    resources:
-      shg.membership:
-        fields: [membership_status, savings_summary]
-    require_verified_subject: true
-    require_human_consent: true
-    max_grant_seconds: 300
-    max_disclosures: 1
+```json
+{
+  "registry": "lokos",
+  "version": "lokos.v1",
+  "consumer_id": "sakhi-credit",
+  "purpose": "credit_eligibility",
+  "resource": "shg.membership",
+  "fields": ["membership_status", "savings_summary"],
+  "require_verified_subject": true,
+  "require_human_consent": true,
+  "max_grant_seconds": 60,
+  "max_disclosures": 1
+}
 ```
 
-This abbreviated example illustrates the policy envelope. Registry profiles also define assurance, issuer trust, recipient terms, source policy and canonical resource semantics. A decision records the exact policy version. Missing or unknown constraints fail closed.
+Each policy is signed with the source’s approved key using `typ=gramstack-policy+jws`. SQL retains immutable versions and the current enabled head for each registry/consumer/resource/purpose tuple. A replacement requires the expected current version. A retired version cannot be restored, and restarting with the same signed file cannot undo a disable. Registry profiles additionally bind issuer trust, recipient terms, supported assurance and canonical resource semantics. Unknown policy fields fail closed.
 
 ## Grant claims
 
@@ -60,17 +60,18 @@ This abbreviated example illustrates the policy envelope. Registry profiles also
   "purpose": "credit_eligibility",
   "consent_ref": "con_61b4",
   "subject_context_ref": "ctx_77",
-  "policy_version": "lokos.v1"
+  "policy_version": "lokos.v1",
+  "cnf": {"x5t#S256": "registered-consumer-certificate-SHA256-base64url"}
 }
 ```
 
 AuthZ uses a signed grant with a separate trusted issuer and JWKS. Expiry is bounded by consent validity, subject-context validity, request deadline and registry policy. Claims contain authorization metadata, not registry response data. JWT payloads are readable unless separately encrypted, so avoid raw identifiers and unnecessary attributes.
 
-Sender constraints are defined by the deployment security profile. A `client_id` claim alone does not bind a bearer token to its presenter. If selected, use a reviewed mTLS/DPoP design with `cnf`, proof validation and replay controls at the appropriate hop. Gateway termination and adapter enforcement must agree on how the original sender is authenticated; never pretend a forwarded string header is proof of possession.
+The selected profile uses mTLS sender constraints. At issuance, Hydra authenticates the consumer and AuthZ binds `cnf.x5t#S256` to its registered certificate. Retrieval additionally verifies possession of that certificate. The gateway and adapter convey presenter context only over authenticated service transport; the adapter’s private redemption call attests the verified original presenter. AuthZ verifies the adapter certificate owns the audience and matches the attested presenter to the grant. A forwarded identity header alone is never proof. DPoP would require its own defined proof-verification profile.
 
 ## Issuance and one-time redemption
 
-Grant issuance is an explicit consumer call after consent. Store/recover a stable issuance result so retries do not mint unlimited distinct grants. A one-time consent cannot be bypassed by creating a second `jti`.
+Grant issuance is an explicit consumer call after consent. Store/recover a stable issuance result so retries do not mint unlimited distinct grants. Existing issuance retries return the same signed bytes without requiring the signer to be online, while still checking current authority; expiry never extends. A one-time consent cannot be bypassed by creating a second `jti`.
 
 The gateway performs perimeter validation, but the adapter is the redemption enforcement point. It independently validates issuer, signature, audience, time, request, resource and fields, then calls authenticated internal AuthZ redemption. Only the authoritative atomic reservation permits a source read.
 
@@ -85,7 +86,7 @@ graph TD
     W --> S["Fetch and filter source response"]
 ```
 
-Redemption also binds the adapter identity, request digest and a stable retrieval attempt ID. Repeated commands need a defined response: the same authenticated attempt may recover its status, but recovery must not authorize a second upstream execution or second release.
+Redemption also binds the adapter identity, request digest and a stable retrieval attempt ID. The same authenticated attempt recovers its reservation metadata with `first_redemption=false`, even after withdrawal, policy revocation or grant expiry. That response acknowledges a historical admission. It never grants another source read or data release. A different attempt conflicts.
 
 ## Withdrawal and atomic enforcement
 
@@ -95,7 +96,7 @@ Authoritative consent enforcement and grant redemption share one transactional S
 
 ```text
 BEGIN
-  Lock consent enforcement record
+  Lock request, current source policy head, then consent enforcement record
   Validate consent status, version, expiry and one-use availability
   Validate grant, consumer, adapter and request binding
   Insert unique grant redemption
@@ -116,4 +117,30 @@ Record failed, attempted and uncertain outcomes separately. A server completing 
 
 ## Versioned grant profile
 
-The [0.1.0 authorization contract](specifications/authorization) specifies ES256 signed grants and an mTLS presenter-binding profile. The consumer certificate is checked at the gateway, and trusted presenter context crosses authenticated service transport to the adapter. DPoP requires a separately specified proof-verification profile.
+The [0.1.0 authorization contract](specifications/authorization) specifies ES256 signed grants and an mTLS presenter-binding profile. The consumer certificate is checked on the retrieval transport, and trusted presenter context crosses authenticated service transport to the adapter. DPoP requires a separately specified proof-verification profile.
+
+## Synchronous calls and durable authority
+
+```mermaid
+sequenceDiagram
+    participant C as Consumer backend
+    participant G as Gateway / AuthZ
+    participant P as SQL authority
+    participant A as Registry adapter
+    C->>G: POST request/grant + Hydra token + idempotency key
+    G->>P: Read request, current signed policy, ACTIVE consent and context
+    Note over G: Verify bindings and synchronously sign the bounded grant
+    G->>P: Lock and recheck authority, persist grant + FSM + outbox
+    P-->>G: Commit
+    G-->>C: Same scoped grant on valid retry
+    C->>G: Retrieval over authenticated presenter transport
+    G->>A: Grant + verified presenter context over service mTLS
+    A->>A: Independently verify grant and scope
+    A->>G: Private mTLS redemption with stable attempt ID
+    G->>P: Lock request, policy and consent, reserve use + FSM + outbox
+    P-->>G: Commit one reservation
+    G-->>A: first_redemption and reservation metadata
+    Note over A: Durable SDK attempt controls the subsequent fetch and evidence gate
+```
+
+Issuance and admission are synchronous. Both persist authority and metadata outbox events before responding; asynchronous notification delivery cannot grant or restore authority. SQL stores signed policies, current policy heads, immutable grants and reservation metadata. The grant contains no source response. The private consent-status endpoint is restricted to the adapter audience associated with the issued grant and is informational; a status read cannot replace atomic admission. Public JWKS contains only verification keys, and clients pin its trusted issuer/origin rather than follow a token-provided URL.

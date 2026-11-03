@@ -19,10 +19,12 @@ func main() {
 		switch os.Args[1] {
 		case "anchor":
 			err = anchor(ctx, os.Args[2:], os.Stdout)
+		case "sign-policy":
+			err = signPolicy(ctx, os.Args[2:], os.Stdout)
 		case "migrate":
 			err = migrate(ctx, os.Args[2:], os.Stdout)
 		default:
-			err = errors.New("usage: gramstack [anchor flags | migrate]")
+			err = errors.New("usage: gramstack [anchor flags | migrate | sign-policy flags]")
 		}
 		if err != nil {
 			log.Fatal(err)

@@ -89,7 +89,11 @@ func TestActualConsentWorkers(t *testing.T) {
 	if !ok {
 		t.Fatal("not a consent signing key")
 	}
-	verifier, err := cm.NewVerifierWithOptions(base, base, map[string]*ecdsa.PublicKey{"demo-consent-key": &key.PublicKey}, cm.VerifierOptions{AllowLoopback: true})
+	statusOrigin := base
+	if os.Getenv("GRAMSTACK_TEST_AUTHZ") == "1" {
+		statusOrigin = os.Getenv("GRAMSTACK_TEST_AUTHZ_URL")
+	}
+	verifier, err := cm.NewVerifierWithOptions(base, statusOrigin, map[string]*ecdsa.PublicKey{"demo-consent-key": &key.PublicKey}, cm.VerifierOptions{AllowLoopback: true})
 	if err != nil {
 		t.Fatal(err)
 	}

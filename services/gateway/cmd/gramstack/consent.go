@@ -27,19 +27,19 @@ type consentConfig struct {
 	StatusOrigin   string `json:"status_origin"`
 }
 
-func consentKey(path string) (*ecdsa.PrivateKey, error) {
+func signingKey(path string) (*ecdsa.PrivateKey, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, errors.New("consent signing key file required")
+		return nil, errors.New("signing key file required")
 	}
 	defer file.Close()
 	raw, err := io.ReadAll(io.LimitReader(file, 16385))
 	if err != nil || len(raw) > 16384 {
-		return nil, errors.New("invalid consent signing key size")
+		return nil, errors.New("invalid signing key size")
 	}
 	block, rest := pem.Decode(raw)
 	if block == nil || len(strings.TrimSpace(string(rest))) != 0 {
-		return nil, errors.New("invalid consent signing key PEM")
+		return nil, errors.New("invalid signing key PEM")
 	}
 	var key *ecdsa.PrivateKey
 	if block.Type == "EC PRIVATE KEY" {
@@ -49,15 +49,15 @@ func consentKey(path string) (*ecdsa.PrivateKey, error) {
 		parsed, err = x509.ParsePKCS8PrivateKey(block.Bytes)
 		key, _ = parsed.(*ecdsa.PrivateKey)
 	} else {
-		return nil, errors.New("P-256 consent signing key required")
+		return nil, errors.New("P-256 signing key required")
 	}
 	if err != nil || key == nil {
-		return nil, errors.New("invalid consent signing key")
+		return nil, errors.New("invalid signing key")
 	}
 	return key, nil
 }
-func configureConsentPortal(ctx context.Context, mux *http.ServeMux, pool *pgxpool.Pool, auth *authn.Service, bindings *subjectbinding.Service, terms *consumer.Service, origin string, loopback bool, c consentConfig) (func(), error) {
-	key, err := consentKey(os.Getenv("GRAMSTACK_CONSENT_SIGNING_KEY_FILE"))
+func configureConsentPortal(ctx context.Context, mux *http.ServeMux, pool *pgxpool.Pool, auth *authn.Service, bindings *subjectbinding.Service, terms *consumer.Service, origin string, loopback bool, c consentConfig, authorization *authorizationConfig, authenticator consumer.Authenticator) (func(), error) {
+	key, err := signingKey(os.Getenv("GRAMSTACK_CONSENT_SIGNING_KEY_FILE"))
 	if err != nil {
 		return nil, err
 	}
@@ -87,15 +87,23 @@ func configureConsentPortal(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 	for _, pattern := range []string{"GET /interactions/{id}/consent", "POST /interactions/{id}/decision", "GET /interactions/{id}/receipt", "POST /consents/{id}/withdrawal", "GET /assets/consent.css"} {
 		mux.Handle(pattern, handler)
 	}
+	closeAuthorization := func() {}
+	if authorization != nil {
+		closeAuthorization, err = configureAuthorization(ctx, mux, pool, authenticator, bindings, terms, service, verifier, origin, loopback, *authorization)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if !c.WorkersEnabled {
-		return func() {}, nil
+		return closeAuthorization, nil
 	}
 	worker, err := consentworker.New(pool, service)
 	if err != nil {
+		closeAuthorization()
 		return nil, err
 	}
 	workerCtx, cancel := context.WithCancel(ctx)
 	done := make(chan struct{})
 	go func() { defer close(done); worker.Run(workerCtx) }()
-	return func() { cancel(); <-done }, nil
+	return func() { closeAuthorization(); cancel(); <-done }, nil
 }

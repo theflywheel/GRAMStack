@@ -38,7 +38,7 @@ func main() {
 		log.Fatal(err)
 	}
 	write(*dir, "ca.pem", "CERTIFICATE", der)
-	for i, name := range []string{"gateway", "lokos-adapter", "mock-lokos", "unauthorised"} {
+	for i, name := range []string{"gateway", "lokos-adapter", "mock-lokos", "unauthorised", "consumer-one"} {
 		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			log.Fatal(err)
@@ -64,6 +64,23 @@ func main() {
 		log.Fatal("consent key encoding failed")
 	}
 	write(*dir, "consent-signing.key", "PRIVATE KEY", signingDER)
+	for _, name := range []string{"grant-signing", "policy-signing"} {
+		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			log.Fatal("signing key generation failed")
+		}
+		der, err := x509.MarshalPKCS8PrivateKey(key)
+		if err != nil {
+			log.Fatal("signing key encoding failed")
+		}
+		write(*dir, name+".key", "PRIVATE KEY", der)
+		pub, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+		if err != nil {
+			log.Fatal("public key encoding failed")
+		}
+		write(*dir, name+".pub", "PUBLIC KEY", pub)
+	}
+
 }
 func write(dir, name, kind string, der []byte) {
 	file, err := os.OpenFile(filepath.Join(dir, name), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)

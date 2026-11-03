@@ -2,6 +2,7 @@
 # Isolated, real Hydra/PostgreSQL integration. No production URLs or credentials.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then export GRAMSTACK_TEST_WORKERS=1; fi
 if [[ "${GRAMSTACK_PREVIEW:-}" == 1 && "${GRAMSTACK_TEST_PORTAL:-}" != 1 && "${GRAMSTACK_TEST_WORKERS:-}" != 1 ]]; then
  echo "Preview requires GRAMSTACK_TEST_PORTAL=1 or GRAMSTACK_TEST_WORKERS=1" >&2; exit 1
 fi
@@ -199,6 +200,21 @@ config['consent']=dict(key_id='demo-consent-key')
 path.write_text(json.dumps(config))
 PYC
   fi
+  if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then
+   authz_port=$(free_port)
+   export GRAMSTACK_TEST_AUTHZ_URL="https://127.0.0.1:$authz_port" GRAMSTACK_GRANT_SIGNING_KEY_FILE="$scratch/certs/grant-signing.key"
+   export GRAMSTACK_TEST_AUTHZ_RESUME="$scratch/authz-resume.json"
+   python3 - <<'PYZ'
+import json,os,pathlib,urllib.parse
+path=pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']);config=json.loads(path.read_text());certs=path.parent/'certs'
+policy=dict(registry='lokos',version='demo-policy-v1',consumer_id='consumer-one',resource='shg.membership',purpose='credit_eligibility',fields=['membership_status','savings_summary'],require_verified_subject=True,require_human_consent=True,max_grant_seconds=60,max_disclosures=1)
+(path.parent/'policy.json').write_text(json.dumps(policy))
+config['consent']['status_origin']=os.environ['GRAMSTACK_TEST_AUTHZ_URL']
+config['authorization']=dict(key_id='demo-grant-key',listen_address=urllib.parse.urlparse(os.environ['GRAMSTACK_TEST_AUTHZ_URL']).netloc,policy_keys=[dict(registry='lokos',key_id='demo-policy-key',file=str(certs/'policy-signing.pub'))],policies=[dict(file=str(path.parent/'policy.jws'),expected_version='')],adapters=[dict(registry='lokos',audience='lokos-adapter',service_identity='lokos-adapter.gramstack.internal')],presenter_certificates={'consumer-one':str(certs/'consumer-one.pem')})
+path.write_text(json.dumps(config))
+PYZ
+   "$scratch/gateway" sign-policy -input "$scratch/policy.json" -key "$scratch/certs/policy-signing.key" -key-id demo-policy-key -output "$scratch/policy.jws"
+  fi
   start_binding
  fi
  start_gateway
@@ -219,10 +235,13 @@ PYW
   start_binding; start_gateway
   pattern='^TestActualSubjectBindingRestart$'
   if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then pattern="$pattern|^TestActualConsentWorkers$"; fi
+  if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then pattern="$pattern|^TestActualAuthorization$"; fi
   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then
    stop_gateway; start_gateway
-   gateway_go test -race -count=1 -v -run '^TestActualConsentWorkersRestart$' ./internal/authn
+   pattern='^TestActualConsentWorkersRestart$'
+   if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then pattern="$pattern|^TestActualAuthorizationRestart$"; fi
+   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   fi
  else
   if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then pattern='^TestActualESignetFederation$'; else pattern='^TestActualFederation$'; fi

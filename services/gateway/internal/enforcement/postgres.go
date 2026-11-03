@@ -94,11 +94,24 @@ func (r Repository) Withdraw(ctx context.Context, id string, expectedVersion int
 	return result, nil
 }
 func (r Repository) Redeem(ctx context.Context, input VerifiedRedemption) (Reservation, error) {
-	if input.ConsentID == "" || input.RequestID == "" || input.GrantJTI == "" || input.AdapterID == "" || input.AttemptID == "" || !digestPattern.MatchString(input.RequestDigest) || !digestPattern.MatchString(input.GrantDigest) || !thumbprintPattern.MatchString(input.PresenterThumbprint) {
+	if !validRedemption(input) {
 		return Reservation{}, ErrBinding
 	}
 	var result Reservation
-	err := pgx.BeginFunc(ctx, r.Pool, func(tx pgx.Tx) error {
+	err := pgx.BeginFunc(ctx, r.Pool, func(tx pgx.Tx) error { var err error; result, err = RedeemTx(ctx, tx, input); return err })
+	if err != nil {
+		return Reservation{}, err
+	}
+	return result, nil
+}
+
+// RedeemTx shares the consent/use boundary with authenticated policy and request checks.
+func RedeemTx(ctx context.Context, tx pgx.Tx, input VerifiedRedemption) (Reservation, error) {
+	if !validRedemption(input) {
+		return Reservation{}, ErrBinding
+	}
+	var result Reservation
+	err := func() error {
 		c, err := lockConsent(ctx, tx, input.ConsentID)
 		if err != nil {
 			return err
@@ -143,9 +156,13 @@ func (r Repository) Redeem(ctx context.Context, input VerifiedRedemption) (Reser
 			return err
 		}
 		return outbox.Append(ctx, tx, "consent", c.ID, c.Version, "consent.exhausted", map[string]any{"consent_id": c.ID, "access_request_id": c.RequestID, "request_digest": c.Digest, "type": "consent.exhausted"})
-	})
+	}()
 	if err != nil {
 		return Reservation{}, err
 	}
 	return result, nil
+}
+
+func validRedemption(input VerifiedRedemption) bool {
+	return !(input.ConsentID == "" || input.RequestID == "" || input.GrantJTI == "" || input.AdapterID == "" || input.AttemptID == "" || !digestPattern.MatchString(input.RequestDigest) || !digestPattern.MatchString(input.GrantDigest) || !thumbprintPattern.MatchString(input.PresenterThumbprint))
 }
