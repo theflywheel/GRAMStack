@@ -22,6 +22,7 @@ import (
 
 type Config struct {
 	Issuer, ClientID, ClientSecret, RedirectURI string
+	FormReturnOrigins                           []string
 	DemoEnabled                                 bool
 }
 type authRequest struct {
@@ -51,6 +52,13 @@ func New(c Config) (*Provider, error) {
 			return nil, errors.New("invalid demo endpoints")
 		}
 	}
+	for _, raw := range c.FormReturnOrigins {
+		u, err := url.Parse(raw)
+		if err != nil || u.Host == "" || u.User != nil || u.Path != "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || (u.Scheme != "http" && u.Scheme != "https") || strings.ContainsAny(raw, "; \t\r\n'\"*") {
+			return nil, errors.New("explicit form return origins must be exact HTTP(S) origins")
+		}
+	}
+	c.FormReturnOrigins = append([]string(nil), c.FormReturnOrigins...)
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, err
@@ -58,6 +66,12 @@ func New(c Config) (*Provider, error) {
 	return &Provider{c, key, sync.Mutex{}, map[string]authRequest{}, map[string]code{}}, nil
 }
 func (p *Provider) Handler() http.Handler {
+	callback, _ := url.Parse(p.config.RedirectURI)
+	// Chrome applies form-action to the registered OAuth return redirect too.
+	formTargets := "'self' " + callback.Scheme + "://" + callback.Host
+	for _, origin := range p.config.FormReturnOrigins {
+		formTargets += " " + origin
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })
 	mux.HandleFunc("GET /.well-known/openid-configuration", p.discovery)
@@ -69,7 +83,7 @@ func (p *Provider) Handler() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; form-action "+formTargets+"; frame-ancestors 'none'; base-uri 'none'")
 		mux.ServeHTTP(w, r)
 	})
 }

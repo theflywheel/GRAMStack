@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="A consent-led credit review with SakhiCredit. Demonstration using fictional SHG records.">
+  <title>SakhiCredit · Your credit review</title>
+  <link rel="icon" href="/assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/app.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to application</a>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="SakhiCredit home"><span class="brand-mark" aria-hidden="true">s.</span><span>Sakhi<span class="brand-light">Credit</span><small>A little clarity. A new possibility.</small></span></a>
+    <a class="how-link" href="#sharing-info">How sharing works <span aria-hidden="true">↗</span></a>
+    <span class="demo-label"><span class="dot" aria-hidden="true"></span> Fictional data demo</span>
+  </header>
+  <main id="main">
+    <section class="intro" aria-labelledby="page-title">
+      <div><p class="eyebrow">MEMBER CREDIT REVIEW</p><h1 id="page-title" tabindex="-1">Your next step,<br><em>on your terms.</em></h1><p class="intro-copy">Bring your SHG membership details into your credit review. Choose what to request, review the sharing notice, and decide for yourself.</p></div>
+      <div class="intro-note"><span class="seal" aria-hidden="true">✓</span><p>Your permission comes first.<br><strong>No details are fetched until you approve.</strong></p></div>
+    </section>
+    <div id="connection-message" class="notice" role="alert" hidden><span id="connection-text"></span><button id="retry" class="text-button" type="button">Try again</button></div>
+    <div class="workspace">
+      <div class="primary-column">
+        <section id="new-application" class="card" aria-labelledby="form-title">
+          <div class="card-heading"><span class="eyebrow">LET’S GET STARTED</span><span class="small-pill">About 2 minutes</span></div>
+          <h2 id="form-title">Prepare your application</h2>
+          <p class="muted">We’ll ask the source to share only the details selected below.</p>
+          <form id="application-form">
+            <label class="field-label" for="member-reference">SHG member reference</label>
+            <input id="member-reference" name="member_reference" value="member-12345" pattern="member-[0-9]{1,32}" maxlength="39" required autocomplete="off" spellcheck="false" aria-describedby="member-help">
+            <p id="member-help" class="field-help">Demo profile: Sunita Devi · member-12345. The source verifies that the record belongs to the person signing in.</p>
+            <fieldset><legend>Details to request</legend>
+              <label class="choice"><input type="checkbox" checked disabled><span><strong>Membership status</strong><small>Whether your SHG membership is active</small></span><span class="required-label">Required</span></label>
+              <label class="choice"><input id="include-savings" name="include_savings" type="checkbox" checked><span><strong>Savings summary</strong><small>Your source-reported savings balance in INR</small></span></label>
+            </fieldset>
+            <div class="purpose-note"><span aria-hidden="true">↗</span><p><strong>One credit review. One sharing request.</strong><br>Starting an application does not approve sharing. You’ll see the exact notice and recipient terms before making your decision.</p></div>
+            <button id="start" class="button primary" type="submit" disabled>Start application <span aria-hidden="true">→</span></button>
+            <p class="fine-print">This demo keeps its received copy for up to one hour. No loan offer or lending decision is made here.</p>
+          </form>
+        </section>
+        <section id="application-progress" class="card" aria-labelledby="progress-title" hidden>
+          <div class="card-heading"><span class="eyebrow">YOUR APPLICATION</span><span id="state-badge" class="small-pill">Connecting</span></div>
+          <ol class="progress-steps" aria-label="Application progress"><li id="step-application"><span>1</span>Application</li><li id="step-permission"><span>2</span>Your permission</li><li id="step-details"><span>3</span>Your details</li></ol>
+          <div class="status-copy" aria-live="polite" aria-atomic="true"><h2 id="progress-title" tabindex="-1">Reconnecting to your application</h2><p id="progress-copy" class="muted">Checking its saved progress.</p></div>
+          <div id="waiting-note" class="soft-note" hidden>Review opens in a separate tab. Return here when you’ve made your decision.</div>
+          <div class="actions"><a id="review" class="button primary" target="_blank" rel="noopener noreferrer" hidden>Review sharing request <span aria-hidden="true">↗</span></a><button id="retrieve" class="button primary" type="button" hidden>Get approved details <span aria-hidden="true">→</span></button><button id="refresh" class="button secondary" type="button" hidden>Check progress</button><button id="cancel" class="text-button danger" type="button" hidden>Cancel this application</button></div>
+          <section id="approved-result" aria-label="Approved source details" hidden>
+            <div class="result-grid"><div class="result-tile"><span class="result-label">SHG MEMBERSHIP</span><strong id="membership-value"></strong><span class="result-source">Source-reported status</span></div><div id="savings-tile" class="result-tile savings"><span class="result-label">SAVINGS SUMMARY</span><strong id="savings-value"></strong><span class="result-source">Source-reported INR rupees</span></div></div>
+            <div class="evidence-note"><span class="evidence-check" aria-hidden="true">✓</span><div><strong>Sharing evidence recorded</strong><p>Signed access evidence was stored before these details were released. External publication may still be pending.</p></div></div>
+            <p class="fine-print">These are fictional source records, shared for this credit review. They do not establish credit eligibility or a lending decision.</p>
+          </section>
+          <details id="sharing-reference" class="reference" hidden><summary>View sharing reference</summary><dl><div><dt>Application</dt><dd id="application-reference"></dd></div><div><dt>Request</dt><dd id="request-reference"></dd></div><div id="receipt-reference-row" hidden><dt>Access receipt</dt><dd id="receipt-reference"></dd></div><div><dt>Demo copy available until</dt><dd id="retention-until"></dd></div></dl><a id="consent-receipt" target="_blank" rel="noopener noreferrer" hidden>View consent receipt ↗</a><p class="fine-print">The consent portal may require sign-in. Withdrawal stops future access; it does not erase a copy already received.</p></details>
+          <button id="new" class="button secondary" type="button" hidden>Start a new application</button>
+        </section>
+      </div>
+      <aside id="sharing-info" class="sharing-panel" aria-labelledby="sharing-title">
+        <div class="panel-icon" aria-hidden="true">↗</div><p class="eyebrow">SHARING, WITH YOU IN CONTROL</p><h2 id="sharing-title">A clear path<br>from request to review.</h2>
+        <ol class="explainer"><li><span>01</span><div><h3>Choose the details</h3><p>Request membership status, with an optional savings summary. Your original record remains with the source.</p></div></li><li><span>02</span><div><h3>Make your decision</h3><p>Sign in, verify your record, and review the notice. You can approve or decline the whole request.</p></div></li><li><span>03</span><div><h3>See what was shared</h3><p>Only approved details are fetched, once. A sharing reference accompanies the result.</p></div></li></ol>
+        <div class="demo-info"><strong>Try the fictional Sunita profile</strong><p>Use Sunita’s fictional identity. In eSignet, choose UIN/VID, enter <code>9000000001</code>, and use demo OTP <code>111111</code>.</p><p>Real authentication and sharing protocols; fictional identity and source records.</p></div>
+      </aside>
+    </div>
+    <noscript><p class="notice">JavaScript is needed for this application. Enable it to start or check your credit review.</p></noscript>
+  </main>
+  <footer><span class="footer-brand">SakhiCredit</span><p>Made for a clearer credit review.<br><a href="https://docs.gramstack.try-dough.com/" target="_blank" rel="noopener noreferrer">Powered by GRAMStack ↗</a></p><span>Demonstration · Fictional records</span></footer>
+</body>
+</html>

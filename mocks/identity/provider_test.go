@@ -19,11 +19,12 @@ func TestFictionalCodePKCEAndReplay(t *testing.T) {
 	var handler http.Handler
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { handler.ServeHTTP(w, r) }))
 	defer server.Close()
-	config := Config{Issuer: server.URL, ClientID: "test-client", ClientSecret: "synthetic-client-secret", RedirectURI: "http://127.0.0.1:9911/callback", DemoEnabled: true}
+	config := Config{Issuer: server.URL, ClientID: "test-client", ClientSecret: "synthetic-client-secret", RedirectURI: "http://127.0.0.1:9911/callback", DemoEnabled: true, FormReturnOrigins: []string{"http://127.0.0.1:9922"}}
 	provider, err := New(config)
 	if err != nil {
 		t.Fatal(err)
 	}
+	config.FormReturnOrigins[0] = "https://untrusted.example"
 	handler = provider.Handler()
 	if _, err := New(Config{Issuer: server.URL, ClientID: config.ClientID, ClientSecret: config.ClientSecret, RedirectURI: config.RedirectURI}); err == nil {
 		t.Fatal("demo permission not required")
@@ -37,6 +38,10 @@ func TestFictionalCodePKCEAndReplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	csp := response.Header.Get("Content-Security-Policy")
+	if !strings.Contains(csp, "form-action 'self' http://127.0.0.1:9911 http://127.0.0.1:9922;") || strings.Contains(csp, "*") {
+		t.Fatal("registered browser return origin missing or broadened")
+	}
 	raw, err := io.ReadAll(response.Body)
 	response.Body.Close()
 	if err != nil || response.StatusCode != 200 {
@@ -49,6 +54,17 @@ func TestFictionalCodePKCEAndReplay(t *testing.T) {
 		}
 		return m[1]
 	}
+	changed := query.Get("redirect_uri")
+	query.Set("redirect_uri", "http://127.0.0.1:9922/other")
+	bad, err := client.Get(server.URL + "/authorize?" + query.Encode())
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad.Body.Close()
+	if bad.StatusCode != 400 {
+		t.Fatal("CSP navigation origin became an OAuth redirect registration")
+	}
+	query.Set("redirect_uri", changed)
 	selection := url.Values{"ticket": {find("ticket")}, "csrf": {find("csrf")}, "identity": {"sunita"}}
 	response, err = client.PostForm(server.URL+"/authorize", selection)
 	if err != nil {
@@ -98,5 +114,14 @@ func TestFictionalCodePKCEAndReplay(t *testing.T) {
 	response.Body.Close()
 	if response.StatusCode != 403 {
 		t.Fatal("identity form replay accepted")
+	}
+}
+
+func TestFormReturnOriginsAreExplicit(t *testing.T) {
+	for _, origin := range []string{"https://example.test/path", "https://example.test?", "https://example.test;form-action", "https://*.example.test", "https://user:secret@example.test"} {
+		_, err := New(Config{Issuer: "https://idp.example.test", ClientID: "client", ClientSecret: "synthetic-client-secret", RedirectURI: "https://app.example.test/callback", DemoEnabled: true, FormReturnOrigins: []string{origin}})
+		if err == nil {
+			t.Fatal("unsafe form navigation source accepted")
+		}
 	}
 }

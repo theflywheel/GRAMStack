@@ -46,6 +46,10 @@ func Handler(service *Service, origin string, allowLoopback bool) (http.Handler,
 		cookieName = "sakhi_demo"
 	}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /{$}", webHandler("index.html", "text/html; charset=utf-8"))
+	mux.HandleFunc("GET /assets/app.css", webHandler("app.css", "text/css; charset=utf-8"))
+	mux.HandleFunc("GET /assets/app.js", webHandler("app.js", "text/javascript; charset=utf-8"))
+	mux.HandleFunc("GET /assets/mark.svg", webHandler("mark.svg", "image/svg+xml"))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		if service == nil || service.store.Ready(r.Context()) != nil {
@@ -186,7 +190,7 @@ func Handler(service *Service, origin string, allowLoopback bool) (http.Handler,
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 		w.Header().Set("Sakhicredit-API-Version", "0.1.0")
 		ctx, cancel := context.WithTimeout(r.Context(), 35*time.Second)
 		defer cancel()

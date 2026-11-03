@@ -1,7 +1,7 @@
 ---
 title: 08 · State and evidence
 description: Custody, retention, stores and evidence-before-release semantics.
-date: 2026-11-03
+date: 2026-11-04
 ---
 # State and evidence
 
@@ -242,6 +242,16 @@ The worker runs one bounded publication at a time, using 30-second SQL leases an
 DeDi writes use create-only preconditions. If publication succeeded but the SQL checkpoint failed, the retry verifies the existing first-version record instead of overwriting it. Once SQL has committed a verified proof, a lost queue acknowledgement recovers by checking that retained proof offline. The `pending → anchored` transition uses an FSM; anchored state, proof and timestamp cannot be overwritten. A single `evidence.anchored` event commits with that transition. Neither publication nor retry changes disclosure permission or causes another source read.
 
 The retained reference includes the Merkle audit path, leaf metadata and signed checkpoint. Verification pins the node key and checkpoint origin, namespace, registry, publisher, record name, first version and exact protected commitment. This proves inclusion under that checkpoint. Cross-checkpoint consistency and independent witness verification are additional deployment requirements for non-equivocation claims. Batch mode continues to release after durable custody during a DeDi outage; operators must monitor pending age and backlog and apply their chosen outage policy. The reference runtime does not claim an enforced maximum anchoring delay or an implemented synchronous custody profile.
+
+## Consumer copy and product recovery
+
+The reference SakhiCredit consumer has a separate database. It encrypts the member locator and received result with AES-GCM, binding each ciphertext to the application, browser owner and payload purpose. Input comparison for idempotency uses an owner-bound keyed digest. Browser tokens are stored only as hashes; product-session cookies are HttpOnly, host-only and Secure on HTTPS. Product changes require the configured Origin and a matching CSRF token.
+
+Applications and their received copies are inaccessible after one hour; browser sessions expire after two hours without sliding renewal. Bounded maintenance physically removes expired rows, separately from enforcing TTL on access. The product's shorter retention fits within the recipient terms' maximum window. SQL expiry does not prove deletion of backups, screenshots or arbitrary browser copies.
+
+The product FSM commits a single FETCHING claim with an immutable 45-second recovery deadline before calling the private data endpoint. It persists an encrypted result before returning it to the browser. A reload or repeated successful product operation returns that already received copy, rather than another platform disclosure. A failed response/checkpoint or abandoned attempt becomes UNKNOWN and cannot fetch again. Platform permission, certificate binding, admission and evidence checks remain independent and authoritative.
+
+Cancellation first persists a product-side fence, then asks the platform to cancel. A dependency outage retains CANCELLING, with bounded retries of that same cancellation; it never exposes a new fetch slot. Withdrawal prevents new admission and does not retroactively erase a recipient copy already received. Consent receipts and access receipts remain distinct records, connected by the request and disclosure references.
 
 ## What evidence proves
 

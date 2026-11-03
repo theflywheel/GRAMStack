@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -16,7 +17,11 @@ func main() {
 	if mode != "development" && mode != "demo" {
 		log.Fatal("fictional identity provider requires development or demo mode")
 	}
-	provider, err := identity.New(identity.Config{Issuer: os.Getenv("OIDC_ISSUER"), ClientID: os.Getenv("OIDC_CLIENT_ID"), ClientSecret: os.Getenv("OIDC_CLIENT_SECRET"), RedirectURI: os.Getenv("OIDC_REDIRECT_URI"), DemoEnabled: true})
+	var formReturns []string
+	if raw := os.Getenv("OIDC_FORM_RETURN_ORIGINS"); raw != "" {
+		formReturns = strings.Split(raw, ",")
+	}
+	provider, err := identity.New(identity.Config{Issuer: os.Getenv("OIDC_ISSUER"), ClientID: os.Getenv("OIDC_CLIENT_ID"), ClientSecret: os.Getenv("OIDC_CLIENT_SECRET"), RedirectURI: os.Getenv("OIDC_REDIRECT_URI"), DemoEnabled: true, FormReturnOrigins: formReturns})
 	if err != nil {
 		log.Fatal(err)
 	}

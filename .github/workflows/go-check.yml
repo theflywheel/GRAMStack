@@ -91,6 +91,13 @@ jobs:
             mocks/identity/go.*
             mocks/lokos/go.*
             apps/sakhicredit/go.*
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/sakhicredit/package-lock.json
+      - name: Install pinned headless test driver
+        run: npm ci --prefix apps/sakhicredit --ignore-scripts --no-audit --no-fund
       - name: Fetch pinned official Hydra release
         run: |
           mkdir -p "$RUNNER_TEMP/hydra"
@@ -101,4 +108,15 @@ jobs:
         run: |
           export HYDRA_BIN="$RUNNER_TEMP/hydra/hydra"
           export PG_BIN="$(pg_config --bindir)"
-          GRAMSTACK_TEST_PRODUCT=1 ./scripts/test-hydra.sh
+          export GRAMSTACK_BROWSER_ARTIFACTS="$RUNNER_TEMP/sakhi-browser"
+          export CHROME_BIN="$(command -v google-chrome)"
+          GRAMSTACK_TEST_PRODUCT_UI=1 ./scripts/test-hydra.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sakhi-browser-acceptance
+          path: |
+            ${{ runner.temp }}/sakhi-browser/acceptance.json
+            ${{ runner.temp }}/sakhi-browser/*.png
+          retention-days: 7
+          compression-level: 0

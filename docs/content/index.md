@@ -1,12 +1,12 @@
 ---
 title: GRAMStack — System Architecture
 description: Read-only, consent-first interoperability for Indian DPI registries. Architecture, contracts, state and evidence.
-date: 2026-11-03
+date: 2026-11-04
 ---
-<div class="hero-kicker">System architecture / v0.14</div>
+<div class="hero-kicker">System architecture / v0.15</div>
 <div class="hero-title">One request.<br>Explicit consent.<br>Verifiable access.</div>
 <p class="hero-summary">GRAMStack connects applications to authoritative Indian DPI registries through common read APIs, federated authentication, registry-specific subject verification, human consent and narrowly scoped retrieval grants.</p>
-<div class="design-meta"><span>Architecture and protocols</span><span>3 November 2026</span><span>Read-only interoperability</span></div>
+<div class="design-meta"><span>Architecture and protocols</span><span>4 November 2026</span><span>Read-only interoperability</span></div>
 
 ## Explore the architecture
 

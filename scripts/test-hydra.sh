@@ -2,6 +2,7 @@
 # Isolated, real Hydra/PostgreSQL integration. No production URLs or credentials.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+if [[ "${GRAMSTACK_TEST_PRODUCT_UI:-}" == 1 ]]; then export GRAMSTACK_TEST_PRODUCT=1; fi
 if [[ "${GRAMSTACK_TEST_PRODUCT:-}" == 1 ]]; then export GRAMSTACK_TEST_DISCOVERY=1; fi
 if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then export GRAMSTACK_TEST_DISCOVERY=1; fi
 if [[ "${GRAMSTACK_TEST_DISCOVERY:-}" == 1 ]]; then export GRAMSTACK_TEST_RETRIEVAL=1; fi
@@ -172,7 +173,7 @@ if [[ "${GRAMSTACK_TEST_AUTHN:-}" == 1 ]]; then
   "$scratch/esignet-demo" -callback "$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback" -directory "$scratch"
  else
   export GRAMSTACK_TEST_IDP_URL="http://127.0.0.1:$idp_port"
-  export OIDC_ISSUER="$GRAMSTACK_TEST_IDP_URL" OIDC_CLIENT_ID="gramstack-upstream" OIDC_CLIENT_SECRET="isolated-upstream-secret" OIDC_REDIRECT_URI="$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback"
+  export OIDC_FORM_RETURN_ORIGINS="$GRAMSTACK_TEST_HYDRA_PUBLIC" OIDC_ISSUER="$GRAMSTACK_TEST_IDP_URL" OIDC_CLIENT_ID="gramstack-upstream" OIDC_CLIENT_SECRET="isolated-upstream-secret" OIDC_REDIRECT_URI="$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback"
   export GRAMSTACK_UPSTREAM_CLIENT_SECRET="$OIDC_CLIENT_SECRET"
   unset GRAMSTACK_UPSTREAM_PRIVATE_KEY_FILE
   GOWORK=off go -C "$root/mocks/identity" build -o "$scratch/demo-idp" ./cmd/demo-idp
@@ -305,6 +306,12 @@ PYW
  else
   if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then pattern='^TestActualESignetFederation$'; else pattern='^TestActualFederation$'; fi
   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
+ fi
+ if [[ "${GRAMSTACK_TEST_PRODUCT_UI:-}" == 1 ]]; then
+  node "$root/apps/sakhicredit/tests/browser.mjs"
+  if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then
+   gateway_go test -race -count=1 -v -run '^TestActualEvidenceAnchoringProcess$' ./internal/authn
+  fi
  fi
  if [[ "${GRAMSTACK_PREVIEW:-}" == 1 ]]; then
   # Keep the tested processes alive for the real browser; never export cookies or tokens.

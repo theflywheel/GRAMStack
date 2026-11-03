@@ -150,6 +150,7 @@ func (s *Service) Cancel(ctx context.Context, owner, id string) (Application, er
 		if err = s.store.claim(ctx, owner, id, "CANCELLING"); err != nil {
 			return r.Application, err
 		}
+		r.State = "CANCELLING" // Report the committed fence even when the upstream call fails.
 	}
 	status, err := s.client.Status(ctx, r.RequestID, true)
 	var remote *RemoteError

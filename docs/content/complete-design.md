@@ -1,10 +1,10 @@
 ---
 title: Complete design · GRAMStack
 description: The complete system architecture, including components, protocols, API contracts, state, evidence and retrieval flows.
-date: 2026-11-03
+date: 2026-11-04
 ---
 
-System architecture · Version 0.14 · 3 November 2026
+System architecture · Version 0.15 · 4 November 2026
 
 [Download Markdown](static/gramstack-design.txt).
 
@@ -208,6 +208,54 @@ An independently hosted adapter publishes public capabilities and public verific
 The [adapter discovery profile](specifications/adapter-discovery) defines fixed well-known paths, explicit versions, bounded JSON and strict EC/P-256 public JWKs. Before each protected dispatch, gateway checks the advertised method, required capabilities, resource versions and exact approved key points. Redirects, private key parameters, unknown fields, duplicate identities and unsupported algorithms fail closed. Metadata reads send no consumer token, cookie or private service credential. Production metadata uses HTTPS; explicit development permits literal-loopback HTTP only.
 
 Unavailable or incompatible metadata returns a safe failure before the gateway claims an attempt. The request can proceed after valid metadata is restored. Actual permission still requires current source policy, verified subject, ACTIVE consent, original consumer certificate, independent SDK checks, atomic one-use admission and durable evidence. The manifest is a capability declaration, with dependency availability checked separately from trust.
+
+
+## SakhiCredit consumer product boundary
+
+SakhiCredit is an independent consumer, with its own Go module, browser experience and database. Its backend uses both GRAMStack interfaces: the OAuth-authenticated control API for request/status/grant operations, and the private consumer-mTLS data API for one admitted disclosure. The product browser uses a separate product session; it receives neither consumer credentials nor retrieval grants. Authentication, source ownership, exact notice, consent and access enforcement stay in the platform.
+
+```mermaid
+sequenceDiagram
+    participant B as SakhiCredit browser
+    participant P as SakhiCredit backend
+    participant S as Product SQL
+    participant G as GRAMStack gateway
+    B->>P: POST application with browser session and CSRF
+    P->>S: Save immutable encrypted application input
+    P->>G: POST access request using consumer OAuth
+    G-->>P: Request ID and first-party interaction URL
+    P->>S: Bind the platform request to the application
+    P-->>B: Saved progress and sharing handoff
+    B->>G: Sign in, verify source record and decide in a separate tab
+    Note over G: Consent activation and lifecycle projection use durable workers
+    B->>P: Check application progress
+    P->>G: GET request status using consumer OAuth
+    G-->>P: Current workflow status
+    P-->>B: Permission ready or a stopped outcome
+    B->>P: Explicitly request approved details
+    P->>G: POST grant with stable idempotency key
+    G-->>P: Scoped short-lived retrieval grant
+    P->>S: Commit one fixed-deadline fetch claim
+    P->>G: GET data over consumer mTLS with the grant
+    Note over G: SDK admission, exact projection and durable evidence precede release
+    G-->>P: Approved fields and access receipt reference
+    P->>S: Commit encrypted received result
+    P-->>B: Present the approved fields
+    Note over B,S: Reload reads the existing product copy. It does not fetch again
+```
+
+The product presents membership status and an optional source-reported INR savings summary. A person chooses the requested fields before creation, then approves or rejects the whole exact notice in the first-party portal. Changing scope requires cancellation and a new application. The reference product prepares information for credit review; it does not decide eligibility or issue a loan.
+
+| Boundary | Execution and persistence | What the person sees |
+|---|---|---|
+| Application creation | Product SQL commits before the platform call; stable idempotency recovers a lost response | Saved application and identity/consent handoff |
+| Identity, ownership and notice | Platform-controlled interaction in a separate tab; product credentials remain server-side | Exact request, verification and explicit approve/reject controls |
+| Progress | Browser polls its backend; backend checks platform metadata, without reading source data | Waiting, ready, rejected, withdrawn, cancelled or expired |
+| Approved retrieval | One product fetch claim, then the platform's independent one-use admission/evidence gate | In-flight state followed by approved details or a safe uncertain outcome |
+| Reload/restart | Product reads its encrypted copy; ambiguous or abandoned attempts never regain a source-fetch slot | Existing received result or a clearly reported uncertain outcome |
+| External evidence | Batch custody is synchronous with release; DeDi publication is asynchronous | A durable sharing reference, without claiming external publication has completed |
+
+The reference browser experience is English, responsive to desktop/mobile widths, and uses only locally served assets. It retains only an opaque application ID in session storage. The synthetic demo uses browser-session possession for product ownership and fictional source/identity fixtures. Production customer accounts, onboarding and a lending decision policy remain separate product responsibilities; the platform's authenticated person-to-source verification is not replaced by this demo session.
 
 
 ---
@@ -1316,6 +1364,16 @@ The worker runs one bounded publication at a time, using 30-second SQL leases an
 DeDi writes use create-only preconditions. If publication succeeded but the SQL checkpoint failed, the retry verifies the existing first-version record instead of overwriting it. Once SQL has committed a verified proof, a lost queue acknowledgement recovers by checking that retained proof offline. The `pending → anchored` transition uses an FSM; anchored state, proof and timestamp cannot be overwritten. A single `evidence.anchored` event commits with that transition. Neither publication nor retry changes disclosure permission or causes another source read.
 
 The retained reference includes the Merkle audit path, leaf metadata and signed checkpoint. Verification pins the node key and checkpoint origin, namespace, registry, publisher, record name, first version and exact protected commitment. This proves inclusion under that checkpoint. Cross-checkpoint consistency and independent witness verification are additional deployment requirements for non-equivocation claims. Batch mode continues to release after durable custody during a DeDi outage; operators must monitor pending age and backlog and apply their chosen outage policy. The reference runtime does not claim an enforced maximum anchoring delay or an implemented synchronous custody profile.
+
+## Consumer copy and product recovery
+
+The reference SakhiCredit consumer has a separate database. It encrypts the member locator and received result with AES-GCM, binding each ciphertext to the application, browser owner and payload purpose. Input comparison for idempotency uses an owner-bound keyed digest. Browser tokens are stored only as hashes; product-session cookies are HttpOnly, host-only and Secure on HTTPS. Product changes require the configured Origin and a matching CSRF token.
+
+Applications and their received copies are inaccessible after one hour; browser sessions expire after two hours without sliding renewal. Bounded maintenance physically removes expired rows, separately from enforcing TTL on access. The product's shorter retention fits within the recipient terms' maximum window. SQL expiry does not prove deletion of backups, screenshots or arbitrary browser copies.
+
+The product FSM commits a single FETCHING claim with an immutable 45-second recovery deadline before calling the private data endpoint. It persists an encrypted result before returning it to the browser. A reload or repeated successful product operation returns that already received copy, rather than another platform disclosure. A failed response/checkpoint or abandoned attempt becomes UNKNOWN and cannot fetch again. Platform permission, certificate binding, admission and evidence checks remain independent and authoritative.
+
+Cancellation first persists a product-side fence, then asks the platform to cancel. A dependency outage retains CANCELLING, with bounded retries of that same cancellation; it never exposes a new fetch slot. Withdrawal prevents new admission and does not retroactively erase a recipient copy already received. Consent receipts and access receipts remain distinct records, connected by the request and disclosure references.
 
 ## What evidence proves
 

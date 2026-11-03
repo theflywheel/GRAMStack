@@ -100,13 +100,13 @@ func certificates(t *testing.T) ([]byte, []byte, []byte, tls.Certificate) {
 }
 
 type fixture struct {
-	service               *Service
-	pool                  *pgxpool.Pool
-	owner, token, csrf    string
-	creates, fetches      atomic.Int64
-	createCode, grantCode atomic.Int64
-	fetchOffline          atomic.Bool
-	status                atomic.Value
+	service                           *Service
+	pool                              *pgxpool.Pool
+	owner, token, csrf                string
+	creates, fetches                  atomic.Int64
+	createCode, grantCode, statusCode atomic.Int64
+	fetchOffline                      atomic.Bool
+	status                            atomic.Value
 }
 
 func setup(t *testing.T) *fixture {
@@ -167,6 +167,10 @@ func setup(t *testing.T) *fixture {
 				return
 			}
 			writeJSON(w, 200, grantResponse{"signed-grant", time.Now().Add(time.Minute).UTC(), "Bearer"})
+			return
+		}
+		if code := f.statusCode.Load(); code != 0 {
+			w.WriteHeader(int(code))
 			return
 		}
 		status := f.status.Load().(string)
@@ -538,5 +542,24 @@ func TestProductDatabaseOutageDoesNotReplaceBrowserOwnership(t *testing.T) {
 		if w.Code != 503 || len(w.Result().Cookies()) != 0 {
 			t.Fatal("database outage invalidated/replaced browser ownership", w.Code)
 		}
+	}
+}
+
+func TestCancellationOutageReportsItsCommittedFence(t *testing.T) {
+	f := setup(t)
+	ctx := context.Background()
+	app := f.ready(t)
+	f.statusCode.Store(503)
+	pending, err := f.service.Cancel(ctx, f.owner, app.ID)
+	if err == nil || pending.State != "CANCELLING" {
+		t.Fatal("outage returned stale unfenced application", pending.State, err)
+	}
+	if _, err := f.service.Retrieve(ctx, f.owner, app.ID); !errors.Is(err, ErrConflict) || f.fetches.Load() != 0 {
+		t.Fatal("cancellation outage reopened a fetch", err)
+	}
+	f.statusCode.Store(0)
+	cancelled, err := f.service.Cancel(ctx, f.owner, app.ID)
+	if err != nil || cancelled.State != "CANCELLED" {
+		t.Fatal("durable cancellation did not recover", cancelled.State, err)
 	}
 }
