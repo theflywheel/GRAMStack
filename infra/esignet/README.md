@@ -41,3 +41,5 @@ GRAMSTACK_TEST_PORTAL=1 GRAMSTACK_TEST_ESIGNET=1 GRAMSTACK_PREVIEW=1 PG_BIN=/pat
 ```
 
 After the tests and restart checks pass, open the printed interaction URL, select UIN/VID and use fictional Sunita ID `9000000001` with mock OTP `111111`. The interaction expires after ten minutes. Press Return in the runner to stop it and remove its isolated state. The preview does not activate consent until the durable worker is configured; an approval receipt reports that distinction. This runner is a development acceptance tool, not the final reproducible product stack.
+
+For the complete consent-stage browser flow, replace `GRAMSTACK_TEST_PORTAL=1` above with `GRAMSTACK_TEST_WORKERS=1`. This includes the same portal checks, then starts durable workers after restart acceptance. Approval first records the choice; use Refresh status to observe verified activation. Withdrawal stops future admission while retaining the signed artefact. No registry business data is retrieved at this stage.

@@ -3,7 +3,7 @@ title: Consent contract
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/consent.md)
+Specification version **0.3.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.3.0/consent.md)
 
 # Consent contract
 
@@ -31,4 +31,10 @@ Store each decision/status mutation and outbox event in the same SQL transaction
 
 Withdrawal during APPROVAL_RECORDED transitions to WITHDRAWN under the shared consent lock. Activation must recheck state/version after signing and cannot resurrect the withdrawn consent. Consumer cancellation can also invalidate PENDING consent; it records a distinct internal cancellation event rather than impersonating a human withdrawal. The signed artefact, if already created, remains immutable evidence and conveys no authority after cancellation.
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/consent.md).
+## Recovery and workflow reconciliation
+
+Consent withdrawal after APPROVAL_RECORDED can precede request activation. Request lifecycle 0.3.0 therefore permits CONSENT_PENDING → WITHDRAWN; this does not create consent, a grant or a disclosure. Delivery workers re-read current authority under request-then-consent locks rather than applying an old event status. A delayed ACTIVE notification cannot revive withdrawn, cancelled, expired or admitted authority. Signing and notification acknowledgements are independent and durable per subscriber. Leases fence acknowledgements; state/version checks still fence authoritative effects.
+
+Retrospective rejection/withdrawal projection may finish after the interaction deadline; it records an already committed stop and creates no new approval. Authentication, subject verification and activation still require live bounds. A consumed admission is never projected back into an earlier expiry or withdrawal workflow state.
+
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.3.0/consent.md).

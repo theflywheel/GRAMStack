@@ -20,7 +20,7 @@ var events = fsm.Events{
 	{Name: "delivery_uncertain", Src: []string{"REDEEMING", "EVIDENCE_COMMITTED", "RELEASE_ATTEMPTED"}, Dst: "DELIVERY_UNKNOWN"},
 	{Name: "rejected", Src: []string{"CONSENT_PENDING"}, Dst: "REJECTED"},
 	{Name: "denied", Src: []string{"AUTHENTICATION_PENDING", "BINDING_PENDING", "CONSENT_PENDING"}, Dst: "DENIED"},
-	{Name: "withdrawn", Src: []string{"CONSENTED", "AUTHORIZED"}, Dst: "WITHDRAWN"},
+	{Name: "withdrawn", Src: []string{"CONSENT_PENDING", "CONSENTED", "AUTHORIZED"}, Dst: "WITHDRAWN"},
 	{Name: "cancelled", Src: []string{"AUTHENTICATION_PENDING", "BINDING_PENDING", "CONSENT_PENDING", "CONSENTED", "AUTHORIZED"}, Dst: "CANCELLED"},
 	{Name: "expired", Src: []string{"AUTHENTICATION_PENDING", "BINDING_PENDING", "CONSENT_PENDING", "CONSENTED", "AUTHORIZED"}, Dst: "EXPIRED"},
 	{Name: "failed", Src: []string{"AUTHENTICATION_PENDING", "BINDING_PENDING", "CONSENT_PENDING", "CONSENTED", "AUTHORIZED", "REDEEMING", "EVIDENCE_COMMITTED"}, Dst: "FAILED"},

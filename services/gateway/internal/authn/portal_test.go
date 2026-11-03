@@ -198,5 +198,25 @@ func TestActualConsentPortal(t *testing.T) {
 	if response.StatusCode != 200 || !strings.Contains(styles, "focus-visible") {
 		t.Fatal("accessible portal styling unavailable")
 	}
+	if os.Getenv("GRAMSTACK_TEST_WORKERS") == "1" {
+		pendingID, pendingBrowser, pendingValues, _ := reviewRequest(t, base, token)
+		pendingValues.Set("decision", "approve")
+		pendingValues.Set("confirmation", "yes")
+		if response, _ := liveResponse(t, pendingBrowser, decisionRequest(base, pendingID, pendingValues)); response.StatusCode != 200 {
+			t.Fatal("could not persist pre-restart approval")
+		}
+		pendingRecord := readRecord(t, pendingBrowser, base, pendingID)
+		if pendingRecord.Consent.Status != "APPROVAL_RECORDED" || pendingRecord.SignedArtefact != "" {
+			t.Fatal("disabled worker created authority")
+		}
+		checkpoint := workerCheckpoint{Pending: pendingID, Consent: pendingRecord.Consent.ConsentID, Digest: pendingRecord.Notice.RequestDigest, NoticeDigest: pendingRecord.Notice.NoticeDigest, Withdrawn: id, Rejected: rejectedID}
+		raw, err := json.Marshal(checkpoint)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = os.WriteFile(os.Getenv("GRAMSTACK_TEST_WORKER_RESUME"), raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	t.Log("PASS: exact notice and session-bound presentation, explicit approve/reject, replay/substitution denial, pending-approval withdrawal and protected receipt export; no implicit activation")
 }

@@ -2,9 +2,10 @@
 # Isolated, real Hydra/PostgreSQL integration. No production URLs or credentials.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
-if [[ "${GRAMSTACK_PREVIEW:-}" == 1 && "${GRAMSTACK_TEST_PORTAL:-}" != 1 ]]; then
- echo "Preview requires GRAMSTACK_TEST_PORTAL=1" >&2; exit 1
+if [[ "${GRAMSTACK_PREVIEW:-}" == 1 && "${GRAMSTACK_TEST_PORTAL:-}" != 1 && "${GRAMSTACK_TEST_WORKERS:-}" != 1 ]]; then
+ echo "Preview requires GRAMSTACK_TEST_PORTAL=1 or GRAMSTACK_TEST_WORKERS=1" >&2; exit 1
 fi
+if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then export GRAMSTACK_TEST_PORTAL=1; fi
 if [[ "${GRAMSTACK_TEST_PORTAL:-}" == 1 ]]; then export GRAMSTACK_TEST_BINDING=1; fi
 if [[ "${GRAMSTACK_TEST_BINDING:-}" == 1 ]]; then export GRAMSTACK_TEST_AUTHN=1; fi
 if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then export GRAMSTACK_TEST_AUTHN=1; fi
@@ -162,6 +163,7 @@ with urllib.request.urlopen(urllib.request.Request(os.environ['GRAMSTACK_TEST_HY
 PYA
  if [[ "${GRAMSTACK_TEST_BINDING:-}" == 1 ]]; then
   "$PG_BIN/createdb" -h "$scratch" -p 55438 -U gramstack gramstack_adapter
+  export GRAMSTACK_TEST_WORKER_RESUME="$scratch/worker-resume.json"
   export GRAMSTACK_TEST_ADAPTER_DATABASE_URL="postgres://gramstack@localhost/gramstack_adapter?host=$scratch&port=55438&sslmode=disable"
   export ADAPTER_STATE_DATABASE_URL="$GRAMSTACK_TEST_ADAPTER_DATABASE_URL" ADAPTER_DEMO_VERIFIER=true
   export ADAPTER_STATE_KEY=$(python3 -c 'import base64,secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())')
@@ -206,8 +208,22 @@ PYC
   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   GOWORK=off go -C "$root/adapters/lokos" test -modfile="$scratch/lokos.mod" -race -count=1 -v -run 'TestDurableContext|TestContextTamper' ./
   stop_gateway; stop_binding
+  if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then
+   python3 - <<'PYW'
+import json,os,pathlib
+path=pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']);config=json.loads(path.read_text())
+config['consent']['workers_enabled']=True
+path.write_text(json.dumps(config))
+PYW
+  fi
   start_binding; start_gateway
-  gateway_go test -race -count=1 -v -run '^TestActualSubjectBindingRestart$' ./internal/authn
+  pattern='^TestActualSubjectBindingRestart$'
+  if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then pattern="$pattern|^TestActualConsentWorkers$"; fi
+  gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
+  if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then
+   stop_gateway; start_gateway
+   gateway_go test -race -count=1 -v -run '^TestActualConsentWorkersRestart$' ./internal/authn
+  fi
  else
   if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then pattern='^TestActualESignetFederation$'; else pattern='^TestActualFederation$'; fi
   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn

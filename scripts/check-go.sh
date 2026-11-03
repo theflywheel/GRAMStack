@@ -13,7 +13,7 @@ cleanup(){
 trap cleanup EXIT
 source "$root/scripts/gateway-module.sh"
 prepare_gateway_module "$root" "$scratch"
-cmp "$root/specs/0.2.0/lifecycle.json" "$root/services/gateway/internal/access/testdata/lifecycle.json"
+cmp "$root/specs/0.3.0/lifecycle.json" "$root/services/gateway/internal/access/testdata/lifecycle.json"
 # Before the first SDK release, resolve its source in a temporary module file.
 cp "$root/adapters/lokos/go.mod" "$scratch/lokos.mod"
 if [[ -f "$root/adapters/lokos/go.sum" ]]; then cp "$root/adapters/lokos/go.sum" "$scratch/lokos.sum"; fi

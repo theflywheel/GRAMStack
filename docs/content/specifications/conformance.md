@@ -3,7 +3,7 @@ title: Conformance and evolution
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/conformance.md)
+Specification version **0.3.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.3.0/conformance.md)
 
 # Conformance and evolution
 
@@ -31,7 +31,7 @@ JSON Schema fixtures check message shapes, not these transactional or cryptograp
 
 ## Compatibility
 
-Version 0.2.0 is the contract baseline. Breaking schema/behavior changes receive a new release directory and explicit adapter capability negotiation. Never edit a deployed signed artefact to upgrade it. Preserve old verification profiles through their evidence retention horizon. Add new resources through approved manifests and schemas rather than treating arbitrary JSON as a resource contract.
+Version 0.3.0 is the contract baseline. Breaking schema/behavior changes receive a new release directory and explicit adapter capability negotiation. Never edit a deployed signed artefact to upgrade it. Preserve old verification profiles through their evidence retention horizon. Add new resources through approved manifests and schemas rather than treating arbitrary JSON as a resource contract.
 
 ## Automated checks
 
@@ -41,4 +41,13 @@ Version 0.2.0 is the contract baseline. Breaking schema/behavior changes receive
 
 Verify owner-only cancellation with privacy-safe non-owner lookup; before-consent cancellation; cancellation during signing; activation and redemption races; repeated cancellation status/version; outbox rollback; immutable signed artefact preservation; no resurrection from delayed callbacks; and 409 after a consumed reservation even when the workflow projection is stale. Consumer cancellation events must not impersonate subject rejection/withdrawal.
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/conformance.md).
+## Durable consent recovery
+
+- Competing workers MUST preserve one stored artefact and one authoritative version transition. Signing preparation may repeat after a lost lease; it does not create a second approval or disclosure.
+- Subscriber acknowledgements MUST be independent, require a current lease token and use database-time expiry. A stale worker cannot acknowledge its successor's work.
+- A crash after an effect but before acknowledgement MUST replay idempotently. Signing/provider/storage outages retain recoverable work and leave unusable approval inactive.
+- Withdrawal from CONSENT_PENDING after recorded approval MUST close the request without inventing an intermediate activation. Delayed ACTIVE events must not resurrect stopped authority. Rejection/withdrawal already recorded before a deadline can be projected afterward.
+- Expiry and status polling MUST preserve consumed admissions and later delivery/evidence states. Concurrent maintenance cannot restore AVAILABLE use or duplicate expiry authority.
+- Cleanup MUST enforce its declared retry window, bound each batch and distinguish ephemeral/snapshot expiry from retained consent/evidence and recipient deletion.
+
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.3.0/conformance.md).

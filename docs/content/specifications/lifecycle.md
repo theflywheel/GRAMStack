@@ -3,11 +3,11 @@ title: Lifecycle transitions
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/lifecycle.json)
+Specification version **0.3.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.3.0/lifecycle.json)
 
 ```json
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "initial": "AUTHENTICATION_PENDING",
   "terminal": [
     "COMPLETED",
@@ -40,7 +40,8 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
       "DENIED",
       "EXPIRED",
       "REJECTED",
-      "CANCELLED"
+      "CANCELLED",
+      "WITHDRAWN"
     ],
     "CONSENTED": [
       "AUTHORIZED",
@@ -82,4 +83,4 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
 }
 ```
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/lifecycle.json).
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.3.0/lifecycle.json).

@@ -3,7 +3,7 @@ title: Evidence, state and persistence
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/evidence-and-state.md)
+Specification version **0.3.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.3.0/evidence-and-state.md)
 
 # Evidence, state and persistence
 
@@ -35,4 +35,4 @@ COMPLETED requires the server to finish its response write, which still cannot p
 
 Consent events, grant redemption and source retrieval are correlated using request_id and request_digest. Receipt access is owner-authorized and contains no source plaintext. Browser receipt returns safe request/consent status and authorized receipt references, not the raw signing secrets or protected source mapping.
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/evidence-and-state.md).
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.3.0/evidence-and-state.md).

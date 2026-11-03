@@ -22,6 +22,7 @@ func (s *Service) Handler() http.Handler {
 	mux.HandleFunc("POST /v1/access-requests/{id}/cancel", s.cancelHTTP)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Gramstack-Contract-Version", "0.3.0")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		mux.ServeHTTP(w, r)
 	})

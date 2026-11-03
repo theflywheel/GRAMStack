@@ -15,14 +15,16 @@ import (
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/authn"
 	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/consentportal"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/consentworker"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/consumer"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/subjectbinding"
 )
 
 type consentConfig struct {
-	KeyID        string `json:"key_id"`
-	Issuer       string `json:"issuer"`
-	StatusOrigin string `json:"status_origin"`
+	WorkersEnabled bool   `json:"workers_enabled"`
+	KeyID          string `json:"key_id"`
+	Issuer         string `json:"issuer"`
+	StatusOrigin   string `json:"status_origin"`
 }
 
 func consentKey(path string) (*ecdsa.PrivateKey, error) {
@@ -54,14 +56,14 @@ func consentKey(path string) (*ecdsa.PrivateKey, error) {
 	}
 	return key, nil
 }
-func configureConsentPortal(ctx context.Context, mux *http.ServeMux, pool *pgxpool.Pool, auth *authn.Service, bindings *subjectbinding.Service, terms *consumer.Service, origin string, loopback bool, c consentConfig) error {
+func configureConsentPortal(ctx context.Context, mux *http.ServeMux, pool *pgxpool.Pool, auth *authn.Service, bindings *subjectbinding.Service, terms *consumer.Service, origin string, loopback bool, c consentConfig) (func(), error) {
 	key, err := consentKey(os.Getenv("GRAMSTACK_CONSENT_SIGNING_KEY_FILE"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	signer, err := cm.NewES256Signer(c.KeyID, key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if c.Issuer == "" {
 		c.Issuer = origin
@@ -71,19 +73,29 @@ func configureConsentPortal(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 	}
 	verifier, err := cm.NewVerifierWithOptions(c.Issuer, c.StatusOrigin, map[string]*ecdsa.PublicKey{c.KeyID: &key.PublicKey}, cm.VerifierOptions{AllowLoopback: loopback})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	service, err := cm.New(cm.Config{Pool: pool, Subjects: bindings, Terms: terms, Signer: signer, Verifier: verifier, InteractionOrigin: origin, AllowLoopback: loopback, RequirePresentation: true})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	portal, err := consentportal.New(consentportal.Config{Pool: pool, Auth: auth, Subjects: bindings, Consents: service, Origin: origin})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	handler := portal.Handler()
 	for _, pattern := range []string{"GET /interactions/{id}/consent", "POST /interactions/{id}/decision", "GET /interactions/{id}/receipt", "POST /consents/{id}/withdrawal", "GET /assets/consent.css"} {
 		mux.Handle(pattern, handler)
 	}
-	return nil
+	if !c.WorkersEnabled {
+		return func() {}, nil
+	}
+	worker, err := consentworker.New(pool, service)
+	if err != nil {
+		return nil, err
+	}
+	workerCtx, cancel := context.WithCancel(ctx)
+	done := make(chan struct{})
+	go func() { defer close(done); worker.Run(workerCtx) }()
+	return func() { cancel(); <-done }, nil
 }

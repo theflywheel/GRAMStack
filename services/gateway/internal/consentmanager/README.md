@@ -22,7 +22,7 @@ The initial notice template is English (`gramstack.en.v1`). Other languages requ
 
 The signer is an injected port for local keys or a future remote signer. `NewES256Signer` uses go-jose with a configured P-256 key; the verifier pins public keys and issuer/status origins. `JWKS` exposes public signing keys only. Verification rejects algorithm substitution, unknown keys, wrong protocol types, key URLs, duplicate claims, invalid timing and altered payloads. Signature verification alone does not authorize retrieval: current SQL consent/use status and registry policy remain mandatory.
 
-Approval records `consent.approval_recorded` as an **internal** outbox work item. It is not a versioned external ConsentEvent. ACTIVE/rejected/expired metadata uses the corresponding event types; signing/delivery of outgoing events and scheduling durable workers remain separate work.
+Approval records `consent.approval_recorded` as an **internal** outbox work item. It is not a versioned external ConsentEvent. ACTIVE/rejected/expired metadata uses the corresponding event types; durable signing and internal gateway delivery now run in `internal/consentworker` when explicitly configured. External signed webhook delivery is not supplied by that internal subscriber.
 
 ## Verification
 
@@ -33,3 +33,5 @@ Tests cover exact notice binding, principal ownership, request/context/terms sub
 ## WEB presentation and read-only records
 
 With `RequirePresentation`, `Decide` additionally checks an unexpired presentation matching the exact notice, principal and session digest. `Present` creates stable immutable WEB/English evidence; `Record` returns a repeatable-read owner-only view and never activates. The approval checkbox is recorded separately from the explicit approve/reject action. Missing proof and presentation/session substitution are denied; decision/provenance/outbox failures roll back atomically. Legacy internal fixtures without this optional integration never imply browser presentation proof. The runtime portal always enables it. See the independent consent-portal 0.1.0 contract.
+
+The worker tests use isolated SQL schemas and verify competing leases/sweepers, lost acknowledgements, signing outages/backoff, current-state projection, late stops, expiry without polling, consumed cutoffs, bounded browser/snapshot cleanup and rollback. The runtime process suite verifies pending work and immutable signatures across actual gateway/adapter/source restarts. These checks do not stand in for the later policy/grant/data/evidence release pipeline.

@@ -3,7 +3,7 @@ title: Protocol and HTTP interfaces
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/protocol.md)
+Specification version **0.3.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.3.0/protocol.md)
 
 # Protocol and HTTP interfaces
 
@@ -45,4 +45,10 @@ A 200 contains only authorized fields plus the access receipt reference. If tran
 
 POST /v1/access-requests/{id}/cancel authenticates the owning consumer and accepts no scope mutation. Before admission it atomically closes the request as CANCELLED and invalidates any pending/approved/active consent under the same lock as redemption. A repeated cancellation returns the same status/version. A guessed or non-owned ID returns privacy-safe 404. A consumed reservation returns 409 with ADMISSION_ALREADY_OCCURRED and cannot be reset, even if the workflow projection still shows an earlier state. Other terminal outcomes remain unchanged and return conflict. Late callbacks cannot resurrect CANCELLED. A client changing scope cancels the old request then submits a new request, new idempotency key and fresh notice/decision. There is no partial-refusal/revision object. Internal cancellation events distinguish the consumer actor from a subject withdrawal.
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/protocol.md).
+## Contract and retry-window declaration
+
+The reference gateway advertises `Gramstack-Contract-Version: 0.3.0` on consumer API responses. Request and consent message shapes remain unchanged from 0.2.0; the request lifecycle adds CONSENT_PENDING → WITHDRAWN and permits delayed projection of an already recorded stop after its deadline. Activation still requires live consent bounds. Independently versioned auth/subject/portal profiles keep their own explicit versions and published schema references; no adapter capability is silently widened.
+
+The reference deployment retains accepted create-request snapshots/idempotency bindings until at least 24 hours after request expiry, then cleans terminal records in bounded batches. An identical retry within that window returns the original metadata. A client must not rely on key deduplication beyond the declared retention window. Consent provenance, signed artefacts and consumed-use records have a separate evidence retention policy.
+
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.3.0/protocol.md).

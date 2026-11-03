@@ -254,3 +254,29 @@ sequenceDiagram
 | Signed artefact | Immutable consent artefact SQL | Authenticated record when it exists |
 
 An approval receipt says **Approval recorded** until the trusted activation work completes. A render or download never creates ACTIVE consent. Withdrawing preserves the original decision while stopping future admissions. An admission cutoff indicator does not establish successful delivery. Short-lived interaction receipts and later protected history/recovery are distinct capabilities.
+
+## Worker delivery and recovery
+
+The reference runtime has bounded embedded signing, notification and expiry loops. Signing and gateway notifications have independent durable acknowledgements; one subscriber cannot consume an event needed by another. A claim uses a database lease and a fresh fencing token. Work is acknowledged only after its effect succeeds. A failed or lost worker leaves recoverable work; a successor reuses the stable event and re-reads current authority.
+
+```mermaid
+sequenceDiagram
+    participant O as Committed outbox
+    participant S as Signing worker
+    participant C as Consent SQL
+    participant N as Gateway notification worker
+    participant R as Request SQL
+    S->>O: Claim approval event with expiring lease
+    S->>C: Read current approval and prepare verified signature
+    C->>C: Conditional artefact plus ACTIVE plus outbox transaction
+    S->>O: Acknowledge signing subscriber with lease token
+    N->>O: Independently claim lifecycle notification
+    N->>R: Lock request then current consent
+    N->>R: Reconcile current authority plus request outbox atomically
+    N->>O: Acknowledge notification subscriber
+    Note over S,R: Lost acknowledgements can replay effects safely; old event status creates no authority
+```
+
+Request lifecycle [0.3.0](specifications/lifecycle) includes withdrawal while CONSENT_PENDING, covering approval that is stopped before activation. Versions 0.1.0 and 0.2.0 remain unchanged. A late ACTIVE event is only a prompt to re-read current state; it cannot overwrite withdrawal/cancellation/expiry or restore a consumed disclosure. Recorded stops can be projected after the interaction deadline without creating new authority.
+
+Each maintenance pass bounds expiry/reconciliation to 32 objects, encrypted TTL-state cleanup to 128 rows, and terminal accepted-snapshot cleanup to 32 rows after the declared 24-hour retry window. Deadline checks remain authoritative during worker outages. Exact notices, original decisions, signed artefacts, consumed reservations and delivery acknowledgements are not erased by TTL cleanup. Recipient/back-up deletion and later protected history use separate policies and contracts. Internal SQL notification delivery is distinct from external webhooks.

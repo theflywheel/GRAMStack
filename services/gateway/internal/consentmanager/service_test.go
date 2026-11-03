@@ -65,7 +65,11 @@ func setup(t *testing.T) fixture {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
-	if err = migrations.Apply(context.Background(), pool); err != nil {
+	return setupPool(t, pool)
+}
+func setupPool(t *testing.T, pool *pgxpool.Pool) fixture {
+	t.Helper()
+	if err := migrations.Apply(context.Background(), pool); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC().Truncate(time.Microsecond)

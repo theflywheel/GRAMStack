@@ -69,7 +69,7 @@ func AdvanceTx(ctx context.Context, tx pgx.Tx, id string, expected int64, event 
 			return err
 		}
 		beforeAdmission := result.Status == "AUTHENTICATION_PENDING" || result.Status == "BINDING_PENDING" || result.Status == "CONSENT_PENDING" || result.Status == "CONSENTED" || result.Status == "AUTHORIZED"
-		if !now.Before(result.ExpiresAt) && beforeAdmission && event != "expired" && event != "failed" {
+		if !now.Before(result.ExpiresAt) && beforeAdmission && event != "expired" && event != "failed" && event != "withdrawn" && event != "rejected" {
 			return errors.New("request deadline exceeded")
 		}
 		result.Status = next

@@ -3,14 +3,14 @@ title: HTTP API specification
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/openapi.json)
+Specification version **0.3.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.3.0/openapi.json)
 
 ```json
 {
   "openapi": "3.1.0",
   "info": {
     "title": "GRAMStack contracts",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Paths belong to the component named on each operation. Internal routes require authenticated service transport and private routing. See protocol.md for behavioral requirements."
   },
   "paths": {
@@ -36,6 +36,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/RequestAccepted"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "default": {
@@ -44,6 +53,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -56,6 +74,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "401": {
@@ -64,6 +91,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -76,6 +112,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "404": {
@@ -84,6 +129,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -96,6 +150,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "410": {
@@ -104,6 +167,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -116,6 +188,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "503": {
@@ -124,6 +205,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -174,6 +264,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/RequestStatus"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "default": {
@@ -182,6 +281,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -194,6 +302,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "401": {
@@ -202,6 +319,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -214,6 +340,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "404": {
@@ -222,6 +357,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -234,6 +378,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "410": {
@@ -242,6 +395,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -254,6 +416,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "503": {
@@ -262,6 +433,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -302,6 +482,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/GrantResponse"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "default": {
@@ -310,6 +499,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -322,6 +520,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "401": {
@@ -330,6 +537,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -342,6 +558,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "404": {
@@ -350,6 +575,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -362,6 +596,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "410": {
@@ -370,6 +613,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -382,6 +634,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "503": {
@@ -390,6 +651,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -447,6 +717,13 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                 "schema": {
                   "const": "no-store"
                 }
+              },
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
               }
             }
           },
@@ -456,6 +733,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -468,6 +754,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "401": {
@@ -476,6 +771,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -488,6 +792,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "404": {
@@ -496,6 +809,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -508,6 +830,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "410": {
@@ -516,6 +847,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -528,6 +868,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "503": {
@@ -536,6 +885,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -2387,6 +2745,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/RequestStatus"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "default": {
@@ -2395,6 +2762,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -2407,6 +2783,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "401": {
@@ -2415,6 +2800,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -2427,6 +2821,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "404": {
@@ -2435,6 +2838,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -2447,6 +2859,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "410": {
@@ -2455,6 +2876,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -2467,6 +2897,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
                   "$ref": "./schemas.json#/$defs/Error"
                 }
               }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
             }
           },
           "503": {
@@ -2475,6 +2914,15 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
               "application/json": {
                 "schema": {
                   "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
                 }
               }
             }
@@ -2523,4 +2971,4 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
 }
 ```
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/openapi.json).
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.3.0/openapi.json).

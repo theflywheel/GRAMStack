@@ -402,3 +402,26 @@ func TestTrustedRecipientTermsAreUnambiguousAndCopied(t *testing.T) {
 		t.Fatal("ambiguous recipient terms accepted")
 	}
 }
+
+func TestStatusExpiryDoesNotRewriteAdmittedWork(t *testing.T) {
+	service, pool := setup(t)
+	var input cm.AccessRequest
+	if err := json.Unmarshal([]byte(requestJSON), &input); err != nil {
+		t.Fatal(err)
+	}
+	accepted, err := service.Create(context.Background(), "consumer-one", rand.Text(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Enforcement fixture: an admitted use with a deliberately delayed projection.
+	if _, err = pool.Exec(context.Background(), `UPDATE access_requests SET status='AUTHORIZED',expires_at=clock_timestamp()-interval '1 second' WHERE request_id=$1`, accepted.RequestID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = pool.Exec(context.Background(), `INSERT INTO consent_state(consent_id,request_id,request_digest,status,use_state,valid_until) SELECT $2,request_id,request_digest,'ACTIVE','RESERVED',clock_timestamp()+interval '1 minute' FROM access_requests WHERE request_id=$1`, accepted.RequestID, rand.Text()); err != nil {
+		t.Fatal(err)
+	}
+	state, err := service.Status(context.Background(), "consumer-one", accepted.RequestID)
+	if err != nil || state.Status != "AUTHORIZED" || state.Version != 1 {
+		t.Fatal("polling expiry overwrote an admitted workflow", state, err)
+	}
+}

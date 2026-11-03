@@ -7,7 +7,7 @@ description: Versioned GRAMStack implementation contracts and conformance requir
 
 The versioned contracts for implementing GRAMStack and independently hosted registry adapters. The backend uses Go; the wire contracts are language independent. An adapter implements the HTTP contract and can be published and deployed independently of the gateway. No Go SDK or registry-specific gateway code is required.
 
-Current specification version: **0.2.0**. Version 0.1.0 remains available unchanged. Version 0.2.0 adds explicit consumer cancellation and the terminal CANCELLED status. API routes use `/v1`; schema and capability versions identify the contract release separately. These contracts describe required behavior; a schema-valid message alone does not establish security or implementation conformance.
+Current specification version: **0.3.0**. Versions 0.1.0 and 0.2.0 remain unchanged. Version 0.3.0 adds request withdrawal from CONSENT_PENDING so recorded approval can be stopped before activation, plus deadline-safe reconciliation of already recorded stops. Version 0.2.0 introduced consumer cancellation. API routes use `/v1`; schema and capability versions identify the contract release separately. These contracts describe required behavior; a schema-valid message alone does not establish security or implementation conformance.
 
 ## Contract set
 

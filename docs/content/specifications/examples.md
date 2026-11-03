@@ -3,7 +3,7 @@ title: Contract examples
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/examples.json)
+Specification version **0.3.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.3.0/examples.json)
 
 ```json
 {
@@ -364,7 +364,7 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
       "value": {
         "adapter_id": "lokos-adapter",
         "registry": "lokos",
-        "contract_version": "0.2.0",
+        "contract_version": "0.3.0",
         "audience": "urn:gramstack:adapter:lokos",
         "authentication": "mtls",
         "signing_key_ids": [
@@ -704,4 +704,4 @@ Specification version **0.2.0** · [Specifications index](/specifications/) · [
 }
 ```
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/examples.json).
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.3.0/examples.json).

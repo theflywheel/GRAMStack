@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import Ajv2020 from 'ajv/dist/2020.js'
 import addFormats from 'ajv-formats'
 import SwaggerParser from '@apidevtools/swagger-parser'
-const root = new URL('../../specs/0.2.0/', import.meta.url)
+const root = new URL('../../specs/0.3.0/', import.meta.url)
 const read = name => JSON.parse(readFileSync(new URL(name, root), 'utf8'))
 const schemas = read('schemas.json')
 const ajv = new Ajv2020({ allErrors: true, strict: true })
@@ -52,6 +52,8 @@ const dataSecurity = api.paths['/v1/access-requests/{id}/data'].get.security
 assert.ok(dataSecurity.some(s => 'retrievalGrant' in s && 'presenterMTLS' in s))
 console.log(`Verified ${operationIds.size} HTTP operations, ${Object.keys(schemas.$defs).length} message schemas, ${examples.length} fixtures and ${states.length} lifecycle states.`)
 
+// Existing independent profiles keep their published 0.2.0 schema references.
+ajv.addSchema(JSON.parse(readFileSync(new URL('../../specs/0.2.0/schemas.json', import.meta.url), 'utf8')))
 const subjectRoot = new URL('../../specs/subject-verification/0.1.0/', import.meta.url)
 const subjectSchemas = JSON.parse(readFileSync(new URL('schemas.json', subjectRoot), 'utf8'))
 ajv.addSchema(subjectSchemas)

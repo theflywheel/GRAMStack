@@ -3,7 +3,7 @@ title: Authorization and grant contract
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/authorization.md)
+Specification version **0.3.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.3.0/authorization.md)
 
 # Authorization and grant contract
 
@@ -27,4 +27,4 @@ Withdrawal and this transaction MUST be serialized using the same authority. A w
 
 After reservation, source failure, process crash, evidence failure or transport ambiguity does not unconsume the grant. Record FAILED or DELIVERY_UNKNOWN as appropriate. Operator reconciliation can describe what happened but MUST NOT silently resend plaintext. Requests for another disclosure start a new consent flow.
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/authorization.md).
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.3.0/authorization.md).

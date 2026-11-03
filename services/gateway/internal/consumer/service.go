@@ -213,31 +213,30 @@ func (s *Service) Status(ctx context.Context, client, id string) (Status, error)
 	if !idPattern.MatchString(id) {
 		return Status{}, access.ErrNotFound
 	}
-	for range 3 {
-		var r access.Request
-		var now time.Time
-		err := s.pool.QueryRow(ctx, `SELECT request_id,consumer_id,request_digest,status,version,expires_at,clock_timestamp() FROM access_requests WHERE request_id=$1 AND consumer_id=$2`, id, client).Scan(&r.ID, &r.ConsumerID, &r.Digest, &r.Status, &r.Version, &r.ExpiresAt, &now)
+	var r access.Request
+	var now time.Time
+	const query = `SELECT request_id,consumer_id,request_digest,status,version,expires_at,clock_timestamp() FROM access_requests WHERE request_id=$1 AND consumer_id=$2`
+	read := func() error {
+		return s.pool.QueryRow(ctx, query, id, client).Scan(&r.ID, &r.ConsumerID, &r.Digest, &r.Status, &r.Version, &r.ExpiresAt, &now)
+	}
+	if err := read(); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return Status{}, access.ErrNotFound
 		}
-		if err != nil {
+		return Status{}, err
+	}
+	beforeAdmission := r.Status == "AUTHENTICATION_PENDING" || r.Status == "BINDING_PENDING" || r.Status == "CONSENT_PENDING" || r.Status == "CONSENTED" || r.Status == "AUTHORIZED"
+	if beforeAdmission && !now.Before(r.ExpiresAt) {
+		if err := (access.Repository{Pool: s.pool}).Reconcile(ctx, id); err != nil {
 			return Status{}, err
 		}
-		beforeAdmission := r.Status == "AUTHENTICATION_PENDING" || r.Status == "BINDING_PENDING" || r.Status == "CONSENT_PENDING" || r.Status == "CONSENTED" || r.Status == "AUTHORIZED"
-		if beforeAdmission && !now.Before(r.ExpiresAt) {
-			advanced, err := (access.Repository{Pool: s.pool}).Advance(ctx, id, r.Version, "expired")
-			if errors.Is(err, access.ErrVersion) {
-				continue
-			}
-			if err != nil {
-				return Status{}, err
-			}
-			r = advanced
+		if err := read(); err != nil {
+			return Status{}, err
 		}
-		return statusOf(r), nil
 	}
-	return Status{}, ErrUnavailable
+	return statusOf(r), nil
 }
+
 func (s *Service) Cancel(ctx context.Context, client, id string) (Status, error) {
 	if !idPattern.MatchString(id) {
 		return Status{}, access.ErrNotFound
