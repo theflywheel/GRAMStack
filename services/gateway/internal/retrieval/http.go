@@ -49,6 +49,16 @@ func (s *Service) Handler() http.Handler {
 			failure(w, 429, "CAPACITY_UNAVAILABLE")
 			return
 		}
+		if err = s.eligible(r.Context(), g); err != nil {
+			status, code := 503, "RETRIEVAL_UNAVAILABLE"
+			if errors.Is(err, ErrConflict) {
+				status, code = 409, "DISCLOSURE_NOT_AVAILABLE"
+			} else if errors.Is(err, ErrDenied) {
+				status, code = 403, "REQUEST_BINDING_DENIED"
+			}
+			failure(w, status, code)
+			return
+		}
 		if err = s.checkDiscovery(r.Context(), g); err != nil {
 			status, code := 503, "ADAPTER_NOT_READY"
 			if errors.Is(err, ErrDenied) {

@@ -14,6 +14,24 @@ import (
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/platform/outbox"
 )
 
+// Check eligibility without locks before metadata I/O. Claim still rechecks
+// authority and uniqueness transactionally after the network validation.
+func (s *Service) eligible(ctx context.Context, g az.Grant) error {
+	var status string
+	var dispatched bool
+	err := s.pool.QueryRow(ctx, `SELECT r.status,EXISTS(SELECT 1 FROM gateway_retrieval_attempts a WHERE a.request_id=r.request_id) FROM access_requests r WHERE r.request_id=$1 AND r.consumer_id=$2 AND r.request_digest=$3`, g.RequestID, g.Consumer, g.Digest).Scan(&status, &dispatched)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrDenied
+	}
+	if err != nil {
+		return err
+	}
+	if status != "AUTHORIZED" || dispatched {
+		return ErrConflict
+	}
+	return nil
+}
+
 func (s *Service) claim(ctx context.Context, g az.Grant, compact string) (request, endpoint, error) {
 	var input request
 	var destination endpoint

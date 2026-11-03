@@ -350,6 +350,12 @@ func TestDiscoveryDenialDoesNotClaimOrDispatch(t *testing.T) {
 			if again.Code != 200 || f.calls.Load() != 1 {
 				t.Fatal("metadata recovery could not safely use the unclaimed request", again.Code)
 			}
+			f.mode = "metadata offline"
+			spent := httptest.NewRecorder()
+			f.gateway.Handler().ServeHTTP(spent, f.request())
+			if spent.Code != 409 || f.calls.Load() != 1 {
+				t.Fatal("spent request depended on discovery availability", spent.Code)
+			}
 		})
 	}
 }
