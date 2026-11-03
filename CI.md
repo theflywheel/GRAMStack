@@ -59,3 +59,14 @@ Gateway integration now resolves the private, pre-release auth module through a 
 ## Registry verification coverage
 
 The existing Hydra integration job now sets `GRAMSTACK_TEST_BINDING=1`. It reuses one isolated PostgreSQL/Hydra setup and compiled gateway to add the SDK-backed adapter and separate native source over mTLS, database custody checks and restart acceptance. The verify job independently race-tests/vets `mocks/lokos` and checks the local certificate tool. Both jobs include every new module dependency file in their exact cache keys; the new mock does not enter gateway dependencies. Fault injection includes mock test/vet failures. No new hosted job or Docker pull was added. The equivalent official-eSignet binding suite passed locally with both flags enabled; it is not claimed as default hosted coverage.
+
+### D04 measured checkpoint
+
+Implementation `4241ae5` passed all four hosted Go jobs and design-site CI. One warm rerun used the same commit and complete check set; no checks, timeouts or cache trust boundaries changed.
+
+| D04 run | Verify | PostgreSQL | DeDi | Hydra + SDK binding + restart | Job execution window | Summed job seconds |
+|---|---:|---:|---:|---:|---:|---:|
+| First run with new dependency keys | 158s | 30s | 27s | 95s | 158s | 310s |
+| Warm repeat | 25s | 27s | 30s | 41s | 41s | 123s |
+
+Source: [hosted run 41631793223](https://github.com/theflywheel/GRAMStack/actions/runs/41631793223), attempts 1 and 2. Execution window means earliest job start through latest completion, excluding queue time; summed seconds are not a billing estimate. These are individual observations, not statistical guarantees. The previous smaller coverage set measured 33s/105 summed seconds warm; D04 adds native service authentication, durable SDK custody, rollback/cancellation and three-service restart acceptance within the existing jobs. Docker-backed official eSignet remains an additional local gate. Future phase checks should continue sharing setup/builds before adding jobs or weakening coverage.
