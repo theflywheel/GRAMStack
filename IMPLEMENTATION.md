@@ -43,7 +43,7 @@ This is the internal delivery ledger. Versioned protocol contracts live under `s
 |---|---|---|---|
 | T16 | First-party interaction portal | T11,T12 | Authentication, exact notice, approve/reject, withdrawal and receipts with session/CSRF checks |
 | T17 | SakhiCredit web and independent consumer backend | T08,T10,T13,T16 | Presentable end-to-end Sunita journey, progress and approved data; graceful denial/expiry/ambiguity |
-| T18 | Reproducible local stack and Railway service graph | T15,T17 | Separate services/credentials, migrations, health checks and tested fresh deployment; eSignet optional |
+| T18 | Reproducible local stack and Railway service graph | T15,T17 | Separate services/credentials, migrations, health checks and tested fresh deployment; official eSignet required for the demo |
 
 ## Milestone 6 — release and verification
 
@@ -70,3 +70,5 @@ The executable demo work is tracked as cross-off tasks and gated phases in [DEMO
 - `looplab/fsm` is used for FSM decisions. SQL expected-version updates will own concurrency; an in-memory FSM lock does not provide distributed consistency.
 - DeDi targets the adjacent theflywheel/DeDi-node implementation and its signed publication/transparency APIs, not a guessed generic audit API.
 - SDK dependency `v0.0.0` is an unreleased local-development marker, resolved by go.work. Independent CI substitutes a temporary module file until T19 publishes a real version; no local replace is committed in adapter go.mod.
+
+- D11 product increment: the independent `apps/sakhicredit` Go module and embedded responsive UI passed real headless desktop/mobile journeys with both the fast provider and official eSignet, plus actual DeDi proof reconciliation. The product/backend/SQL/browser gates and hosted CI are recorded in `DEMO-TODO.md`. Deployment/reproducibility, published SDK, remaining platform additions and final recorded-demo acceptance retain their separate gates. eSignet is required for the final demo; the older optional-IdP wording is superseded.
