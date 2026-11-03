@@ -14,6 +14,7 @@ trap cleanup EXIT
 cmp "$root/specs/0.2.0/lifecycle.json" "$root/services/gateway/internal/access/testdata/lifecycle.json"
 # Before the first SDK release, resolve its source in a temporary module file.
 cp "$root/adapters/lokos/go.mod" "$scratch/lokos.mod"
+if [[ -f "$root/adapters/lokos/go.sum" ]]; then cp "$root/adapters/lokos/go.sum" "$scratch/lokos.sum"; fi
 GOWORK=off go -C "$root/adapters/lokos" mod edit -modfile="$scratch/lokos.mod" -replace="github.com/theflywheel/GRAMStack/sdk/go/adapter=$root/sdk/go/adapter"
 check_module(){
   local module=$1
@@ -44,6 +45,8 @@ launch sdk check_module sdk/go/adapter
 wait_checks
 launch lokos check_module adapters/lokos -modfile="$scratch/lokos.mod"
 launch identity check_module mocks/identity
+wait_checks
+launch oidc check_module adapters/auth/oidc
 wait_checks
 launch gateway-build env GOWORK=off go -C "$root/services/gateway" build -o "$scratch/gateway" ./cmd/gramstack
 launch lokos-build env GOWORK=off go -C "$root/adapters/lokos" build -modfile="$scratch/lokos.mod" -o "$scratch/lokos-adapter" ./cmd/lokos-adapter

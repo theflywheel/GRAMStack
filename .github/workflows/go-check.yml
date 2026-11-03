@@ -25,6 +25,7 @@ jobs:
             services/gateway/go.*
             sdk/go/adapter/go.*
             adapters/lokos/go.*
+            adapters/auth/oidc/go.*
             mocks/identity/go.*
       - run: ./scripts/test-check-go.sh
       - run: ./scripts/check-go.sh

@@ -49,3 +49,7 @@ The first run with revised dependency keys also passed, but took 134 seconds ove
 ## Ongoing acceptance
 
 For each new phase, inspect the critical job/step and runner-work totals, preserve a coverage map, and investigate meaningful regressions. Keep the standard developer commands usable; do not require hosted CI to catch failures that a fast local command can expose.
+
+## Independent auth adapter
+
+`adapters/auth/oidc` is checked independently with `GOWORK=off`, race tests and vet in the existing verify job; its dependency files join that job’s exact cache key. The fault-injection runner also checks auth-adapter test/vet failures stop the build gate. No extra CI job or Docker image pull was added to the normal push path. The actual eSignet local integration test is opt-in (`GRAMSTACK_TEST_ESIGNET=1`) and was run against the pinned stack; it is distinct from the fast protocol tests and the pending gateway browser journey.
