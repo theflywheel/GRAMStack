@@ -143,6 +143,22 @@ func TestDurableAttemptClaimFencingEncryptionAndRestart(t *testing.T) {
 	if _, err = db.ExecContext(ctx, `UPDATE adapter_attempts SET request_digest=$2 WHERE adapter_id='lokos-adapter' AND attempt_id=$1`, input.ID, input.Digest); err != nil {
 		t.Fatal(err)
 	}
+	for _, column := range []string{"grant_jti", "consumer_id", "presenter_thumbprint"} {
+		// Column names are fixed test constants, never API input.
+		var original string
+		if err = db.QueryRowContext(ctx, `SELECT `+column+` FROM adapter_attempts WHERE adapter_id='lokos-adapter' AND attempt_id=$1`, input.ID).Scan(&original); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = db.ExecContext(ctx, `UPDATE adapter_attempts SET `+column+`=$2 WHERE adapter_id='lokos-adapter' AND attempt_id=$1`, input.ID, "substituted"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = restarted.Evidence(ctx, input.ID); !errors.Is(err, sdk.ErrAttemptConflict) {
+			t.Fatal("authority metadata substitution decrypted evidence", column, err)
+		}
+		if _, err = db.ExecContext(ctx, `UPDATE adapter_attempts SET `+column+`=$2 WHERE adapter_id='lokos-adapter' AND attempt_id=$1`, input.ID, original); err != nil {
+			t.Fatal(err)
+		}
+	}
 	bad := sdk.EvidenceAcknowledgement{ReceiptID: "receipt-1", Digest: sdk.Digest([]byte("other")), AcceptedAt: time.Now(), AnchorStatus: "pending"}
 	if _, err = restarted.Advance(ctx, input.ID, a.Version, "evidence_committed", sdk.AttemptUpdate{Ack: &bad}); !errors.Is(err, sdk.ErrAttemptConflict) {
 		t.Fatal("receipt substitution accepted", err)

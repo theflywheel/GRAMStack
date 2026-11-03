@@ -106,7 +106,7 @@ func attemptTransition(ctx context.Context, state, event string) (string, error)
 	return machine.Current(), nil
 }
 func evidenceAAD(adapter string, a Attempt) []byte {
-	return []byte(adapter + "\x00" + a.ID + "\x00" + a.RequestID + "\x00" + a.Digest + "\x00" + a.GrantDigest + "\x00" + a.RedemptionID)
+	return []byte(adapter + "\x00" + a.ID + "\x00" + a.RequestID + "\x00" + a.Digest + "\x00" + a.GrantDigest + "\x00" + a.GrantJTI + "\x00" + a.Consumer + "\x00" + a.Thumbprint + "\x00" + a.RedemptionID)
 }
 func (s *SQLAttemptStore) Advance(ctx context.Context, id string, version int64, event string, u AttemptUpdate) (Attempt, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
