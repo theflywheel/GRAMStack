@@ -38,7 +38,10 @@ const contextSchema = `CREATE TABLE adapter_subject_contexts(context_id text PRI
 
 // Migrate is an explicit, checksummed and serialized operator operation.
 func (s *SQLContextStore) Migrate(ctx context.Context) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+	return migrateSchema(ctx, s.db, 1, contextSchema)
+}
+func migrateSchema(ctx context.Context, db *sql.DB, version int, schema string) error {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -50,17 +53,17 @@ func (s *SQLContextStore) Migrate(ctx context.Context) error {
 		return err
 	}
 	var digest string
-	err = tx.QueryRowContext(ctx, `SELECT digest FROM adapter_schema_migrations WHERE version=1`).Scan(&digest)
+	err = tx.QueryRowContext(ctx, `SELECT digest FROM adapter_schema_migrations WHERE version=$1`, version).Scan(&digest)
 	switch {
 	case err == nil:
-		if digest != Digest([]byte(contextSchema)) {
+		if digest != Digest([]byte(schema)) {
 			return errors.New("adapter schema checksum mismatch")
 		}
 	case errors.Is(err, sql.ErrNoRows):
-		if _, err = tx.ExecContext(ctx, contextSchema); err != nil {
+		if _, err = tx.ExecContext(ctx, schema); err != nil {
 			return err
 		}
-		if _, err = tx.ExecContext(ctx, `INSERT INTO adapter_schema_migrations(version,digest) VALUES(1,$1)`, Digest([]byte(contextSchema))); err != nil {
+		if _, err = tx.ExecContext(ctx, `INSERT INTO adapter_schema_migrations(version,digest) VALUES($1,$2)`, version, Digest([]byte(schema))); err != nil {
 			return err
 		}
 	default:

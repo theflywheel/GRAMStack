@@ -222,7 +222,7 @@ PYZ
   if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then pattern='^TestActual(ESignetFederation|SubjectBinding)$'; else pattern='^TestActual(Federation|SubjectBinding)$'; fi
   if [[ "${GRAMSTACK_TEST_PORTAL:-}" == 1 ]]; then pattern="$pattern|^TestActualConsentPortal$"; fi
   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
-  GOWORK=off go -C "$root/adapters/lokos" test -modfile="$scratch/lokos.mod" -race -count=1 -v -run 'TestDurableContext|TestContextTamper' ./
+  GOWORK=off go -C "$root/adapters/lokos" test -modfile="$scratch/lokos.mod" -race -count=1 -v -run 'TestDurableContext|TestContextTamper|TestDurableAttempt' ./
   stop_gateway; stop_binding
   if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then
    python3 - <<'PYW'

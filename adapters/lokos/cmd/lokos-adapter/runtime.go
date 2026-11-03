@@ -74,8 +74,16 @@ func configureAdapter(ctx context.Context, migrate bool) (*adapterRuntime, error
 		db.Close()
 		return nil, err
 	}
+	attempts, err := sdk.NewSQLAttemptStore(db, "lokos-adapter", stateKey)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
 	if migrate {
 		err = store.Migrate(ctx)
+		if err == nil {
+			err = attempts.Migrate(ctx)
+		}
 		db.Close()
 		return nil, err
 	}
