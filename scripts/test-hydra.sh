@@ -2,6 +2,10 @@
 # Isolated, real Hydra/PostgreSQL integration. No production URLs or credentials.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+if [[ "${GRAMSTACK_PREVIEW:-}" == 1 && "${GRAMSTACK_TEST_PORTAL:-}" != 1 ]]; then
+ echo "Preview requires GRAMSTACK_TEST_PORTAL=1" >&2; exit 1
+fi
+if [[ "${GRAMSTACK_TEST_PORTAL:-}" == 1 ]]; then export GRAMSTACK_TEST_BINDING=1; fi
 if [[ "${GRAMSTACK_TEST_BINDING:-}" == 1 ]]; then export GRAMSTACK_TEST_AUTHN=1; fi
 if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then export GRAMSTACK_TEST_AUTHN=1; fi
 : "${PG_BIN:?Set PG_BIN to the PostgreSQL binary directory}"
@@ -58,7 +62,7 @@ DATABASE_URL="$GRAMSTACK_TEST_DATABASE_URL" "$scratch/gateway" migrate
 export GRAMSTACK_CONFIG_FILE="$scratch/gateway.json" GRAMSTACK_ENV=development DATABASE_URL="$GRAMSTACK_TEST_DATABASE_URL" PORT="$gateway_port"
 python3 - <<'PY'
 import json,os,pathlib
-policy=dict(registry='lokos',resource='shg.membership',fields=['membership_status','savings_summary'],purposes=['credit_eligibility'],hint_types=['member_reference'],terms_version='terms-v1',terms_text='Use for the declared assessment only.')
+policy=dict(registry='lokos',resource='shg.membership',fields=['membership_status','savings_summary'],purposes=['credit_eligibility'],hint_types=['member_reference'],terms_version='terms-v1',terms_text='Use only for this credit eligibility assessment. Retain approved data for up to 30 days, then delete it unless a documented legal retention requirement applies. No onward sharing.')
 config=dict(public_origin='http://127.0.0.1:'+os.environ['PORT'],hydra_introspection_url=os.environ['GRAMSTACK_TEST_HYDRA_ADMIN']+'/admin/oauth2/introspect',hydra_issuer=os.environ['GRAMSTACK_TEST_HYDRA_PUBLIC']+'/',audience='gramstack',scope='gramstack.access',allow_loopback_http=True,consumers={'consumer-one':[policy]})
 pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']).write_text(json.dumps(config))
 PY
@@ -184,20 +188,44 @@ else:
  bindings={'member-12345':'demo-sunita','member-67890':'demo-rani'}
 (configpath.parent/'source-bindings.json').write_text(json.dumps(bindings))
 PYB
+  if [[ "${GRAMSTACK_TEST_PORTAL:-}" == 1 ]]; then
+   export GRAMSTACK_CONSENT_SIGNING_KEY_FILE="$scratch/certs/consent-signing.key"
+   python3 - <<'PYC'
+import json,os,pathlib
+path=pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']);config=json.loads(path.read_text())
+config['consent']=dict(key_id='demo-consent-key')
+path.write_text(json.dumps(config))
+PYC
+  fi
   start_binding
  fi
  start_gateway
- if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then
-  gateway_go test -race -count=1 -v -run TestActualESignetFederation ./internal/authn
- else
-  gateway_go test -race -count=1 -v -run '^TestActualFederation$' ./internal/authn
- fi
  if [[ "${GRAMSTACK_TEST_BINDING:-}" == 1 ]]; then
-  gateway_go test -race -count=1 -v -run '^TestActualSubjectBinding$' ./internal/authn
+  if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then pattern='^TestActual(ESignetFederation|SubjectBinding)$'; else pattern='^TestActual(Federation|SubjectBinding)$'; fi
+  if [[ "${GRAMSTACK_TEST_PORTAL:-}" == 1 ]]; then pattern="$pattern|^TestActualConsentPortal$"; fi
+  gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   GOWORK=off go -C "$root/adapters/lokos" test -modfile="$scratch/lokos.mod" -race -count=1 -v -run 'TestDurableContext|TestContextTamper' ./
   stop_gateway; stop_binding
   start_binding; start_gateway
   gateway_go test -race -count=1 -v -run '^TestActualSubjectBindingRestart$' ./internal/authn
+ else
+  if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then pattern='^TestActualESignetFederation$'; else pattern='^TestActualFederation$'; fi
+  gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
+ fi
+ if [[ "${GRAMSTACK_PREVIEW:-}" == 1 ]]; then
+  # Keep the tested processes alive for the real browser; never export cookies or tokens.
+  python3 - <<'PYP'
+import base64,json,os,urllib.parse,urllib.request,uuid
+headers={'Authorization':'Basic '+base64.b64encode(b'consumer-one:isolated-synthetic-secret').decode()}
+body=urllib.parse.urlencode(dict(grant_type='client_credentials',scope='gramstack.access',audience='gramstack')).encode()
+with urllib.request.urlopen(urllib.request.Request(os.environ['GRAMSTACK_TEST_HYDRA_PUBLIC']+'/oauth2/token',data=body,headers=headers)) as res: token=json.load(res)['access_token']
+body=dict(registry='lokos',resource='shg.membership',subject_hint=dict(type='member_reference',value='member-12345'),fields=['membership_status','savings_summary'],purpose='credit_eligibility',access=dict(mode='single_use',valid_for_seconds=300),recipient_terms=dict(retention_policy_id='terms-v1'))
+headers={'Authorization':'Bearer '+token,'Content-Type':'application/json','Idempotency-Key':'preview-'+str(uuid.uuid4())}
+with urllib.request.urlopen(urllib.request.Request(os.environ['GRAMSTACK_TEST_GATEWAY_URL']+'/v1/access-requests',data=json.dumps(body).encode(),headers=headers)) as res: accepted=json.load(res)
+print('Browser interaction (fictional Sunita, expires in 10 minutes): '+accepted['interaction_url'])
+PYP
+  echo 'Preview is running. Press Return to stop and remove the isolated runtime.'
+  read -r _
  fi
  stop_gateway
 fi

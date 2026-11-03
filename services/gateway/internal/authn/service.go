@@ -24,25 +24,27 @@ import (
 )
 
 type Config struct {
-	Pool                *pgxpool.Pool
-	Store               *Store
-	Origin, HydraAdmin  string
-	Hydra               ProviderConfig
-	UpstreamProfile     oidcadapter.Profile
-	UpstreamCredentials oidcadapter.Credentials
-	AllowDemoUpstream   bool
-	AllowLoopback       bool
-	VerificationEnabled bool
+	Pool                 *pgxpool.Pool
+	Store                *Store
+	Origin, HydraAdmin   string
+	Hydra                ProviderConfig
+	UpstreamProfile      oidcadapter.Profile
+	UpstreamCredentials  oidcadapter.Credentials
+	AllowDemoUpstream    bool
+	AllowLoopback        bool
+	VerificationEnabled  bool
+	ConsentPortalEnabled bool
 }
 type Service struct {
-	pool                *pgxpool.Pool
-	store               *Store
-	origin, admin       string
-	hydra               *provider
-	upstream            *oidcadapter.Adapter
-	client              *http.Client
-	secure              bool
-	verificationEnabled bool
+	pool                 *pgxpool.Pool
+	store                *Store
+	origin, admin        string
+	hydra                *provider
+	upstream             *oidcadapter.Adapter
+	client               *http.Client
+	secure               bool
+	verificationEnabled  bool
+	consentPortalEnabled bool
 }
 type flow struct {
 	RequestID, Digest, State, Nonce, Verifier, PrincipalRef string
@@ -78,7 +80,7 @@ func New(ctx context.Context, c Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{c.Pool, c.Store, origin, strings.TrimSuffix(c.HydraAdmin, "/"), hydra, upstream, &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, strings.HasPrefix(origin, "https://"), c.VerificationEnabled}, nil
+	return &Service{c.Pool, c.Store, origin, strings.TrimSuffix(c.HydraAdmin, "/"), hydra, upstream, &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, strings.HasPrefix(origin, "https://"), c.VerificationEnabled, c.ConsentPortalEnabled}, nil
 }
 func (s *Service) loadRequest(ctx context.Context, id string) (request, error) {
 	var result request
@@ -128,7 +130,7 @@ func (s *Service) Handler() http.Handler {
 	mux.HandleFunc("GET /auth/callback", s.callback)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
 		mux.ServeHTTP(w, r)
@@ -145,9 +147,16 @@ func (s *Service) interaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if session, err := s.Session(r, id); err == nil {
+		if s.consentPortalEnabled && value.State != "AUTHENTICATION_PENDING" && value.State != "BINDING_PENDING" {
+			http.Redirect(w, r, s.origin+"/interactions/"+url.PathEscape(id)+"/consent", http.StatusSeeOther)
+			return
+		}
 		if s.verificationEnabled {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			_ = verificationScreen.Execute(w, struct{ RequestID, CSRF string }{id, session.CSRF})
+			_ = verificationScreen.Execute(w, struct {
+				RequestID, CSRF string
+				PortalEnabled   bool
+			}{id, session.CSRF, s.consentPortalEnabled})
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -459,4 +468,4 @@ func (s *Service) Principal(ctx context.Context, requestID, principalRef string)
 	return principal, nil
 }
 
-var verificationScreen = template.Must(template.New("verification").Parse(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verify registry membership</title></head><body><main><h1>Authenticated interaction</h1><p>Your login is complete. Registry ownership is checked separately before any disclosure consent.</p><form method="post" action="/interactions/{{.RequestID}}/verify"><input type="hidden" name="csrf" value="{{.CSRF}}"><button>Verify registry membership</button></form></main></body></html>`))
+var verificationScreen = template.Must(template.New("verification").Parse(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verify registry membership</title>{{if .PortalEnabled}}<link rel="stylesheet" href="/assets/consent.css">{{end}}</head><body><header class="topbar"><span class="brand"><span class="mark" aria-hidden="true">G</span><span>GRAMStack<span class="brand-sub">Data permissions</span></span></span><span class="private">Private interaction</span></header><main id="main"><div class="eyebrow">YOUR DATA · YOUR CHOICE</div><h1>Verify registry membership</h1><nav class="steps" aria-label="Progress"><span class="done">1 · Identity verified</span><span class="current">2 · Registry verification</span><span>3 · Your decision</span></nav><section class="card"><h2>Authenticated interaction</h2><p>Your login is complete. Registry ownership is checked separately before any disclosure consent.</p><p>Continue to check that the registry record belongs to your authenticated identity. You will review a separate notice before choosing whether to share any data.</p><form method="post" action="/interactions/{{.RequestID}}/verify"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="button primary">Verify registry membership</button></form></section></main></body></html>`))

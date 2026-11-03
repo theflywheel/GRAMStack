@@ -67,6 +67,7 @@ services:
       MOSIP_ESIGNET_CACHE_TYPE: redis
       MOSIP_ESIGNET_HOST: http://127.0.0.1:19080
       MOSIP_ESIGNET_OIDC_UI_HOSTNAME: 127.0.0.1
+      MOSIP_ESIGNET_AUTH_FLOW_ID: flow-local-demo-v2
       MOSIP_ESIGNET_CAPTCHA_SITE_PROVIDER: ""
       MOSIP_ESIGNET_CAPTCHA_SITE_KEY: ""
       MOSIP_ESIGNET_AUTHN_PROVIDER: mock
@@ -83,6 +84,7 @@ services:
         condition: service_healthy
     volumes:
       - keystore:/opt/mosip/keys
+      - ./flow-local-demo.yaml:/home/mosip/data/flows/flow-local-demo-v2.yaml:ro
   esignet-ui:
     image: mosipid/oidc-ui:2.0.0@sha256:9d87a526518d63922de6d2d987bdeddd1ef1c215d27656252f7d38e58ffb9708
     user: root

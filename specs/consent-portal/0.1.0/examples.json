@@ -1,0 +1,220 @@
+{
+  "cases": [
+    {
+      "name": "web presentation",
+      "schema": "Presentation",
+      "valid": true,
+      "value": {
+        "presentation_id": "presentation-demo",
+        "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "notice_version": "gramstack.en.v1",
+        "language": "en",
+        "channel": "WEB",
+        "rendered_at": "2026-11-03T10:00:00Z",
+        "expires_at": "2026-11-03T10:05:00Z"
+      }
+    },
+    {
+      "name": "explicit approval provenance",
+      "schema": "DecisionRecord",
+      "valid": true,
+      "value": {
+        "decision": "approve",
+        "decided_at": "2026-11-03T10:00:00Z",
+        "explicit_confirmation": true,
+        "presentation": {
+          "presentation_id": "presentation-demo",
+          "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "notice_version": "gramstack.en.v1",
+          "language": "en",
+          "channel": "WEB",
+          "rendered_at": "2026-11-03T10:00:00Z",
+          "expires_at": "2026-11-03T10:05:00Z"
+        }
+      }
+    },
+    {
+      "name": "approval awaiting activation",
+      "schema": "Record",
+      "valid": true,
+      "value": {
+        "schema_version": "gramstack.consent-record.v1",
+        "request_id": "request-demo",
+        "request_status": "CONSENT_PENDING",
+        "generated_at": "2026-11-03T10:00:00Z",
+        "notice": {
+          "consent_request_id": "consent-demo",
+          "request_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "notice_version": "gramstack.en.v1",
+          "language": "en",
+          "text": "Fictional illustrative notice; no authority.",
+          "expires_at": "2026-11-03T10:05:00Z"
+        },
+        "consent": {
+          "consent_id": "consent-demo",
+          "status": "APPROVAL_RECORDED",
+          "status_version": 2,
+          "use": "AVAILABLE",
+          "valid_until": "2026-11-03T10:05:00Z"
+        },
+        "decision": {
+          "decision": "approve",
+          "decided_at": "2026-11-03T10:00:00Z",
+          "explicit_confirmation": true,
+          "presentation": {
+            "presentation_id": "presentation-demo",
+            "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "notice_version": "gramstack.en.v1",
+            "language": "en",
+            "channel": "WEB",
+            "rendered_at": "2026-11-03T10:00:00Z",
+            "expires_at": "2026-11-03T10:05:00Z"
+          }
+        },
+        "admission_cutoff_passed": false
+      }
+    },
+    {
+      "name": "raw identity is forbidden",
+      "schema": "Record",
+      "valid": false,
+      "value": {
+        "schema_version": "gramstack.consent-record.v1",
+        "request_id": "request-demo",
+        "request_status": "CONSENT_PENDING",
+        "generated_at": "2026-11-03T10:00:00Z",
+        "notice": {
+          "consent_request_id": "consent-demo",
+          "request_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "notice_version": "gramstack.en.v1",
+          "language": "en",
+          "text": "Fictional illustrative notice; no authority.",
+          "expires_at": "2026-11-03T10:05:00Z"
+        },
+        "consent": {
+          "consent_id": "consent-demo",
+          "status": "APPROVAL_RECORDED",
+          "status_version": 2,
+          "use": "AVAILABLE",
+          "valid_until": "2026-11-03T10:05:00Z"
+        },
+        "decision": {
+          "decision": "approve",
+          "decided_at": "2026-11-03T10:00:00Z",
+          "explicit_confirmation": true,
+          "presentation": {
+            "presentation_id": "presentation-demo",
+            "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "notice_version": "gramstack.en.v1",
+            "language": "en",
+            "channel": "WEB",
+            "rendered_at": "2026-11-03T10:00:00Z",
+            "expires_at": "2026-11-03T10:05:00Z"
+          }
+        },
+        "admission_cutoff_passed": false,
+        "subject": "raw-identity"
+      }
+    },
+    {
+      "name": "unknown version",
+      "schema": "Record",
+      "valid": false,
+      "value": {
+        "schema_version": "unknown",
+        "request_id": "request-demo",
+        "request_status": "CONSENT_PENDING",
+        "generated_at": "2026-11-03T10:00:00Z",
+        "notice": {
+          "consent_request_id": "consent-demo",
+          "request_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "notice_version": "gramstack.en.v1",
+          "language": "en",
+          "text": "Fictional illustrative notice; no authority.",
+          "expires_at": "2026-11-03T10:05:00Z"
+        },
+        "consent": {
+          "consent_id": "consent-demo",
+          "status": "APPROVAL_RECORDED",
+          "status_version": 2,
+          "use": "AVAILABLE",
+          "valid_until": "2026-11-03T10:05:00Z"
+        },
+        "decision": {
+          "decision": "approve",
+          "decided_at": "2026-11-03T10:00:00Z",
+          "explicit_confirmation": true,
+          "presentation": {
+            "presentation_id": "presentation-demo",
+            "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "notice_version": "gramstack.en.v1",
+            "language": "en",
+            "channel": "WEB",
+            "rendered_at": "2026-11-03T10:00:00Z",
+            "expires_at": "2026-11-03T10:05:00Z"
+          }
+        },
+        "admission_cutoff_passed": false
+      }
+    },
+    {
+      "name": "unsupported channel",
+      "schema": "Presentation",
+      "valid": false,
+      "value": {
+        "presentation_id": "presentation-demo",
+        "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "notice_version": "gramstack.en.v1",
+        "language": "en",
+        "channel": "VOICE",
+        "rendered_at": "2026-11-03T10:00:00Z",
+        "expires_at": "2026-11-03T10:05:00Z"
+      }
+    },
+    {
+      "name": "rejection without approval checkbox",
+      "schema": "Record",
+      "valid": true,
+      "value": {
+        "schema_version": "gramstack.consent-record.v1",
+        "request_id": "request-demo",
+        "request_status": "CONSENT_PENDING",
+        "generated_at": "2026-11-03T10:00:00Z",
+        "notice": {
+          "consent_request_id": "consent-demo",
+          "request_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "notice_version": "gramstack.en.v1",
+          "language": "en",
+          "text": "Fictional illustrative notice; no authority.",
+          "expires_at": "2026-11-03T10:05:00Z"
+        },
+        "consent": {
+          "consent_id": "consent-demo",
+          "status": "REJECTED",
+          "status_version": 2,
+          "use": "AVAILABLE",
+          "valid_until": "2026-11-03T10:05:00Z"
+        },
+        "decision": {
+          "decision": "reject",
+          "decided_at": "2026-11-03T10:00:00Z",
+          "explicit_confirmation": false,
+          "presentation": {
+            "presentation_id": "presentation-demo",
+            "notice_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "notice_version": "gramstack.en.v1",
+            "language": "en",
+            "channel": "WEB",
+            "rendered_at": "2026-11-03T10:00:00Z",
+            "expires_at": "2026-11-03T10:05:00Z"
+          }
+        },
+        "admission_cutoff_passed": false
+      }
+    }
+  ]
+}

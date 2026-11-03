@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/url"
 	"sort"
 	"strings"
@@ -57,10 +58,19 @@ type Verifier struct {
 	keys               map[string]*ecdsa.PublicKey
 }
 
-func trustedOrigin(value string) bool {
+func trustedOrigin(value string) bool { return trustedConsentOrigin(value, false) }
+func trustedConsentOrigin(value string, allowLoopback bool) bool {
 	u, err := url.Parse(value)
-	return err == nil && u.Scheme == "https" && u.Host != "" && u.User == nil && u.RawQuery == "" && u.Fragment == "" && (u.Path == "" || u.Path == "/")
+	if err != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
+		return false
+	}
+	if u.Scheme == "https" {
+		return true
+	}
+	ip := net.ParseIP(u.Hostname())
+	return allowLoopback && u.Scheme == "http" && ip != nil && ip.IsLoopback()
 }
+
 func clonePublic(key *ecdsa.PublicKey) (*ecdsa.PublicKey, error) {
 	if key == nil || key.Curve != elliptic.P256() || key.X == nil || key.Y == nil {
 		return nil, errors.New("P-256 public key required")
@@ -75,8 +85,14 @@ func clonePublic(key *ecdsa.PublicKey) (*ecdsa.PublicKey, error) {
 	}
 	return parsed.(*ecdsa.PublicKey), nil
 }
+
+type VerifierOptions struct{ AllowLoopback bool }
+
 func NewVerifier(issuer, statusBase string, keys map[string]*ecdsa.PublicKey) (*Verifier, error) {
-	if !trustedOrigin(issuer) || !trustedOrigin(statusBase) || len(keys) == 0 {
+	return NewVerifierWithOptions(issuer, statusBase, keys, VerifierOptions{})
+}
+func NewVerifierWithOptions(issuer, statusBase string, keys map[string]*ecdsa.PublicKey, options VerifierOptions) (*Verifier, error) {
+	if !trustedConsentOrigin(issuer, options.AllowLoopback) || !trustedConsentOrigin(statusBase, options.AllowLoopback) || len(keys) == 0 {
 		return nil, errors.New("trusted HTTPS consent issuer, status origin and verification keys required")
 	}
 	v := &Verifier{issuer: strings.TrimSuffix(issuer, "/"), statusBase: strings.TrimSuffix(statusBase, "/"), keys: map[string]*ecdsa.PublicKey{}}

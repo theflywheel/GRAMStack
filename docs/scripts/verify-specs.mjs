@@ -62,3 +62,16 @@ for (const example of subjectCases) {
   assert.equal(validate(example.value), example.valid, `${example.name}: ${ajv.errorsText(validate.errors)}`)
 }
 console.log(`Verified subject verification profile 0.1.0 and ${subjectCases.length} fixtures against immutable core 0.2.0.`)
+
+const portalRoot = new URL('../../specs/consent-portal/0.1.0/', import.meta.url)
+const portalSchemas = JSON.parse(readFileSync(new URL('schemas.json', portalRoot), 'utf8'))
+ajv.addSchema(portalSchemas)
+const portalCases = JSON.parse(readFileSync(new URL('examples.json', portalRoot), 'utf8')).cases
+for (const name of Object.keys(portalSchemas.$defs)) {
+  const validate = ajv.getSchema(`${portalSchemas.$id}#/$defs/${name}`)
+  assert.ok(portalCases.some(e => e.schema === name && e.valid), `Missing portal example: ${name}`)
+  for (const example of portalCases.filter(e => e.schema === name)) {
+    assert.equal(validate(example.value), example.valid, `${example.name}: ${ajv.errorsText(validate.errors)}`)
+  }
+}
+console.log(`Verified consent portal profile 0.1.0 and ${portalCases.length} fixtures.`)

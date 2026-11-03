@@ -85,7 +85,12 @@ func New(c Config) (*Service, error) {
 		if !idPattern.MatchString(client) || len(entries) == 0 {
 			return nil, ErrInput
 		}
+		terms := map[string]string{}
 		for _, p := range entries {
+			if old, ok := terms[p.TermsVersion]; ok && old != p.TermsText {
+				return nil, ErrInput
+			}
+			terms[p.TermsVersion] = p.TermsText
 			if !idPattern.MatchString(p.Registry) || !idPattern.MatchString(p.Resource) || !idPattern.MatchString(p.TermsVersion) || p.TermsText == "" || len(p.TermsText) > 65536 || len(p.Fields) == 0 || len(p.Purposes) == 0 || len(p.HintTypes) == 0 {
 				return nil, ErrInput
 			}
@@ -242,4 +247,17 @@ func (s *Service) Cancel(ctx context.Context, client, id string) (Status, error)
 		return Status{}, err
 	}
 	return statusOf(value), nil
+}
+
+// Resolve supplies only the exact trusted recipient terms version, never client text.
+func (s *Service) Resolve(ctx context.Context, client, version string) (cm.Terms, error) {
+	if err := ctx.Err(); err != nil {
+		return cm.Terms{}, err
+	}
+	for _, policy := range s.policies[client] {
+		if policy.TermsVersion == version {
+			return cm.Terms{Version: version, Text: policy.TermsText}, nil
+		}
+	}
+	return cm.Terms{}, cm.ErrBinding
 }

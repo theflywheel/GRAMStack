@@ -29,3 +29,15 @@ GRAMSTACK_TEST_ESIGNET=1 PG_BIN=/path/to/postgres/bin HYDRA_BIN=/path/to/hydra .
 ```
 
 It creates isolated gateway/Hydra SQL databases, onboards a new client into the local eSignet instance, seeds fictional Sunita/Rani records, keeps its client key in a private temporary directory, and tests the complete HTTP federation and denial paths. Each run adds an ephemeral client to this disposable eSignet database; the private key and temporary SQL instance are cleaned up. The browser UI rendering and final recorded demo have separate acceptance checks. Public local fixture OTP is `111111`; the identity service is mock, not a government connection.
+
+## Local browser flow
+
+`flow-local-demo.yaml` is the pinned upstream authentication flow with CAPTCHA components, required CAPTCHA inputs and the CAPTCHA interceptor removed. This matches this isolated stack's already unconfigured CAPTCHA validator and keeps the unmodified official UI usable with fictional identities. OTP verification and its attempt limit remain in place. This is **not a CAPTCHA implementation or a production authentication flow**. No CAPTCHA challenge is solved or forwarded. Production identity deployments must supply their approved flow and working CAPTCHA provider/validator; do not mount this file there.
+
+To keep the tested gateway, Hydra, SDK adapter and native mock online for browser review:
+
+```sh
+GRAMSTACK_TEST_PORTAL=1 GRAMSTACK_TEST_ESIGNET=1 GRAMSTACK_PREVIEW=1 PG_BIN=/path/to/postgres/bin HYDRA_BIN=/path/to/hydra ./scripts/test-hydra.sh
+```
+
+After the tests and restart checks pass, open the printed interaction URL, select UIN/VID and use fictional Sunita ID `9000000001` with mock OTP `111111`. The interaction expires after ten minutes. Press Return in the runner to stop it and remove its isolated state. The preview does not activate consent until the durable worker is configured; an approval receipt reports that distinction. This runner is a development acceptance tool, not the final reproducible product stack.

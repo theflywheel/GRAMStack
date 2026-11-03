@@ -215,3 +215,42 @@ Source links are listed in [references](12-references). These projects inform im
 DEPA is the architectural reference for granular, revocable, auditable disclosure consent with separated consent and data flows. The older iSPIRT architecture repository is not treated as a maintained runtime dependency or a universal current conformance standard. ReBIT provides a concrete financial-ecosystem reference, not an automatic contract for LokOS.
 
 The DPDP Act defines a Consent Manager as a registered person. A software module and a legally registered operator are separate matters. Each deployment defines its responsible fiduciary, consent authority, evidence custodian, retention policy and applicable regulatory obligations. This document makes no certification or registration claim.
+
+## First-party WEB interaction
+
+The [consent portal profile](specifications/consent-portal) binds the actual rendered notice to the request's authenticated session. English is supported explicitly; other languages are rejected. The portal serves both the choice screen and a protected human/JSON record. Its export never contains source identifiers, lookup hints, identity-provider subjects or business rows.
+
+```mermaid
+sequenceDiagram
+    participant B as Person browser
+    participant G as First-party gateway
+    participant C as Consent Manager
+    participant D as Consent SQL and outbox
+    participant W as Durable worker
+    B->>G: GET consent with authenticated request session
+    G->>C: Resolve accepted snapshot and verified context
+    C->>D: Store exact notice and session-bound WEB presentation
+    G-->>B: Exact English notice and unchecked approval form
+    B->>G: POST approve or reject with CSRF and notice binding
+    G->>C: Authenticated principal and presentation reference
+    C->>D: Atomic decision, presentation link, status and outbox
+    G-->>B: Redirect to protected read-only record
+    opt Explicit approval
+        W->>C: Lease signing and activation work
+        C->>D: Conditional verified activation and notification
+    end
+    B->>G: GET receipt or JSON export
+    G->>D: Consistent read without signing or renewal
+    G-->>B: Decision provenance and observed current status
+```
+
+| Stored object | Location | Exposure |
+|---|---|---|
+| Exact notice, recipient terms and immutable decision | Consent SQL | Owner-authenticated record |
+| Render time, language, channel, notice binding | Consent presentation SQL | Owner record excludes private principal/session binding |
+| Decision-to-presentation link and checkbox confirmation | Same decision transaction | Owner provenance |
+| Request-bound session and verified context | Gateway encrypted state | Server only |
+| Pending work and lifecycle notifications | Metadata outbox | Worker/service only |
+| Signed artefact | Immutable consent artefact SQL | Authenticated record when it exists |
+
+An approval receipt says **Approval recorded** until the trusted activation work completes. A render or download never creates ACTIVE consent. Withdrawing preserves the original decision while stopping future admissions. An admission cutoff indicator does not establish successful delivery. Short-lived interaction receipts and later protected history/recovery are distinct capabilities.

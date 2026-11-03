@@ -37,6 +37,7 @@ type Registry struct {
 	Demo            bool   `json:"demo"`
 }
 type Config struct {
+	ConsentPortalEnabled bool
 	Pool                 *pgxpool.Pool
 	Auth                 *authn.Service
 	Store                *authn.Store
@@ -49,10 +50,11 @@ type endpoint struct {
 	client   *http.Client
 }
 type Service struct {
-	pool      *pgxpool.Pool
-	auth      *authn.Service
-	store     *authn.Store
-	endpoints map[string]endpoint
+	consentPortalEnabled bool
+	pool                 *pgxpool.Pool
+	auth                 *authn.Service
+	store                *authn.Store
+	endpoints            map[string]endpoint
 }
 type verificationRequest struct {
 	Snapshot  cm.Snapshot `json:"snapshot"`
@@ -81,7 +83,7 @@ func New(c Config) (*Service, error) {
 	if err != nil {
 		return nil, errors.New("registry client certificate required")
 	}
-	s := &Service{c.Pool, c.Auth, c.Store, map[string]endpoint{}}
+	s := &Service{c.ConsentPortalEnabled, c.Pool, c.Auth, c.Store, map[string]endpoint{}}
 	for _, registry := range c.Registries {
 		u, err := url.Parse(registry.Origin)
 		if err != nil || registry.ContractVersion != "0.1.0" || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") || !identifier.MatchString(registry.ID) || registry.ServerName == "" || !identifier.MatchString(registry.Method) || registry.Demo && !c.AllowDemo || strings.HasPrefix(registry.Method, "demo.") && !registry.Demo {
@@ -267,7 +269,30 @@ func (s *Service) Handler() http.Handler {
 			}
 			return
 		}
+		if s.consentPortalEnabled && strings.Contains(r.Header.Get("Accept"), "text/html") {
+			http.Redirect(w, r, "/interactions/"+url.PathEscape(id)+"/consent", http.StatusSeeOther)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{"request_id": id, "status": "CONSENT_PENDING", "subject_context_ref": value.ContextID, "next_action": "review_consent"})
 	})
+}
+
+// ForRequest resolves the opaque subject context only for its bound principal.
+func (s *Service) ForRequest(ctx context.Context, id, principal string) (string, error) {
+	var reference string
+	if err := s.store.Peek(ctx, "subject.request", id, "server", &reference); err != nil {
+		if errors.Is(err, authn.ErrAuthentication) {
+			return "", cm.ErrBinding
+		}
+		return "", cm.ErrUnavailable
+	}
+	value, err := s.Resolve(ctx, reference)
+	if err != nil {
+		return "", err
+	}
+	if value.PrincipalContextRef != principal {
+		return "", cm.ErrForbidden
+	}
+	return reference, nil
 }

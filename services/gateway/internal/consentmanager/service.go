@@ -27,12 +27,14 @@ type TermsResolver interface {
 	Resolve(context.Context, string, string) (Terms, error)
 }
 type Config struct {
-	Pool              *pgxpool.Pool
-	Subjects          SubjectResolver
-	Terms             TermsResolver
-	Signer            Signer
-	Verifier          *Verifier
-	InteractionOrigin string
+	Pool                *pgxpool.Pool
+	Subjects            SubjectResolver
+	Terms               TermsResolver
+	Signer              Signer
+	Verifier            *Verifier
+	InteractionOrigin   string
+	AllowLoopback       bool
+	RequirePresentation bool
 }
 type Service struct{ config Config }
 type CreateRequest struct {
@@ -45,7 +47,7 @@ type Activation struct {
 }
 
 func New(config Config) (*Service, error) {
-	if config.Pool == nil || config.Subjects == nil || config.Terms == nil || config.Signer == nil || config.Verifier == nil || !trustedOrigin(config.InteractionOrigin) {
+	if config.Pool == nil || config.Subjects == nil || config.Terms == nil || config.Signer == nil || config.Verifier == nil || !trustedConsentOrigin(config.InteractionOrigin, config.AllowLoopback) {
 		return nil, errors.New("consent database, trusted subject/terms resolvers, signer, verifier and HTTPS interaction origin required")
 	}
 	config.InteractionOrigin = strings.TrimSuffix(config.InteractionOrigin, "/")
@@ -226,6 +228,18 @@ func (s *Service) Decide(ctx context.Context, id, principal string, decision Dec
 		if decision.RequestDigest != value.digest || decision.NoticeDigest != value.notice.NoticeDigest || decision.NoticeVersion != value.notice.NoticeVersion || decision.Language != value.notice.Language {
 			return ErrBinding
 		}
+		if s.config.RequirePresentation {
+			if !identifier.MatchString(decision.PresentationID) || !digestPattern.MatchString(decision.SessionDigest) || decision.Action == "approve" && !decision.ExplicitConfirmation {
+				return ErrBinding
+			}
+			var valid bool
+			if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM consent_presentations WHERE presentation_id=$1 AND consent_id=$2 AND principal_ref=$3 AND session_digest=$4 AND notice_digest=$5 AND notice_version=$6 AND language=$7 AND expires_at>clock_timestamp())`, decision.PresentationID, id, principal, decision.SessionDigest, decision.NoticeDigest, decision.NoticeVersion, decision.Language).Scan(&valid); err != nil {
+				return err
+			}
+			if !valid {
+				return ErrBinding
+			}
+		}
 		var prior string
 		err = tx.QueryRow(ctx, "SELECT action FROM consent_decisions WHERE consent_id=$1", id).Scan(&prior)
 		if err == nil {
@@ -255,6 +269,11 @@ func (s *Service) Decide(ctx context.Context, id, principal string, decision Dec
 		}
 		if _, err = tx.Exec(ctx, `INSERT INTO consent_decisions(consent_id,action,principal_context_ref,request_digest,notice_digest,notice_version,language,decided_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)`, id, decision.Action, principal, decision.RequestDigest, decision.NoticeDigest, decision.NoticeVersion, decision.Language, now); err != nil {
 			return err
+		}
+		if s.config.RequirePresentation {
+			if _, err = tx.Exec(ctx, `INSERT INTO consent_decision_presentations(consent_id,presentation_id,explicit_confirmation) VALUES($1,$2,$3)`, id, decision.PresentationID, decision.ExplicitConfirmation); err != nil {
+				return err
+			}
 		}
 		result = value.status
 		result.Status = next

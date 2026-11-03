@@ -73,11 +73,14 @@ type Notice struct {
 	ExpiresAt        time.Time `json:"expires_at"`
 }
 type Decision struct {
-	Action        string `json:"decision"`
-	RequestDigest string `json:"request_digest"`
-	NoticeDigest  string `json:"notice_digest"`
-	NoticeVersion string `json:"notice_version"`
-	Language      string `json:"language"`
+	PresentationID       string `json:"-"`
+	SessionDigest        string `json:"-"`
+	ExplicitConfirmation bool   `json:"-"`
+	Action               string `json:"decision"`
+	RequestDigest        string `json:"request_digest"`
+	NoticeDigest         string `json:"notice_digest"`
+	NoticeVersion        string `json:"notice_version"`
+	Language             string `json:"language"`
 }
 type Status struct {
 	ConsentID     string    `json:"consent_id"`

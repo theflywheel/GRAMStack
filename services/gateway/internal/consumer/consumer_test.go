@@ -371,3 +371,34 @@ func TestRequestDeadlineAndNoBodyMutation(t *testing.T) {
 		t.Fatalf("cancellation accepts scope mutation: %d", result.Code)
 	}
 }
+
+func TestTrustedRecipientTermsAreUnambiguousAndCopied(t *testing.T) {
+	service, pool := setup(t)
+	ctx := context.Background()
+	bound, err := service.Resolve(ctx, "consumer-one", "terms-v1")
+	if err != nil || bound.Text != "Use for the declared assessment only." {
+		t.Fatal("trusted terms not resolved", err)
+	}
+	for _, tuple := range [][2]string{{"unknown", "terms-v1"}, {"consumer-one", "unknown"}} {
+		if _, err = service.Resolve(ctx, tuple[0], tuple[1]); !errors.Is(err, cm.ErrBinding) {
+			t.Fatal("unconfigured terms accepted", err)
+		}
+	}
+	policies := map[string][]Policy{"consumer-one": {service.policies["consumer-one"][0]}}
+	copied, err := New(Config{Pool: pool, Auth: fixtureAuth{}, PublicOrigin: "https://gateway.example", Consumers: policies})
+	if err != nil {
+		t.Fatal(err)
+	}
+	policies["consumer-one"][0].TermsText = "mutated caller config"
+	if after, _ := copied.Resolve(ctx, "consumer-one", "terms-v1"); after != bound {
+		t.Fatal("caller config mutation changed existing terms")
+	}
+	policies["consumer-one"][0].TermsText = bound.Text
+	duplicate := policies["consumer-one"][0]
+	duplicate.Resource = "other.resource"
+	duplicate.TermsText = "different text for the same immutable version"
+	policies["consumer-one"] = append(policies["consumer-one"], duplicate)
+	if _, err = New(Config{Pool: pool, Auth: fixtureAuth{}, PublicOrigin: "https://gateway.example", Consumers: policies}); err == nil {
+		t.Fatal("ambiguous recipient terms accepted")
+	}
+}

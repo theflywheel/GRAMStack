@@ -13,7 +13,7 @@
       "purposes": ["credit_eligibility"],
       "hint_types": ["member_reference"],
       "terms_version": "demo-retention-v1",
-      "terms_text": "Fictional demo records only. Use for this assessment; no onward sharing."
+      "terms_text": "Fictional demo records only. Use for this assessment; retain for up to 30 days, then delete unless a documented legal retention requirement applies. No onward sharing."
     }]
   }
 }

@@ -14,7 +14,7 @@ Run `PG_BIN=... scripts/test-postgres.sh` from repository root for real database
 
 ## Consumer request API increment
 
-Set `GRAMSTACK_CONFIG_FILE` to a reviewed configuration based on `config.example.json` and supply `DATABASE_URL`. Run the explicit `migrate` command first. This enables authenticated POST `/v1/access-requests`, owner-only GET `/v1/access-requests/{id}` and POST `/v1/access-requests/{id}/cancel`. Grant, data, browser interaction and identity callbacks remain unavailable. `/readyz` still returns 503 because the complete disclosure pipeline is not configured.
+Set `GRAMSTACK_CONFIG_FILE` to a reviewed configuration based on `config.example.json` and supply `DATABASE_URL`. Run the explicit `migrate` command first. This enables authenticated POST `/v1/access-requests`, owner-only GET `/v1/access-requests/{id}` and POST `/v1/access-requests/{id}/cancel`. Grant and data routes remain unavailable in this increment; optional person/registry/consent routes are described below. `/readyz` still returns 503 because the complete disclosure pipeline is not configured.
 
 Hydra v26.2.0 introspection is pinned to a configured private/admin endpoint, issuer, audience and scope. The gateway requires an active, unexpired access token, checks token use/type and resolves the consumer from the issuer response rather than browser JSON. Keep the admin endpoint private and protected by deployment transport controls. No token or introspection result is logged or stored. Outages fail closed; redirects are rejected. HTTP is allowed only for explicit literal-loopback development endpoints with `GRAMSTACK_ENV=development`; production configuration rejects that switch.
 
@@ -26,4 +26,12 @@ Run `PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` from the repository root 
 
 ## Optional citizen authentication increment
 
-The optional `authentication` configuration enables `/auth/*` federation handlers and `/interactions/{id}`. See [AuthN](internal/authn/README.md) for protocol boundaries, secrets, cookies and tests. A completed login advances to BINDING_PENDING and does not create registry ownership, disclosure consent or a grant. The interaction currently shows a plain authenticated checkpoint; the consent product UI and source verification are distinct subsequent tasks. `/readyz` continues to report unavailable for the full service.
+The optional `authentication` configuration enables `/auth/*` federation handlers and `/interactions/{id}`. See [AuthN](internal/authn/README.md) for protocol boundaries, secrets, cookies and tests. A completed login advances to BINDING_PENDING and does not create registry ownership, disclosure consent or a grant. Configured registry descriptors enable SDK-backed subject verification; optional consent configuration enables the first-party portal. `/readyz` continues to report unavailable for the full service.
+
+## Consent portal
+
+With authentication and registry descriptors configured, add `"consent": {"key_id":"reviewed-consent-key"}` and supply a private P-256 PEM through `GRAMSTACK_CONSENT_SIGNING_KEY_FILE`. Optional issuer/status origin default to the configured public origin. Production requires trusted HTTPS origins; literal loopback is available only through the existing explicit development switch. The signing key is separate from service TLS keys. Migration 0006 retains immutable session-bound WEB presentations and decision links.
+
+The portal presents exact immutable English notices and recipient terms, requires an unchecked confirmation for approval, accepts explicit rejection, and supports owner-session withdrawal and read-only human/JSON receipts. Unknown language/action/fields, duplicate forms, CSRF/Origin/session/presentation substitution fail closed. Approval commits decision/provenance/status/outbox together and stops at APPROVAL_RECORDED; signing/activation workers follow in D06. This short-lived interaction is not the later history/recovery capability in D14. See `specs/consent-portal/0.1.0`.
+
+Use `GRAMSTACK_TEST_PORTAL=1 PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` for the running-process acceptance suite. Add `GRAMSTACK_TEST_ESIGNET=1` for official eSignet and `GRAMSTACK_PREVIEW=1` in an interactive terminal to keep the tested runtime online for browser inspection. Fixtures, keys and SQL state are isolated and removed on exit.

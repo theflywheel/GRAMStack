@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.gramstack.try-dough.com/static/specs/consent-portal/0.1.0/schemas.json",
+  "title": "GRAMStack first-party consent portal 0.1.0",
+  "$defs": {
+    "Presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "presentation_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "notice_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "notice_version": {
+          "const": "gramstack.en.v1"
+        },
+        "language": {
+          "const": "en"
+        },
+        "channel": {
+          "const": "WEB"
+        },
+        "rendered_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "presentation_id",
+        "notice_digest",
+        "notice_version",
+        "language",
+        "channel",
+        "rendered_at",
+        "expires_at"
+      ]
+    },
+    "DecisionRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "approve",
+            "reject"
+          ]
+        },
+        "decided_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "explicit_confirmation": {
+          "type": "boolean"
+        },
+        "presentation": {
+          "$ref": "#/$defs/Presentation"
+        }
+      },
+      "required": [
+        "decision",
+        "decided_at",
+        "explicit_confirmation"
+      ]
+    },
+    "Record": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "gramstack.consent-record.v1"
+        },
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "request_status": {
+          "$ref": "https://docs.gramstack.try-dough.com/static/specs/0.2.0/schemas.json#/$defs/RequestStatus/properties/status"
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "notice": {
+          "$ref": "https://docs.gramstack.try-dough.com/static/specs/0.2.0/schemas.json#/$defs/Notice"
+        },
+        "consent": {
+          "$ref": "https://docs.gramstack.try-dough.com/static/specs/0.2.0/schemas.json#/$defs/ConsentStatus"
+        },
+        "decision": {
+          "$ref": "#/$defs/DecisionRecord"
+        },
+        "signed_artefact": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32768
+        },
+        "admission_cutoff_passed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schema_version",
+        "request_id",
+        "request_status",
+        "generated_at",
+        "notice",
+        "consent",
+        "admission_cutoff_passed"
+      ]
+    }
+  }
+}

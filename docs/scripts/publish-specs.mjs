@@ -23,3 +23,9 @@ const verificationReadme = await readFile(new URL('README.md', verificationRoot)
 const verificationDownload = 'https://docs.gramstack.try-dough.com/static/specs/subject-verification/0.1.0/'
 const verificationText = verificationReadme.replace(/\]\((schemas|examples)\.json\)/g, `](${verificationDownload}$1.json)`)
 await writeFile(new URL('subject-verification.md', target), front('Registry subject verification') + verificationText + '\n[Download schemas](' + verificationDownload + 'schemas.json) · [Download fixtures](' + verificationDownload + 'examples.json)\n')
+
+const portalRoot = new URL('consent-portal/0.1.0/', source)
+const portalReadme = await readFile(new URL('README.md', portalRoot), 'utf8')
+const portalDownload = 'https://docs.gramstack.try-dough.com/static/specs/consent-portal/0.1.0/'
+const portalText = portalReadme.replace(/\]\((schemas|examples)\.json\)/g, `](${portalDownload}$1.json)`)
+await writeFile(new URL('consent-portal.md', target), front('First-party consent portal') + portalText + '\n[Download schemas](' + portalDownload + 'schemas.json) · [Download fixtures](' + portalDownload + 'examples.json)\n')

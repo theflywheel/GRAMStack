@@ -55,6 +55,15 @@ func main() {
 		}
 		write(*dir, name+".key", "EC PRIVATE KEY", raw)
 	}
+	signing, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		log.Fatal("consent key generation failed")
+	}
+	signingDER, err := x509.MarshalPKCS8PrivateKey(signing)
+	if err != nil {
+		log.Fatal("consent key encoding failed")
+	}
+	write(*dir, "consent-signing.key", "PRIVATE KEY", signingDER)
 }
 func write(dir, name, kind string, der []byte) {
 	file, err := os.OpenFile(filepath.Join(dir, name), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
