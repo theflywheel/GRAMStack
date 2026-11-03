@@ -49,11 +49,18 @@ launch lokos check_module adapters/lokos -modfile="$scratch/lokos.mod"
 launch identity check_module mocks/identity
 wait_checks
 check_esignet_tool(){
-  GOWORK=off go -C "$root/adapters/auth/oidc" test -race "$root/tools/esignet-demo/main.go" "$root/tools/esignet-demo/main_test.go"
-  GOWORK=off go -C "$root/adapters/auth/oidc" vet "$root/tools/esignet-demo/main.go" "$root/tools/esignet-demo/main_test.go"
+  local tool_files=("$root"/tools/esignet-demo/*.go)
+  GOWORK=off go -C "$root/adapters/auth/oidc" test -race "${tool_files[@]}"
+  GOWORK=off go -C "$root/adapters/auth/oidc" vet "${tool_files[@]}"
 }
 launch oidc check_module adapters/auth/oidc
 launch esignet-tool check_esignet_tool
+wait_checks
+check_devcerts_tool(){
+  GOWORK=off go -C "$root" vet "$root/tools/devcerts/main.go"
+}
+launch mock-lokos check_module mocks/lokos
+launch devcerts-tool check_devcerts_tool
 wait_checks
 launch gateway-build gateway_go build -o "$scratch/gateway" ./cmd/gramstack
 launch lokos-build env GOWORK=off go -C "$root/adapters/lokos" build -modfile="$scratch/lokos.mod" -o "$scratch/lokos-adapter" ./cmd/lokos-adapter

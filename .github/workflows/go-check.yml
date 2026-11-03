@@ -2,9 +2,9 @@ name: Verify Go services and SDK
 on:
   push:
     branches: [main]
-    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "tools/esignet-demo/**", "scripts/check-go.sh", "scripts/gateway-module.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "tools/esignet-demo/**", "tools/devcerts/**", "scripts/check-go.sh", "scripts/gateway-module.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
   pull_request:
-    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "tools/esignet-demo/**", "scripts/check-go.sh", "scripts/gateway-module.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "tools/esignet-demo/**", "tools/devcerts/**", "scripts/check-go.sh", "scripts/gateway-module.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,6 +27,7 @@ jobs:
             adapters/lokos/go.*
             adapters/auth/oidc/go.*
             mocks/identity/go.*
+            mocks/lokos/go.*
       - run: ./scripts/test-check-go.sh
       - run: ./scripts/check-go.sh
 
@@ -83,6 +84,9 @@ jobs:
           cache-dependency-path: |
             services/gateway/go.*
             adapters/auth/oidc/go.*
+            sdk/go/adapter/go.*
+            adapters/lokos/go.*
+            mocks/lokos/go.*
             mocks/identity/go.*
       - name: Fetch pinned official Hydra release
         run: |
@@ -94,4 +98,4 @@ jobs:
         run: |
           export HYDRA_BIN="$RUNNER_TEMP/hydra/hydra"
           export PG_BIN="$(pg_config --bindir)"
-          GRAMSTACK_TEST_AUTHN=1 ./scripts/test-hydra.sh
+          GRAMSTACK_TEST_BINDING=1 ./scripts/test-hydra.sh

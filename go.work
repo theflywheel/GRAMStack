@@ -6,6 +6,7 @@ use (
 	./adapters/auth/oidc
 	./adapters/lokos
 	./mocks/identity
+	./mocks/lokos
 	./sdk/go/adapter
 	./services/gateway
 )

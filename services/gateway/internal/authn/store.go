@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
 )
@@ -53,14 +54,16 @@ func (s *Store) seal(kind, key, binding string, value any, until time.Time) ([]b
 	}
 	return s.aead.Seal(nonce, nonce, raw, aad(kind, key, binding, until)), nil
 }
-func (s *Store) Put(ctx context.Context, kind, key, binding string, value any, until time.Time) error {
+func (s *Store) put(ctx context.Context, exec interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+}, kind, key, binding string, value any, until time.Time) error {
 	until = until.UTC().Truncate(time.Microsecond)
 	kd, bd := cm.Digest([]byte(key)), cm.Digest([]byte(binding))
 	raw, err := s.seal(kind, kd, bd, value, until)
 	if err != nil {
 		return err
 	}
-	result, err := s.pool.Exec(ctx, `INSERT INTO browser_state(kind,key_digest,binding_digest,payload,expires_at) SELECT $1,$2,$3,$4,$5 WHERE $5>clock_timestamp() ON CONFLICT DO NOTHING`, kind, kd, bd, raw, until)
+	result, err := exec.Exec(ctx, `INSERT INTO browser_state(kind,key_digest,binding_digest,payload,expires_at) SELECT $1,$2,$3,$4,$5 WHERE $5>clock_timestamp() ON CONFLICT DO NOTHING`, kind, kd, bd, raw, until)
 	if err != nil {
 		return err
 	}
@@ -68,6 +71,12 @@ func (s *Store) Put(ctx context.Context, kind, key, binding string, value any, u
 		return ErrAuthentication
 	}
 	return nil
+}
+func (s *Store) Put(ctx context.Context, kind, key, binding string, value any, until time.Time) error {
+	return s.put(ctx, s.pool, kind, key, binding, value, until)
+}
+func (s *Store) PutTx(ctx context.Context, tx pgx.Tx, kind, key, binding string, value any, until time.Time) error {
+	return s.put(ctx, tx, kind, key, binding, value, until)
 }
 func (s *Store) Replace(ctx context.Context, kind, key, binding string, value any, until time.Time) error {
 	until = until.UTC().Truncate(time.Microsecond)

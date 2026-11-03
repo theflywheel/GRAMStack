@@ -9,6 +9,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -31,15 +32,17 @@ type Config struct {
 	UpstreamCredentials oidcadapter.Credentials
 	AllowDemoUpstream   bool
 	AllowLoopback       bool
+	VerificationEnabled bool
 }
 type Service struct {
-	pool          *pgxpool.Pool
-	store         *Store
-	origin, admin string
-	hydra         *provider
-	upstream      *oidcadapter.Adapter
-	client        *http.Client
-	secure        bool
+	pool                *pgxpool.Pool
+	store               *Store
+	origin, admin       string
+	hydra               *provider
+	upstream            *oidcadapter.Adapter
+	client              *http.Client
+	secure              bool
+	verificationEnabled bool
 }
 type flow struct {
 	RequestID, Digest, State, Nonce, Verifier, PrincipalRef string
@@ -75,7 +78,7 @@ func New(ctx context.Context, c Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{c.Pool, c.Store, origin, strings.TrimSuffix(c.HydraAdmin, "/"), hydra, upstream, &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, strings.HasPrefix(origin, "https://")}, nil
+	return &Service{c.Pool, c.Store, origin, strings.TrimSuffix(c.HydraAdmin, "/"), hydra, upstream, &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, strings.HasPrefix(origin, "https://"), c.VerificationEnabled}, nil
 }
 func (s *Service) loadRequest(ctx context.Context, id string) (request, error) {
 	var result request
@@ -142,6 +145,11 @@ func (s *Service) interaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if session, err := s.Session(r, id); err == nil {
+		if s.verificationEnabled {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_ = verificationScreen.Execute(w, struct{ RequestID, CSRF string }{id, session.CSRF})
+			return
+		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		_, _ = w.Write([]byte("Authenticated interaction. Registry verification and consent are separate steps.\nPrincipal reference: " + session.PrincipalRef + "\n"))
 		return
@@ -450,3 +458,5 @@ func (s *Service) Principal(ctx context.Context, requestID, principalRef string)
 	}
 	return principal, nil
 }
+
+var verificationScreen = template.Must(template.New("verification").Parse(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verify registry membership</title></head><body><main><h1>Authenticated interaction</h1><p>Your login is complete. Registry ownership is checked separately before any disclosure consent.</p><form method="post" action="/interactions/{{.RequestID}}/verify"><input type="hidden" name="csrf" value="{{.CSRF}}"><button>Verify registry membership</button></form></main></body></html>`))

@@ -21,6 +21,7 @@ import (
 	"time"
 
 	jose "github.com/go-jose/go-jose/v4"
+	oidcadapter "github.com/theflywheel/GRAMStack/adapters/auth/oidc"
 )
 
 func main() {
@@ -121,6 +122,25 @@ func onboard(callback, directory string) error {
 		return err
 	}
 	if err = writePrivate("esignet-profile.json", profile); err != nil {
+		return err
+	}
+	var provider oidcadapter.Profile
+	if err = json.Unmarshal(profile, &provider); err != nil {
+		return err
+	}
+	bindings := map[string]string{}
+	for _, fixture := range []struct{ person, member string }{{"9000000001", "member-12345"}, {"9000000002", "member-67890"}} {
+		subject, err := fixtureSubject(provider, oidcadapter.Credentials{PrivateKeyPEM: pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})}, callback, fixture.person)
+		if err != nil {
+			return err
+		}
+		bindings[fixture.member] = subject
+	}
+	rawBindings, err := json.Marshal(bindings)
+	if err != nil {
+		return err
+	}
+	if err = writePrivate("esignet-bindings.json", rawBindings); err != nil {
 		return err
 	}
 	fmt.Println("PASS: isolated eSignet client and fictional Sunita/Rani fixtures onboarded; private key written with mode 0600")

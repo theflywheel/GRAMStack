@@ -2,6 +2,7 @@
 # Isolated, real Hydra/PostgreSQL integration. No production URLs or credentials.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+if [[ "${GRAMSTACK_TEST_BINDING:-}" == 1 ]]; then export GRAMSTACK_TEST_AUTHN=1; fi
 if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then export GRAMSTACK_TEST_AUTHN=1; fi
 : "${PG_BIN:?Set PG_BIN to the PostgreSQL binary directory}"
 : "${HYDRA_BIN:?Set HYDRA_BIN to an official Ory Hydra v26.2.0 executable}"
@@ -10,7 +11,10 @@ scratch=$(mktemp -d /tmp/gramstack-hydra.XXXXXX)
 hydra_pid=''
 gateway_pid=''
 idp_pid=''
+adapter_pid=''
+source_pid=''
 cleanup(){
+ for pid in "$adapter_pid" "$source_pid"; do if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi; done
  if [[ -n "$gateway_pid" ]]; then kill "$gateway_pid" 2>/dev/null || true; wait "$gateway_pid" 2>/dev/null || true; fi
  if [[ -n "$hydra_pid" ]]; then kill "$hydra_pid" 2>/dev/null || true; wait "$hydra_pid" 2>/dev/null || true; fi
  if [[ -n "$idp_pid" ]]; then kill "$idp_pid" 2>/dev/null || true; wait "$idp_pid" 2>/dev/null || true; fi
@@ -73,6 +77,27 @@ stop_gateway(){
  wait "$gateway_pid"
  gateway_pid=''
 }
+start_binding(){
+ SERVICE_CERT_FILE="$scratch/certs/mock-lokos.pem" SERVICE_KEY_FILE="$scratch/certs/mock-lokos.key" OIDC_ISSUER="$GRAMSTACK_TEST_IDP_URL" \
+ OIDC_SUBJECT_BINDINGS_FILE="$scratch/source-bindings.json" SOURCE_TLS_PORT="$source_port" MOCK_VERIFICATION_GATE_DIRECTORY="$scratch/source-gate" \
+ "$scratch/mock-lokos" > "$scratch/source.log" 2>&1 &
+ source_pid=$!
+ SERVICE_CERT_FILE="$scratch/certs/lokos-adapter.pem" SERVICE_KEY_FILE="$scratch/certs/lokos-adapter.key" PORT="$adapter_health_port" \
+ "$scratch/lokos-adapter" > "$scratch/adapter.log" 2>&1 &
+ adapter_pid=$!
+ local ready=false
+ for _ in $(seq 1 100); do
+  if curl -fsS --cacert "$SERVICE_CA_FILE" --cert "$scratch/certs/lokos-adapter.pem" --key "$scratch/certs/lokos-adapter.key" "https://127.0.0.1:$source_port/healthz" >/dev/null 2>&1 && \
+    [[ $(curl -s --cacert "$SERVICE_CA_FILE" --cert "$SERVICE_CERT_FILE" --key "$SERVICE_KEY_FILE" -o /dev/null -w '%{http_code}' "$GRAMSTACK_TEST_ADAPTER_URL/internal/v1/subject-verifications") == 404 ]]; then ready=true; break; fi
+  sleep 0.1
+ done
+ if [[ "$ready" != true ]]; then echo 'Binding services failed startup' >&2; cat "$scratch/adapter.log" "$scratch/source.log" >&2; exit 1; fi
+}
+stop_binding(){
+ for pid in "$adapter_pid" "$source_pid"; do kill -TERM "$pid"; wait "$pid"; done
+ adapter_pid='';source_pid=''
+}
+
 start_gateway
 python3 - <<'PY'
 import base64,json,os,urllib.request,urllib.parse,urllib.error
@@ -99,7 +124,7 @@ if [[ "${GRAMSTACK_TEST_AUTHN:-}" == 1 ]]; then
   export GRAMSTACK_TEST_IDP_URL="http://127.0.0.1:19080"
   unset GRAMSTACK_UPSTREAM_CLIENT_SECRET
   export GRAMSTACK_UPSTREAM_PRIVATE_KEY_FILE="$scratch/esignet-client.pem"
-  GOWORK=off go -C "$root/adapters/auth/oidc" build -o "$scratch/esignet-demo" "$root/tools/esignet-demo/main.go"
+  GOWORK=off go -C "$root/adapters/auth/oidc" build -o "$scratch/esignet-demo" "$root/tools/esignet-demo/main.go" "$root/tools/esignet-demo/bindings.go"
   if GRAMSTACK_ENV=production "$scratch/esignet-demo" -callback "$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback" -directory "$scratch" >/dev/null 2>&1; then
    echo 'Demo onboarding allowed outside development' >&2; exit 1
   fi
@@ -131,11 +156,48 @@ path.write_text(json.dumps(config))
 body=dict(client_id='gramstack-portal',client_secret=os.environ['GRAMSTACK_PORTAL_CLIENT_SECRET'],grant_types=['authorization_code'],response_types=['code'],scope='openid',redirect_uris=[os.environ['GRAMSTACK_TEST_GATEWAY_URL']+'/auth/callback'],token_endpoint_auth_method='client_secret_basic')
 with urllib.request.urlopen(urllib.request.Request(os.environ['GRAMSTACK_TEST_HYDRA_ADMIN']+'/admin/clients',data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})) as response: assert response.status==201
 PYA
+ if [[ "${GRAMSTACK_TEST_BINDING:-}" == 1 ]]; then
+  "$PG_BIN/createdb" -h "$scratch" -p 55438 -U gramstack gramstack_adapter
+  export GRAMSTACK_TEST_ADAPTER_DATABASE_URL="postgres://gramstack@localhost/gramstack_adapter?host=$scratch&port=55438&sslmode=disable"
+  export ADAPTER_STATE_DATABASE_URL="$GRAMSTACK_TEST_ADAPTER_DATABASE_URL" ADAPTER_DEMO_VERIFIER=true
+  export ADAPTER_STATE_KEY=$(python3 -c 'import base64,secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())')
+  export SERVICE_CA_FILE="$scratch/certs/ca.pem" SERVICE_CERT_FILE="$scratch/certs/gateway.pem" SERVICE_KEY_FILE="$scratch/certs/gateway.key"
+  export GRAMSTACK_TEST_CERTS="$scratch/certs" GRAMSTACK_TEST_BINDING_RESUME="$scratch/binding-resume.json" GRAMSTACK_TEST_SOURCE_GATE="$scratch/source-gate"
+  mkdir -m 700 "$scratch/source-gate"
+  source_port=$(free_port);adapter_port=$(free_port);adapter_health_port=$(free_port)
+  export LOKOS_SOURCE_URL="https://127.0.0.1:$source_port" LOKOS_SOURCE_SERVER_NAME="mock-lokos.gramstack.internal" ADAPTER_TLS_PORT="$adapter_port"
+  export GRAMSTACK_TEST_ADAPTER_URL="https://127.0.0.1:$adapter_port" GRAMSTACK_TEST_SOURCE_URL="$LOKOS_SOURCE_URL"
+  GOWORK=off go run "$root/tools/devcerts/main.go" -dir "$scratch/certs"
+  cp "$root/adapters/lokos/go.mod" "$scratch/lokos.mod"; cp "$root/adapters/lokos/go.sum" "$scratch/lokos.sum"
+  GOWORK=off go -C "$root/adapters/lokos" mod edit -modfile="$scratch/lokos.mod" -replace="github.com/theflywheel/GRAMStack/sdk/go/adapter=$root/sdk/go/adapter"
+  GOWORK=off go -C "$root/adapters/lokos" build -modfile="$scratch/lokos.mod" -o "$scratch/lokos-adapter" ./cmd/lokos-adapter
+  GOWORK=off go -C "$root/mocks/lokos" build -o "$scratch/mock-lokos" ./cmd/mock-lokos
+  SERVICE_CERT_FILE="$scratch/certs/lokos-adapter.pem" SERVICE_KEY_FILE="$scratch/certs/lokos-adapter.key" "$scratch/lokos-adapter" migrate
+  python3 - <<'PYB'
+import json,os,pathlib
+configpath=pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']);config=json.loads(configpath.read_text())
+config['registries']=[dict(registry='lokos',origin=os.environ['GRAMSTACK_TEST_ADAPTER_URL'],server_name='lokos-adapter.gramstack.internal',verification_method='demo.registry-map-v1',verification_contract_version='0.1.0',demo=True)]
+configpath.write_text(json.dumps(config))
+if os.environ.get('GRAMSTACK_TEST_ESIGNET')=='1':
+ bindings=json.loads((configpath.parent/'esignet-bindings.json').read_text())
+else:
+ bindings={'member-12345':'demo-sunita','member-67890':'demo-rani'}
+(configpath.parent/'source-bindings.json').write_text(json.dumps(bindings))
+PYB
+  start_binding
+ fi
  start_gateway
  if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then
   gateway_go test -race -count=1 -v -run TestActualESignetFederation ./internal/authn
  else
   gateway_go test -race -count=1 -v -run '^TestActualFederation$' ./internal/authn
+ fi
+ if [[ "${GRAMSTACK_TEST_BINDING:-}" == 1 ]]; then
+  gateway_go test -race -count=1 -v -run '^TestActualSubjectBinding$' ./internal/authn
+  GOWORK=off go -C "$root/adapters/lokos" test -modfile="$scratch/lokos.mod" -race -count=1 -v -run 'TestDurableContext|TestContextTamper' ./
+  stop_gateway; stop_binding
+  start_binding; start_gateway
+  gateway_go test -race -count=1 -v -run '^TestActualSubjectBindingRestart$' ./internal/authn
  fi
  stop_gateway
 fi

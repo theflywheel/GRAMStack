@@ -17,3 +17,9 @@ for (const file of await readdir(new URL('0.2.0/', source))) {
   await writeFile(new URL(`${base}.md`, target), front(title) + `Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](${download})\n\n` + text + `\n[Repository source](${sourceLink}/0.2.0/${file}).\n`)
 }
 console.log('Generated specification pages from canonical specs/ sources.')
+
+const verificationRoot = new URL('subject-verification/0.1.0/', source)
+const verificationReadme = await readFile(new URL('README.md', verificationRoot), 'utf8')
+const verificationDownload = 'https://docs.gramstack.try-dough.com/static/specs/subject-verification/0.1.0/'
+const verificationText = verificationReadme.replace(/\]\((schemas|examples)\.json\)/g, `](${verificationDownload}$1.json)`)
+await writeFile(new URL('subject-verification.md', target), front('Registry subject verification') + verificationText + '\n[Download schemas](' + verificationDownload + 'schemas.json) · [Download fixtures](' + verificationDownload + 'examples.json)\n')

@@ -45,8 +45,13 @@ func liveToken(t *testing.T) string {
 	return value.Token
 }
 func liveRequest(t *testing.T, base, token string) string {
+	return liveRequestMember(t, base, token, "fictional-member")
+}
+func liveRequestMember(t *testing.T, base, token, member string) string {
 	t.Helper()
 	input := `{"registry":"lokos","resource":"shg.membership","subject_hint":{"type":"member_reference","value":"fictional-member"},"fields":["membership_status"],"purpose":"credit_eligibility","access":{"mode":"single_use","valid_for_seconds":300},"recipient_terms":{"retention_policy_id":"terms-v1"}}`
+	encoded, _ := json.Marshal(member)
+	input = strings.Replace(input, `"fictional-member"`, string(encoded), 1)
 	req, _ := http.NewRequest("POST", base+"/v1/access-requests", strings.NewReader(input))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")

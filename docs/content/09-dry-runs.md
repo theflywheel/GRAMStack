@@ -7,7 +7,7 @@ date: 2026-11-03
 
 ## Scenario assumptions
 
-All actors, IDs, balances and source APIs are illustrative. We use a mock pre-verified subject context `ctx_77`; this does not solve production identity binding. Time values are example bounds.
+All actors, IDs, balances and source APIs are illustrative. The example verified subject context is `ctx_77`. In the reference demo it is produced by real eSignet authentication followed by the SDK-backed adapter and the separate native mock’s approved fictional mapping. The native source remains a demo; a production registry supplies its approved identity-to-record verification mechanism. Time values are example bounds.
 
 | Item | Value |
 |---|---|

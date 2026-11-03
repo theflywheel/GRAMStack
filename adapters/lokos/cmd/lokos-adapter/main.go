@@ -12,6 +12,26 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] != "migrate" {
+		log.Fatal("usage: lokos-adapter [migrate]")
+	}
+	setup, cancelSetup := context.WithTimeout(context.Background(), 10*time.Second)
+	runtime, err := configureAdapter(setup, len(os.Args) > 1)
+	cancelSetup()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if len(os.Args) > 1 {
+		return
+	}
+	if runtime != nil {
+		defer runtime.db.Close()
+		go func() {
+			if err := runtime.server.ListenAndServeTLS(runtime.cert, runtime.key); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Fatal("adapter TLS listener failed")
+			}
+		}()
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -31,6 +51,9 @@ func main() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		if runtime != nil {
+			_ = runtime.server.Shutdown(shutdown)
+		}
 		if err := server.Shutdown(shutdown); err != nil {
 			log.Print(err)
 		}

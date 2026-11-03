@@ -14,6 +14,7 @@ date: 2026-11-03
 | Hydra SQL | Consumer configuration, keys and OAuth/OIDC operational state | Durable config plus tested cleanup; inspect sessions/logs/backups |
 | Gateway TTL store | Status/version, canonical request, digest, deadlines and opaque references | Workflow plus bounded terminal/recovery window |
 | Authentication TTL store | State, nonce, PKCE, callback correlation, session and transient principal context | Short transaction/session lifetime |
+| Registry adapter SQL | Immutable request/digest/principal context, encrypted native mapping handle and private issuer/subject binding digest | Short verified-context TTL; stable keys across restarts; checksummed schema migration |
 | Consent SQL | Request/notice snapshots, decisions, artefacts, current status, history and outbox | Enforcement window plus approved evidence retention |
 | Enforcement SQL (shared transaction boundary) | Consent use reservation, grant issuance/redemption and attempt outcomes | Validity plus bounded recovery; retain necessary event evidence |
 | Key management | Signing keys and versioned trust material | Controlled access, rotation and retirement |

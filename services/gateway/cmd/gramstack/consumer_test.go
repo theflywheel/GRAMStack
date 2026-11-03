@@ -12,6 +12,7 @@ import (
 func TestProductionRejectsDemoAuthentication(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "config.json")
 	for _, tc := range []struct{ name, body, want string }{
+		{"demo registry", `{"registries":[{"registry":"lokos","demo":true}]}`, "demo registry verification"},
 		{"demo upstream", `{"authentication":{"demo_upstream":true}}`, "fictional identity provider"},
 		{"loopback HTTP", `{"allow_loopback_http":true}`, "development-only"},
 		{"unknown config", `{"unexpected":true}`, "configuration fields"},

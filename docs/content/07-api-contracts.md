@@ -94,6 +94,7 @@ Transport handling: 400 invalid schema, 401 invalid caller authentication, 403 p
 | `GET /interactions/{id}` | Resolve authorized interaction, authenticate or resume |
 | `GET /auth/callback` | Validate first-party OIDC transaction and rotate session |
 | Provider-specific callbacks | Validate upstream protocol, correlation and trust |
+| `POST /interactions/{id}/verify` | Request-bound session, exact Origin and form CSRF; registry verification, no browser-supplied principal or mapping |
 | `GET /interactions/{id}/consent` | Render immutable request and exact notice snapshot |
 | `POST /interactions/{id}/decision` | Session/principal/context and CSRF checks; record decision idempotently |
 | `POST /consents/{id}/withdrawal` | Reauthenticate/authorize subject; enforce atomic cutoff |
@@ -119,6 +120,40 @@ Content-Type: application/json
 ```
 
 The server compares browser values with the notice actually presented. It derives principal and registry context server-side. The response distinguishes APPROVAL_RECORDED from ACTIVE readiness.
+
+## Registry-approved subject verification
+
+The independently versioned [subject-verification profile 0.1.0](/specifications/subject-verification) defines the private gateway-to-adapter exchange alongside core contract 0.2.0. A trusted descriptor pins the HTTPS origin, registry, server certificate identity, approved method and `verification_contract_version`. Both sides require the matching `Gramstack-Subject-Verification-Version` header. Unsupported contracts fail closed.
+
+```mermaid
+sequenceDiagram
+  participant Person as Sunita browser
+  participant Gateway as Gateway and AuthN handlers
+  participant Adapter as SDK-backed registry adapter
+  participant Native as Registry source verifier
+  participant AdapterDB as Adapter PostgreSQL
+  participant CoreDB as Gateway PostgreSQL
+  Person->>Gateway: POST interaction verify with session and CSRF
+  Gateway->>Gateway: Load accepted request and verified principal
+  Gateway->>Adapter: POST subject-verifications over mTLS with pinned version
+  Adapter->>Adapter: Recompute digest and validate scope and freshness
+  Adapter->>Native: Check approved identity-to-record relationship
+  Native-->>Adapter: Opaque mapping reference or safe denial
+  Adapter->>AdapterDB: Persist encrypted request-scoped context
+  Adapter-->>Gateway: Verified context bounded by request and authentication
+  Gateway->>CoreDB: Transaction: recheck state, save context, advance FSM, append outbox
+  alt Cancelled, expired, or write failed
+    CoreDB-->>Gateway: Roll back and deny or report unavailable
+    Gateway-->>Person: Safe failure; no consent or data
+  else Verification committed
+    CoreDB-->>Gateway: CONSENT_PENDING
+    Gateway-->>Person: Opaque context reference and review-consent action
+  end
+```
+
+The verification interaction waits synchronously for its outcome. The consumer’s accepted workflow remains asynchronous and pollable. Network verification holds no core SQL lock; cancellation and deadlines are checked again when committing. Context, FSM transition and outbox event share the transaction. Outbox delivery is asynchronous. Identical live retries converge on one context; a late result cannot revive cancelled authority.
+
+The browser sends only form field `csrf`; principal and accepted request are loaded server-side. The private adapter request carries `{snapshot, request_digest, principal}`. Its response is a VerifiedSubjectContext, not membership or savings data. Verified native mappings remain source-owned; only opaque mapping handles are returned across the adapter boundary. Both adapter and gateway encrypt their bounded context custody, and database TTL checks remain effective after restart.
 
 ## Internal consent APIs
 

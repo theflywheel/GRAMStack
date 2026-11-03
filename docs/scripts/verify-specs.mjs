@@ -51,3 +51,14 @@ assert.equal(grant.cnf['x5t#S256'].length, 43)
 const dataSecurity = api.paths['/v1/access-requests/{id}/data'].get.security
 assert.ok(dataSecurity.some(s => 'retrievalGrant' in s && 'presenterMTLS' in s))
 console.log(`Verified ${operationIds.size} HTTP operations, ${Object.keys(schemas.$defs).length} message schemas, ${examples.length} fixtures and ${states.length} lifecycle states.`)
+
+const subjectRoot = new URL('../../specs/subject-verification/0.1.0/', import.meta.url)
+const subjectSchemas = JSON.parse(readFileSync(new URL('schemas.json', subjectRoot), 'utf8'))
+ajv.addSchema(subjectSchemas)
+const subjectCases = JSON.parse(readFileSync(new URL('examples.json', subjectRoot), 'utf8')).cases
+for (const example of subjectCases) {
+  const validate = ajv.getSchema(`${subjectSchemas.$id}#/$defs/${example.schema}`)
+  assert.ok(validate, `Unknown subject verification schema: ${example.schema}`)
+  assert.equal(validate(example.value), example.valid, `${example.name}: ${ajv.errorsText(validate.errors)}`)
+}
+console.log(`Verified subject verification profile 0.1.0 and ${subjectCases.length} fixtures against immutable core 0.2.0.`)

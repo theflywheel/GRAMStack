@@ -33,12 +33,25 @@ func (r Repository) Create(ctx context.Context, id, consumer, digest string, exp
 	return err
 }
 func (r Repository) Advance(ctx context.Context, id string, expected int64, event string) (Request, error) {
-	// Cancellation must also lock consent and cannot use this projection-only path.
+	var result Request
+	err := pgx.BeginFunc(ctx, r.Pool, func(tx pgx.Tx) error {
+		var err error
+		result, err = AdvanceTx(ctx, tx, id, expected, event)
+		return err
+	})
+	if err != nil {
+		return Request{}, err
+	}
+	return result, nil
+}
+
+// AdvanceTx shares request CAS and outbox with other authoritative SQL writes.
+func AdvanceTx(ctx context.Context, tx pgx.Tx, id string, expected int64, event string) (Request, error) {
 	if event == "cancelled" {
 		return Request{}, ErrNotCancellable
 	}
 	var result Request
-	err := pgx.BeginFunc(ctx, r.Pool, func(tx pgx.Tx) error {
+	err := func() error {
 		if err := tx.QueryRow(ctx, `SELECT request_id,consumer_id,request_digest,status,version,expires_at FROM access_requests WHERE request_id=$1 FOR UPDATE`, id).Scan(&result.ID, &result.ConsumerID, &result.Digest, &result.Status, &result.Version, &result.ExpiresAt); err != nil {
 			return err
 		}
@@ -65,7 +78,7 @@ func (r Repository) Advance(ctx context.Context, id string, expected int64, even
 			return err
 		}
 		return outbox.Append(ctx, tx, "request", id, result.Version, "request.transitioned", map[string]any{"request_id": id, "request_digest": result.Digest, "status": result.Status})
-	})
+	}()
 	if err != nil {
 		return Request{}, err
 	}

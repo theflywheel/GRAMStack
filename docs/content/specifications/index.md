@@ -24,6 +24,10 @@ Current specification version: **0.2.0**. Version 0.1.0 remains available unchan
 | [Lifecycle](lifecycle) | Allowed state transitions |
 | [Examples](examples) | Positive and negative message fixtures |
 
+## Independently versioned profiles
+
+[Registry subject verification 0.1.0](/specifications/subject-verification) defines the mTLS verifier exchange, bounded principal provenance, context custody and cancellation-safe idempotency. [Canonical profile source](https://github.com/theflywheel/GRAMStack/tree/main/specs/subject-verification/0.1.0). Core 0.1.0 and 0.2.0 remain unchanged.
+
 ## Maintaining the contracts
 
 Edit this directory; Quartz generates its specification pages and downloadable files from it. Do not edit generated copies under `docs/content/specifications/`. Run `cd docs && npm ci && npm run verify:specs && npm run build && npm run verify:content`.

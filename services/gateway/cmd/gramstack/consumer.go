@@ -16,6 +16,7 @@ import (
 	oidcadapter "github.com/theflywheel/GRAMStack/adapters/auth/oidc"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/authn"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/consumer"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/subjectbinding"
 )
 
 // Consumer APIs are explicitly configured; the default shell exposes no protected
@@ -46,6 +47,7 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 		Scope                 string                       `json:"scope"`
 		AllowLoopbackHTTP     bool                         `json:"allow_loopback_http"`
 		Consumers             map[string][]consumer.Policy `json:"consumers"`
+		Registries            []subjectbinding.Registry    `json:"registries"`
 		Authentication        *struct {
 			ClientID     string              `json:"client_id"`
 			HydraAdmin   string              `json:"hydra_admin_url"`
@@ -63,6 +65,11 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 	}
 	if c := config.Authentication; c != nil && c.DemoUpstream && os.Getenv("GRAMSTACK_ENV") != "development" && os.Getenv("GRAMSTACK_ENV") != "demo" {
 		return nil, errors.New("fictional identity provider requires explicit development/demo environment")
+	}
+	for _, registry := range config.Registries {
+		if registry.Demo && os.Getenv("GRAMSTACK_ENV") != "development" && os.Getenv("GRAMSTACK_ENV") != "demo" {
+			return nil, errors.New("demo registry verification is forbidden in production")
+		}
 	}
 	auth, err := consumer.NewHydra(config.HydraIntrospectionURL, config.HydraIssuer, config.Audience, config.Scope, config.AllowLoopbackHTTP)
 	if err != nil {
@@ -115,10 +122,34 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 				return nil, errors.New("invalid upstream assertion key size")
 			}
 		}
-		federation, err := authn.New(ctx, authn.Config{Pool: pool, Store: store, Origin: config.PublicOrigin, HydraAdmin: c.HydraAdmin, AllowLoopback: config.AllowLoopbackHTTP, Hydra: authn.ProviderConfig{Issuer: config.HydraIssuer, ClientID: c.ClientID, ClientSecret: os.Getenv("GRAMSTACK_PORTAL_CLIENT_SECRET")}, UpstreamProfile: c.Provider, UpstreamCredentials: credentials, AllowDemoUpstream: c.DemoUpstream})
+		federation, err := authn.New(ctx, authn.Config{Pool: pool, Store: store, Origin: config.PublicOrigin, HydraAdmin: c.HydraAdmin, AllowLoopback: config.AllowLoopbackHTTP, VerificationEnabled: len(config.Registries) > 0, Hydra: authn.ProviderConfig{Issuer: config.HydraIssuer, ClientID: c.ClientID, ClientSecret: os.Getenv("GRAMSTACK_PORTAL_CLIENT_SECRET")}, UpstreamProfile: c.Provider, UpstreamCredentials: credentials, AllowDemoUpstream: c.DemoUpstream})
 		if err != nil {
 			pool.Close()
 			return nil, err
+		}
+		if len(config.Registries) > 0 {
+			ca, err := os.ReadFile(os.Getenv("SERVICE_CA_FILE"))
+			if err != nil {
+				pool.Close()
+				return nil, errors.New("registry CA required")
+			}
+			certificate, err := os.ReadFile(os.Getenv("SERVICE_CERT_FILE"))
+			if err != nil {
+				pool.Close()
+				return nil, err
+			}
+			key, err := os.ReadFile(os.Getenv("SERVICE_KEY_FILE"))
+			if err != nil {
+				pool.Close()
+				return nil, err
+			}
+			mode := os.Getenv("GRAMSTACK_ENV")
+			binding, err := subjectbinding.New(subjectbinding.Config{Pool: pool, Auth: federation, Store: store, Registries: config.Registries, CA: ca, Certificate: certificate, Key: key, AllowDemo: mode == "development" || mode == "demo"})
+			if err != nil {
+				pool.Close()
+				return nil, err
+			}
+			mux.Handle("POST /interactions/{id}/verify", binding.Handler())
 		}
 		authHandler := federation.Handler()
 		mux.Handle("/auth/", authHandler)

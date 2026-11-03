@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.gramstack.try-dough.com/static/specs/subject-verification/0.1.0/schemas.json",
+  "title": "Registry-approved subject verification profile 0.1.0",
+  "$defs": {
+    "PrincipalContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "context_id",
+        "issuer",
+        "provider_subject",
+        "authentication_transaction_id",
+        "authenticated_at",
+        "expires_at"
+      ],
+      "properties": {
+        "context_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "issuer": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "provider_subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "authentication_transaction_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+        },
+        "authenticated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "methods": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "assurance": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        }
+      }
+    },
+    "VerificationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot",
+        "request_digest",
+        "principal"
+      ],
+      "properties": {
+        "snapshot": {
+          "$ref": "../../0.2.0/schemas.json#/$defs/RequestSnapshot"
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "principal": {
+          "$ref": "#/$defs/PrincipalContext"
+        }
+      }
+    },
+    "VerificationResponse": {
+      "$ref": "../../0.2.0/schemas.json#/$defs/VerifiedSubjectContext"
+    }
+  }
+}
