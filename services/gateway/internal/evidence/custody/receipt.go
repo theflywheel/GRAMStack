@@ -36,3 +36,31 @@ func (s *Service) VerifyReceipt(ctx context.Context, id, adapterID, attempt stri
 	}
 	return nil
 }
+
+// VerifyStored authenticates immutable custody for asynchronous publication.
+// It returns metadata only and confers no source-read or release permission.
+func (s *Service) VerifyStored(ctx context.Context, id string) (Event, string, error) {
+	if !identifier.MatchString(id) {
+		return Event{}, "", ErrDenied
+	}
+	var compact, digest, adapterID string
+	if err := s.pool.QueryRow(ctx, `SELECT jws,evidence_digest,adapter_id FROM evidence_receipts WHERE receipt_id=$1`, id).Scan(&compact, &digest, &adapterID); err != nil {
+		return Event{}, "", err
+	}
+	adapter, ok := s.adapters[adapterID]
+	if !ok {
+		return Event{}, "", ErrDenied
+	}
+	event, err := verify(compact, adapter.Keys)
+	if err != nil || event.AdapterID != adapterID || cm.Digest([]byte(compact)) != digest {
+		return Event{}, "", ErrDenied
+	}
+	grant, reservation, err := s.scopes.EvidenceScope(ctx, adapter.Audience, event.RedemptionID)
+	if err != nil {
+		return Event{}, "", err
+	}
+	if event.RequestID != grant.RequestID || event.Digest != grant.Digest || event.ConsentID != grant.ConsentID || event.GrantJTI != grant.JTI || event.AttemptID != reservation.AttemptID || !slices.Equal(event.Fields, grant.Fields) {
+		return Event{}, "", ErrDenied
+	}
+	return event, digest, nil
+}

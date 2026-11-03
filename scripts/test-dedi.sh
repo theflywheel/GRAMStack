@@ -35,11 +35,13 @@ for _ in $(seq 1 100); do
   sleep 0.1
 done
 if [[ "$ready" != true ]]; then echo "DeDi failed readiness" >&2; exit 1; fi
+"$PG_BIN/createdb" -h "$scratch" -p 55439 -U gramstack gramstack_core
+export GRAMSTACK_TEST_DATABASE_URL="postgres://gramstack@localhost/gramstack_core?host=$scratch&port=55439&sslmode=disable"
 export GRAMSTACK_TEST_DEDI_URL="http://127.0.0.1:$port"
 export GRAMSTACK_TEST_DEDI_PUBLISHER_KEY=$(cat "$scratch/publisher.key")
 export GRAMSTACK_TEST_DEDI_PASSWORD="$password"
 export GRAMSTACK_TEST_DEDI_VERIFIER=$(tail -n 1 "$scratch/node-public.txt")
-gateway_go test -race -count=1 -v ./internal/evidence/dedi -run TestLiveNode
+gateway_go test -race -count=1 -v ./internal/evidence/dedi ./internal/consentmanager -run "TestLiveNode|TestActualEvidenceAnchoring"
 export DEDI_NODE_URL="$GRAMSTACK_TEST_DEDI_URL" DEDI_NAMESPACE=gramstack-test DEDI_REGISTRY=commitments
 export DEDI_PUBLISHER_KEY_ID=gramstack-test DEDI_PUBLISHER_KEY_FILE="$scratch/publisher.key"
 export DEDI_ADMIN_USER=admin DEDI_ADMIN_PASSWORD="$password" DEDI_CHECKPOINT_ORIGIN=gramstack-test/log
@@ -50,3 +52,9 @@ import json,sys
 v=json.load(open(sys.argv[1]));assert v['tree_size']>0 and len(v['record_id'])==64 and v['checkpoint']
 print('Gateway CLI verified a real DeDi anchor and inclusion proof.')
 CHECK
+
+# Optional full configured-process acceptance; the default hosted job keeps its
+# bounded actual-node/SQL recovery checks without duplicating the Hydra job.
+if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then
+  "$root/scripts/test-hydra.sh"
+fi

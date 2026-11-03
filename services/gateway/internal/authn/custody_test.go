@@ -152,7 +152,7 @@ func TestActualEvidenceCustody(t *testing.T) {
 	if err = pool.QueryRow(ctx, `SELECT count(*) FROM outbox WHERE aggregate_type='evidence' AND aggregate_id=$1 AND event_type='evidence.received'`, first.ReceiptID).Scan(&count); err != nil || count != 1 {
 		t.Fatal("HTTP ack missing atomic anchoring work", err)
 	}
-	if err = pool.QueryRow(ctx, `SELECT count(*) FROM evidence_anchor_state WHERE receipt_id=$1 AND status='pending'`, first.ReceiptID).Scan(&count); err != nil || count != 1 {
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM evidence_anchor_state WHERE receipt_id=$1 AND (status='pending' OR ($2 AND status='anchored'))`, first.ReceiptID, os.Getenv("GRAMSTACK_TEST_ANCHORING") == "1").Scan(&count); err != nil || count != 1 {
 		t.Fatal("pending anchor custody missing", err)
 	}
 	raw, err := json.Marshal(custodyCheckpoint{id, compact, first, version})

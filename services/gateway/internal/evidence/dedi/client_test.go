@@ -78,6 +78,34 @@ func TestSignedPublishAndVerifiedProof(t *testing.T) {
 		if err != nil || anchor.TreeSize != 1 {
 			t.Fatalf("%+v %v", anchor, err)
 		}
+		raw, err := json.Marshal(anchor)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var retained Anchor
+		if err := json.Unmarshal(raw, &retained); err != nil {
+			t.Fatal(err)
+		}
+		if err := client.VerifyAnchor("event-1", digest, retained); err != nil {
+			t.Fatal(err)
+		}
+		for _, edit := range []func(*Anchor){
+			func(a *Anchor) { a.RecordID = "other" },
+			func(a *Anchor) { a.TreeSize++ },
+			func(a *Anchor) { a.LeafIndex++ },
+			func(a *Anchor) { a.Checkpoint += "changed" },
+			func(a *Anchor) { a.Inclusion = json.RawMessage(`{}`) },
+			func(a *Anchor) { a.Inclusion = nil },
+		} {
+			changed := retained
+			edit(&changed)
+			if err := client.VerifyAnchor("event-1", digest, changed); err == nil {
+				t.Fatal("corrupt retained proof accepted")
+			}
+		}
+		if client.VerifyAnchor("another-event", digest, retained) == nil || client.VerifyAnchor("event-1", "sha256:"+strings.Repeat("b", 64), retained) == nil {
+			t.Fatal("proof scope changed")
+		}
 	}
 	if _, err := client.Publish(context.Background(), "event-1", "sha256:"+strings.Repeat("b", 64)); err == nil {
 		t.Fatal("conflicting commitment accepted")

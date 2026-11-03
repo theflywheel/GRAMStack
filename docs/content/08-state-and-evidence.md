@@ -211,6 +211,38 @@ Deployments select one of two evidence anchoring profiles:
 
 Neither option permits an in-memory log line as durability. Define acknowledgement, fsync/replication expectations, outage limits and recovery before choosing.
 
+## Automatic anchoring after durable custody
+
+The reference runtime selects **batch custody**. Receipt acceptance and resource release are synchronous with the SQL custody transaction; DeDi publication happens asynchronously. A pending acknowledgement means the signed evidence and its work item committed, not that the external log already contains it. Repeating receipt submission returns the original acknowledgement even after anchoring completes; latest anchor state is a separate protected projection.
+
+```mermaid
+sequenceDiagram
+    participant A as Registry adapter
+    participant G as Gateway custody
+    participant S as Gateway SQL
+    participant W as Anchoring worker
+    participant D as DeDi node
+    A->>G: Scoped signed evidence over service mTLS
+    G->>S: Commit immutable receipt, pending anchor and outbox
+    S-->>G: Durable commit
+    G-->>A: Receipt ID and pending acknowledgement
+    Note over A,G: Batch profile permits the evidence-gated response
+    W->>S: Lease evidence.received work
+    S-->>W: Opaque receipt reference
+    W->>S: Re-read and verify signed custody and admission
+    W->>D: Create-only signed protected commitment
+    D-->>W: Inclusion proof and signed checkpoint
+    W->>W: Verify exact digest, publisher, first version and pinned checkpoint
+    W->>S: Atomically store anchored proof and evidence.anchored event
+    W->>S: Acknowledge leased work
+```
+
+The worker runs one bounded publication at a time, using 30-second SQL leases and a 20-second operation deadline. Failed deliveries retain their work and back off from one to 64 seconds; another process can recover an expired lease. SQL controls scheduling and completion across restarts. DeDi receives only a schema identifier and the digest of the exact compact signed evidence. Its record name is derived from the opaque custody receipt ID. Source data, identity claims, signed receipt bytes and the adapter's private commitment salt stay out of the publication.
+
+DeDi writes use create-only preconditions. If publication succeeded but the SQL checkpoint failed, the retry verifies the existing first-version record instead of overwriting it. Once SQL has committed a verified proof, a lost queue acknowledgement recovers by checking that retained proof offline. The `pending → anchored` transition uses an FSM; anchored state, proof and timestamp cannot be overwritten. A single `evidence.anchored` event commits with that transition. Neither publication nor retry changes disclosure permission or causes another source read.
+
+The retained reference includes the Merkle audit path, leaf metadata and signed checkpoint. Verification pins the node key and checkpoint origin, namespace, registry, publisher, record name, first version and exact protected commitment. This proves inclusion under that checkpoint. Cross-checkpoint consistency and independent witness verification are additional deployment requirements for non-equivocation claims. Batch mode continues to release after durable custody during a DeDi outage; operators must monitor pending age and backlog and apply their chosen outage policy. The reference runtime does not claim an enforced maximum anchoring delay or an implemented synchronous custody profile.
+
 ## What evidence proves
 
 | Claim | Limit |

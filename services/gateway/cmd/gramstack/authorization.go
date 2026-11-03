@@ -22,6 +22,7 @@ import (
 	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/consumer"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/discovery"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/evidence/anchoring"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/evidence/custody"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/retrieval"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/subjectbinding"
@@ -55,7 +56,8 @@ type authorizationConfig struct {
 		MaxConcurrent int `json:"max_concurrent"`
 	} `json:"retrieval"`
 	Evidence *struct {
-		ReleaseProfile string `json:"release_profile"`
+		ReleaseProfile   string `json:"release_profile"`
+		AnchoringEnabled bool   `json:"anchoring_enabled"`
 	} `json:"evidence"`
 }
 
@@ -179,6 +181,7 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 	privateHandler := http.NewServeMux()
 	privateHandler.Handle("/", service.InternalHandler(consents))
 	var dataService *retrieval.Service
+	var anchorWorker *anchoring.Worker
 	if c.Retrieval != nil && c.Evidence == nil {
 		return nil, errors.New("protected retrieval requires evidence custody")
 	}
@@ -206,6 +209,16 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 			return nil, err
 		}
 		privateHandler.Handle("POST /internal/v1/evidence", custodian.Handler())
+		if c.Evidence.AnchoringEnabled {
+			client, err := configuredDeDiClient(loopback)
+			if err != nil {
+				return nil, err
+			}
+			anchorWorker, err = anchoring.New(pool, custodian, client)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if c.Retrieval != nil {
 			endpoints := []retrieval.Endpoint{}
 			for _, a := range c.Adapters {
@@ -288,7 +301,15 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 		go func() { defer close(done); dataService.Run(workerCtx) }()
 		closeData = func() { cancel(); <-done }
 	}
+	closeAnchoring := func() {}
+	if anchorWorker != nil {
+		workerCtx, cancel := context.WithCancel(ctx)
+		done := make(chan struct{})
+		go func() { defer close(done); anchorWorker.Run(workerCtx) }()
+		closeAnchoring = func() { cancel(); <-done }
+	}
 	return func() {
+		closeAnchoring()
 		closeData()
 		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()

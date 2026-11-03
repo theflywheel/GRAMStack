@@ -14,8 +14,8 @@ import (
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/evidence/dedi"
 )
 
-// anchor is an operator integration command. The durable evidence worker will
-// invoke the same client after its SQL receipt/outbox transaction commits.
+// anchor explicitly provisions or publishes through the same pinned client as
+// the durable evidence worker.
 func anchor(ctx context.Context, args []string, output io.Writer) error {
 	flags := flag.NewFlagSet("anchor", flag.ContinueOnError)
 	event := flags.String("event-id", "", "opaque evidence event ID")
@@ -31,20 +31,7 @@ func anchor(ctx context.Context, args []string, output io.Writer) error {
 	if *event == "" || *digest == "" {
 		return errors.New("anchor requires -event-id and -digest")
 	}
-	raw, err := os.ReadFile(os.Getenv("DEDI_PUBLISHER_KEY_FILE"))
-	if err != nil {
-		return errors.New("cannot read DeDi publisher key file")
-	}
-	key, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(raw)))
-	if err != nil {
-		return errors.New("invalid DeDi publisher key encoding")
-	}
-	client, err := dedi.New(dedi.Config{
-		BaseURL: os.Getenv("DEDI_NODE_URL"), Namespace: os.Getenv("DEDI_NAMESPACE"), Registry: os.Getenv("DEDI_REGISTRY"),
-		PublisherKeyID: os.Getenv("DEDI_PUBLISHER_KEY_ID"), PublisherKey: ed25519.PrivateKey(key),
-		AdminUser: os.Getenv("DEDI_ADMIN_USER"), AdminPassword: os.Getenv("DEDI_ADMIN_PASSWORD"),
-		CheckpointOrigin: os.Getenv("DEDI_CHECKPOINT_ORIGIN"), CheckpointVerifier: os.Getenv("DEDI_CHECKPOINT_VERIFIER"), AllowInsecureLoopback: *loopback,
-	})
+	client, err := configuredDeDiClient(*loopback)
 	if err != nil {
 		return err
 	}
@@ -58,4 +45,21 @@ func anchor(ctx context.Context, args []string, output io.Writer) error {
 		return err
 	}
 	return json.NewEncoder(output).Encode(proof)
+}
+
+func configuredDeDiClient(loopback bool) (*dedi.Client, error) {
+	raw, err := readBounded(os.Getenv("DEDI_PUBLISHER_KEY_FILE"), 4096)
+	if err != nil {
+		return nil, errors.New("cannot read DeDi publisher key file")
+	}
+	key, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(raw)))
+	if err != nil {
+		return nil, errors.New("invalid DeDi publisher key encoding")
+	}
+	return dedi.New(dedi.Config{
+		BaseURL: os.Getenv("DEDI_NODE_URL"), Namespace: os.Getenv("DEDI_NAMESPACE"), Registry: os.Getenv("DEDI_REGISTRY"),
+		PublisherKeyID: os.Getenv("DEDI_PUBLISHER_KEY_ID"), PublisherKey: ed25519.PrivateKey(key),
+		AdminUser: os.Getenv("DEDI_ADMIN_USER"), AdminPassword: os.Getenv("DEDI_ADMIN_PASSWORD"),
+		CheckpointOrigin: os.Getenv("DEDI_CHECKPOINT_ORIGIN"), CheckpointVerifier: os.Getenv("DEDI_CHECKPOINT_VERIFIER"), AllowInsecureLoopback: loopback,
+	})
 }

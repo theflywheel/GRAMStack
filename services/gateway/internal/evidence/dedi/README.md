@@ -8,6 +8,6 @@ This client implements the publication/proof extension of [theflywheel/DeDi-node
 - Publication succeeds only after checking the exact payload, publisher attribution, immutable first version, trusted checkpoint signature/origin and Merkle inclusion proof using Go's sumdb note/tlog packages.
 - HTTPS is required except an explicitly enabled literal loopback address for isolated development tests. Redirects, unbounded responses, missing proofs and untrusted keys fail closed.
 
-Inclusion establishes membership under the pinned node's checkpoint. Cross-checkpoint consistency, independent witness policy and durable outbox recovery belong to the evidence worker task; this client alone does not establish non-equivocation or client receipt of data.
+Inclusion establishes membership under the pinned node's checkpoint. The [durable worker](../anchoring/README.md) retains the full proof for offline verification and restart recovery. Cross-checkpoint consistency and independent witness verification are not implemented; this client alone does not establish non-equivocation or client receipt of data.
 
 `TestLiveNode` runs against an isolated actual node when GRAMSTACK_TEST_DEDI_* variables are configured. It never uses production nodes or credentials by default. The integration runner under `scripts/` provisions a temporary local database and node from an explicitly supplied checkout.

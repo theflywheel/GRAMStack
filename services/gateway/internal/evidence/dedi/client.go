@@ -45,10 +45,11 @@ type Client struct {
 	http     *http.Client
 }
 type Anchor struct {
-	RecordID   string `json:"record_id"`
-	TreeSize   int64  `json:"tree_size"`
-	LeafIndex  int64  `json:"leaf_index"`
-	Checkpoint string `json:"checkpoint"`
+	RecordID   string          `json:"record_id"`
+	TreeSize   int64           `json:"tree_size"`
+	LeafIndex  int64           `json:"leaf_index"`
+	Checkpoint string          `json:"checkpoint"`
+	Inclusion  json.RawMessage `json:"inclusion_proof"`
 }
 
 func New(config Config) (*Client, error) {
@@ -245,5 +246,35 @@ func (c *Client) verify(body []byte, record string, payload []byte) (Anchor, err
 	if err := tlog.CheckRecord(path, size, root, p.LeafIndex, tlog.RecordHash(preimage)); err != nil {
 		return Anchor{}, errors.New("DeDi Merkle inclusion verification failed")
 	}
-	return Anchor{RecordID: record, TreeSize: size, LeafIndex: p.LeafIndex, Checkpoint: p.Checkpoint}, nil
+	rawProof, err := json.Marshal(p)
+	if err != nil {
+		return Anchor{}, err
+	}
+	return Anchor{RecordID: record, TreeSize: size, LeafIndex: p.LeafIndex, Checkpoint: p.Checkpoint, Inclusion: rawProof}, nil
+}
+
+// VerifyAnchor revalidates retained inclusion evidence offline against the same
+// pinned node, publisher and exact protected commitment used for publication.
+func (c *Client) VerifyAnchor(eventID, digest string, a Anchor) error {
+	if eventID == "" || len(eventID) > 256 || !commitment.MatchString(digest) || len(a.Inclusion) == 0 || len(a.Inclusion) > responseLimit {
+		return errors.New("invalid retained DeDi anchor")
+	}
+	id := sha256.Sum256([]byte(eventID))
+	record := hex.EncodeToString(id[:])
+	payload, _ := json.Marshal(struct {
+		Schema string `json:"schema"`
+		Digest string `json:"evidence_digest"`
+	}{"gramstack.evidence.v1", digest})
+	body, err := json.Marshal(map[string]any{"data": map[string]any{"details": json.RawMessage(payload), "state": "live"}, "proof": a.Inclusion})
+	if err != nil {
+		return err
+	}
+	verified, err := c.verify(body, record, payload)
+	if err != nil {
+		return err
+	}
+	if verified.RecordID != a.RecordID || verified.TreeSize != a.TreeSize || verified.LeafIndex != a.LeafIndex || verified.Checkpoint != a.Checkpoint {
+		return errors.New("retained DeDi reference disagrees with proof")
+	}
+	return nil
 }

@@ -135,3 +135,8 @@ Discovery `be9da48` passed [all four Go jobs](https://github.com/theflywheel/GRA
 
 
 Preflight follow-up `1b66823` passed [all four Go jobs](https://github.com/theflywheel/GRAMStack/actions/runs/41689297266), retaining every discovery/data/restart check. Measured verify 57s, PostgreSQL 59s, DeDi 53s and Hydra 55s: 60s execution window / 224 summed job seconds. The earlier D09 run was 66s / 210s; unchanged DeDi source also varied by 18s, so these samples cannot attribute total runtime changes solely to discovery. The code removes unnecessary public metadata calls for already spent/stopped requests while final SQL claim checks remain intact. No check, dependency or exact cache key was weakened.
+
+
+## Automated anchoring coverage
+
+The existing DeDi job now reuses its actual node and PostgreSQL cluster for custody-to-anchoring recovery tests. The same Go test invocation runs client protocol and real SQL worker tests; the additional database shares the temporary cluster. Coverage includes persistent backoff, outage/restart, lost acknowledgement, concurrent publication, publication-before-SQL-rollback reconciliation, retained offline proof verification, untrusted evidence denial and immutable projection. No dependency, hosted job, cache fallback or container pull was added. Default Hydra CI retains all prior batch/pending disclosure checks. An optional `GRAMSTACK_TEST_ANCHORING=1 HYDRA_BIN=...` extension runs the complete configured gateway/SDK/native-source stack against the same actual DeDi node; it passed locally both with the fast provider and official eSignet. Hosted timings follow the tested push; these local results are not a hosted CI speed claim.

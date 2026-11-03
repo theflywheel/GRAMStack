@@ -2,6 +2,7 @@
 # Isolated, real Hydra/PostgreSQL integration. No production URLs or credentials.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then export GRAMSTACK_TEST_DISCOVERY=1; fi
 if [[ "${GRAMSTACK_TEST_DISCOVERY:-}" == 1 ]]; then export GRAMSTACK_TEST_RETRIEVAL=1; fi
 if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then export GRAMSTACK_TEST_CUSTODY=1; fi
 if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then export GRAMSTACK_TEST_AUTHZ=1; fi
@@ -217,7 +218,7 @@ policy=dict(registry='lokos',version='demo-policy-v1',consumer_id='consumer-one'
 config['consent']['status_origin']=os.environ['GRAMSTACK_TEST_AUTHZ_URL']
 config['authorization']=dict(key_id='demo-grant-key',listen_address=urllib.parse.urlparse(os.environ['GRAMSTACK_TEST_AUTHZ_URL']).netloc,policy_keys=[dict(registry='lokos',key_id='demo-policy-key',file=str(certs/'policy-signing.pub'))],policies=[dict(file=str(path.parent/'policy.jws'),expected_version='')],adapters=[dict(registry='lokos',audience='lokos-adapter',service_identity='lokos-adapter.gramstack.internal')],presenter_certificates={'consumer-one':str(certs/'consumer-one.pem')})
 if os.environ.get('GRAMSTACK_TEST_CUSTODY')=='1':
- config['authorization']['evidence']=dict(release_profile='batch')
+ config['authorization']['evidence']=dict(release_profile='batch',anchoring_enabled=os.environ.get('GRAMSTACK_TEST_ANCHORING')=='1')
  config['authorization']['adapters'][0].update(adapter_id='lokos-adapter',evidence_keys=[dict(key_id='demo-adapter-key',file=str(certs/'adapter-evidence.pub'))])
 if os.environ.get('GRAMSTACK_TEST_RETRIEVAL')=='1':
  config['authorization']['retrieval']=dict(max_concurrent=4)
@@ -252,6 +253,7 @@ PYW
   if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceCustody$"; fi
   if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then pattern="$pattern|^TestActualProtectedRetrieval$"; fi
   if [[ "${GRAMSTACK_TEST_DISCOVERY:-}" == 1 ]]; then pattern="$pattern|^TestActualAdapterDiscovery$"; fi
+  if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceAnchoringProcess$"; fi
   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then
    stop_gateway
@@ -261,6 +263,7 @@ PYW
    if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then pattern="$pattern|^TestActualAuthorizationRestart$"; fi
    if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceCustodyRestart$"; fi
    if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then pattern="$pattern|^TestActualProtectedRetrievalRestart$"; fi
+   if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceAnchoringProcess$"; fi
    gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   fi
  else
