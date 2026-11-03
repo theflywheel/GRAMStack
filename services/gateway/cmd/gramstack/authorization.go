@@ -21,6 +21,7 @@ import (
 	az "github.com/theflywheel/GRAMStack/services/gateway/internal/authorization"
 	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/consumer"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/evidence/custody"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/subjectbinding"
 )
 
@@ -38,11 +39,19 @@ type authorizationConfig struct {
 		Expected string `json:"expected_version"`
 	} `json:"policies"`
 	Adapters []struct {
-		Registry string `json:"registry"`
-		Audience string `json:"audience"`
-		Peer     string `json:"service_identity"`
+		Registry     string `json:"registry"`
+		Audience     string `json:"audience"`
+		Peer         string `json:"service_identity"`
+		ID           string `json:"adapter_id"`
+		EvidenceKeys []struct {
+			KeyID string `json:"key_id"`
+			File  string `json:"file"`
+		} `json:"evidence_keys"`
 	} `json:"adapters"`
 	Presenters map[string]string `json:"presenter_certificates"`
+	Evidence   *struct {
+		ReleaseProfile string `json:"release_profile"`
+	} `json:"evidence"`
 }
 
 func readBounded(path string, limit int64) ([]byte, error) {
@@ -162,6 +171,29 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 	if err != nil {
 		return nil, err
 	}
+	privateHandler := http.NewServeMux()
+	privateHandler.Handle("/", service.InternalHandler(consents))
+	if c.Evidence != nil {
+		entries := []custody.Adapter{}
+		for _, a := range c.Adapters {
+			entry := custody.Adapter{ID: a.ID, Audience: a.Audience, PeerName: a.Peer, Keys: map[string]*ecdsa.PublicKey{}}
+			for _, k := range a.EvidenceKeys {
+				if _, exists := entry.Keys[k.KeyID]; exists {
+					return nil, errors.New("duplicate adapter evidence key")
+				}
+				entry.Keys[k.KeyID], err = publicKey(k.File)
+				if err != nil {
+					return nil, err
+				}
+			}
+			entries = append(entries, entry)
+		}
+		custodian, err := custody.New(custody.Config{Pool: pool, Scopes: service, Adapters: entries, ReleaseProfile: c.Evidence.ReleaseProfile})
+		if err != nil {
+			return nil, err
+		}
+		privateHandler.Handle("POST /internal/v1/evidence", custodian.Handler())
+	}
 	listener, err := net.Listen("tcp", c.ListenAddress)
 	if err != nil {
 		return nil, errors.New("authorization private listener unavailable")
@@ -179,7 +211,7 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 	public := service.PublicHandler(auth)
 	mux.Handle("POST /v1/access-requests/{id}/grant", public)
 	mux.Handle("GET /.well-known/gramstack-jwks.json", public)
-	server := &http.Server{Handler: service.InternalHandler(consents), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{pair}, ClientCAs: roots, ClientAuth: tls.RequireAndVerifyClientCert}}
+	server := &http.Server{Handler: privateHandler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second, TLSConfig: &tls.Config{MinVersion: tls.VersionTLS13, Certificates: []tls.Certificate{pair}, ClientCAs: roots, ClientAuth: tls.RequireAndVerifyClientCert}}
 	done := make(chan struct{})
 	go func() {
 		defer close(done)

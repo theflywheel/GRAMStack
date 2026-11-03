@@ -106,3 +106,8 @@ The initial run's setup-go logs explicitly reported cache misses for verify/Hydr
 
 
 Cache-order verification: `0b94a47` passed [all four jobs](https://github.com/theflywheel/GRAMStack/actions/runs/41671529554). Setup logs confirm verify and Hydra both restored the same primary key ending `0aef92f7bae7d5d9592ca1b0aec9b607d7bc31033ff20eff2f0788a6a6957d6a`. Measured verify 30s, PostgreSQL 47s, DeDi 31s and Hydra 51s: 51s execution window / 159 summed job seconds. This proves exact-key sharing without weakening the dependency set, not a statistical runtime improvement. Full SDK unit/race/vet, real SQL attempts and all existing live integration coverage remain enabled.
+
+
+## Custody checkpoint coverage
+
+The existing Hydra job now sets `GRAMSTACK_TEST_CUSTODY=1`, which implies all previous phase flags. Custody uses the same private TLS listener, compiled gateway, PostgreSQL, Hydra and adapter/source runtime. New process tests share the existing worker/authorization test processes before and after restart, so no extra Go race teardown, hosted job or Docker pull is added. The SQL job adds historical scope, concurrent immutable receipt retries, actual token expiry, timestamp/key/scope denial and receipt/anchor/outbox/FSM rollback checks. Dependency files are unchanged and exact cache sharing remains intact. Actual source retrieval and verified anchoring are not claimed by this checkpoint.

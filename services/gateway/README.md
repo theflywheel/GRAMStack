@@ -51,3 +51,8 @@ Run `GRAMSTACK_TEST_WORKERS=1 PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` 
 Optional `authorization` configuration enables Hydra-authenticated grant issuance and a separate TLS 1.3 adapter listener. See [configuration, trust boundaries and transaction details](internal/authorization/README.md). Migration 0008 stores immutable source policy versions, current policy heads, grants and issuance idempotency bindings. Signed source policy is distinct from the request allowlist. No policy signing private key is required at runtime.
 
 Use `GRAMSTACK_TEST_AUTHZ=1 PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` for the full authentication, subject, portal, workers, grant, actual mTLS and restart suite. This includes all earlier gates; add `GRAMSTACK_TEST_ESIGNET=1` for the official identity provider. Grant issuance and reservation do not fetch or release source data; the protected SDK retrieval/evidence gate is separate.
+
+
+## Private evidence custody
+
+Optional `authorization.evidence: {"release_profile":"batch"}` plus each adapter's `adapter_id` and `evidence_keys` enables the private mTLS custody route. See [durability, scope and configuration](internal/evidence/custody/README.md). Migration 0009 commits immutable signed receipts, pending anchor state, anchoring outbox and lifecycle projection together. A pending acknowledgement proves custody durability, not actual DeDi publication. `GRAMSTACK_TEST_CUSTODY=1 PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` includes every earlier gate and actual custody/restart acceptance; official eSignet remains an additional local flag. The SDK/native data route and verified anchoring worker remain separate integration gates.

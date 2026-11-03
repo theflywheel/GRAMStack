@@ -64,7 +64,7 @@ func main() {
 		log.Fatal("consent key encoding failed")
 	}
 	write(*dir, "consent-signing.key", "PRIVATE KEY", signingDER)
-	for _, name := range []string{"grant-signing", "policy-signing"} {
+	for _, name := range []string{"grant-signing", "policy-signing", "adapter-evidence"} {
 		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			log.Fatal("signing key generation failed")

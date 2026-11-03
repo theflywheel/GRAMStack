@@ -98,4 +98,4 @@ jobs:
         run: |
           export HYDRA_BIN="$RUNNER_TEMP/hydra/hydra"
           export PG_BIN="$(pg_config --bindir)"
-          GRAMSTACK_TEST_AUTHZ=1 ./scripts/test-hydra.sh
+          GRAMSTACK_TEST_CUSTODY=1 ./scripts/test-hydra.sh
