@@ -113,7 +113,7 @@ Products supply use cases and user interfaces; GRAMStack supplies bounded disclo
 | Authority context | Initiate an approved self/representative verification flow | Verify issuer, subject, request, assurance, authority scope and expiry |
 | Rights and handling interfaces | Provide user screens and perform downstream actions | Authorize requests, route to responsible organisations and retain authenticated outcomes |
 
-These are architecture extension contracts. Their illustrative records below do not add accepted fields to the published [v0.1 message schema](specifications/schemas). Extensions require explicit capability negotiation and a versioned contract before wire use. Unknown security-sensitive fields remain rejected.
+These are architecture extension contracts. Their illustrative records below do not add accepted fields to the published [v0.2 message schema](specifications/schemas). Extensions require explicit capability negotiation and a versioned contract before wire use. Unknown security-sensitive fields remain rejected.
 
 ## Purpose and processing profiles
 

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import Ajv2020 from 'ajv/dist/2020.js'
 import addFormats from 'ajv-formats'
 import SwaggerParser from '@apidevtools/swagger-parser'
-const root = new URL('../../specs/0.1.0/', import.meta.url)
+const root = new URL('../../specs/0.2.0/', import.meta.url)
 const read = name => JSON.parse(readFileSync(new URL(name, root), 'utf8'))
 const schemas = read('schemas.json')
 const ajv = new Ajv2020({ allErrors: true, strict: true })

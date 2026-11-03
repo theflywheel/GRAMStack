@@ -28,3 +28,21 @@ func TestConsentLifecycle(t *testing.T) {
 		}
 	}
 }
+
+func TestWithdrawalAndCancellationBeforeActivation(t *testing.T) {
+	for _, state := range []string{"APPROVAL_RECORDED", "ACTIVE"} {
+		next, err := Transition(context.Background(), state, "withdraw")
+		if err != nil || next != "WITHDRAWN" {
+			t.Fatalf("%s: %s %v", state, next, err)
+		}
+	}
+	for _, state := range []string{"PENDING", "APPROVAL_RECORDED", "ACTIVE"} {
+		next, err := Transition(context.Background(), state, "cancel")
+		if err != nil || next != "WITHDRAWN" {
+			t.Fatalf("%s: %s %v", state, next, err)
+		}
+		if _, err = Transition(context.Background(), next, "activate"); err == nil {
+			t.Fatal("cancelled consent activated")
+		}
+	}
+}

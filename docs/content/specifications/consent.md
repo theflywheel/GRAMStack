@@ -3,7 +3,7 @@ title: Consent contract
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.1.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.1.0/consent.md)
+Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/consent.md)
 
 # Consent contract
 
@@ -29,4 +29,6 @@ Consent status and one-use accounting are separate: status is PENDING, APPROVAL_
 
 Store each decision/status mutation and outbox event in the same SQL transaction. Events contain a stable event_id, type, consent_id, access_request_id, request_digest, status_version and occurred_at, with no business data. Publish over authenticated transport; the receiver authenticates the producer and verifies the signed event payload before processing. Compact JWS uses ES256, trusted kid and typ=gramstack-consent-event+jwt. Redelivery is at least once. Deduplicate event_id and reject stale versions. Events wake workflows; they are not the authoritative live revocation check. Reconcile with status after missed events.
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.1.0/consent.md).
+Withdrawal during APPROVAL_RECORDED transitions to WITHDRAWN under the shared consent lock. Activation must recheck state/version after signing and cannot resurrect the withdrawn consent. Consumer cancellation can also invalidate PENDING consent; it records a distinct internal cancellation event rather than impersonating a human withdrawal. The signed artefact, if already created, remains immutable evidence and conveys no authority after cancellation.
+
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/consent.md).

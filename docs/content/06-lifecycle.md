@@ -46,7 +46,7 @@ All active stages have deadline and integrity-failure handling. The graph highli
 | COMPLETED | Defined server transmission condition met | Evidence reconciliation and eventual cleanup |
 | DELIVERY_UNKNOWN | Transmission/crash outcome uncertain | Preserve evidence; no automatic resend |
 
-REJECTED, DENIED, WITHDRAWN, EXPIRED and FAILED are distinct terminal outcomes. FAILED carries a safe reason/stage and a separate internal diagnostic reference. Consumer-visible failures must not reveal whether a guessed citizen record exists.
+CANCELLED, REJECTED, DENIED, WITHDRAWN, EXPIRED and FAILED are distinct terminal outcomes. Owner-initiated cancellation atomically invalidates unadmitted consent and records its consumer actor separately from a human rejection or withdrawal. It conflicts after a consumed reservation, even if the workflow projection has not caught up. FAILED carries a safe reason/stage and a separate internal diagnostic reference. Consumer-visible failures must not reveal whether a guessed citizen record exists.
 
 ## Conditional transitions
 

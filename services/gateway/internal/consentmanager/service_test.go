@@ -418,3 +418,106 @@ func TestConsentResolverOutageIsNotDenial(t *testing.T) {
 		t.Fatalf("outage persisted consent: %d %v", count, err)
 	}
 }
+
+// Hold signing outside the transaction so the cancellation wins deterministically.
+type pausedSigner struct {
+	signer  cm.Signer
+	started chan struct{}
+	resume  chan struct{}
+}
+
+func (s pausedSigner) Sign(ctx context.Context, raw []byte) (string, error) {
+	close(s.started)
+	select {
+	case <-s.resume:
+		return s.signer.Sign(ctx, raw)
+	case <-ctx.Done():
+		return "", ctx.Err()
+	}
+}
+func TestConsentStopDuringSigning(t *testing.T) {
+	for _, operation := range []string{"withdraw", "cancel"} {
+		t.Run(operation, func(t *testing.T) {
+			f := setup(t)
+			n := create(t, f)
+			approve(t, f, n)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			signer := pausedSigner{f.config.Signer, make(chan struct{}), make(chan struct{})}
+			config := f.config
+			config.Signer = signer
+			service, err := cm.New(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result := make(chan error, 1)
+			go func() { _, err := service.Activate(ctx, n.ConsentRequestID); result <- err }()
+			select {
+			case <-signer.started:
+			case <-ctx.Done():
+				t.Fatal(ctx.Err())
+			}
+			if operation == "withdraw" {
+				_, err = (enforcement.Repository{Pool: f.pool}).Withdraw(ctx, n.ConsentRequestID, 2)
+			} else {
+				_, err = (access.Repository{Pool: f.pool}).Cancel(ctx, f.input.Snapshot.RequestID, f.input.Snapshot.ConsumerID)
+			}
+			close(signer.resume)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = <-result; !errors.Is(err, cm.ErrConflict) {
+				t.Fatalf("late signing: %v", err)
+			}
+			status, err := f.service.Status(ctx, n.ConsentRequestID)
+			if err != nil || status.Status != "WITHDRAWN" || status.StatusVersion != 3 {
+				t.Fatalf("%+v %v", status, err)
+			}
+			var count int
+			if err = f.pool.QueryRow(ctx, "SELECT count(*) FROM consent_artefacts WHERE consent_id=$1", n.ConsentRequestID).Scan(&count); err != nil || count != 0 {
+				t.Fatalf("artefacts=%d %v", count, err)
+			}
+			if _, err = f.service.Activate(ctx, n.ConsentRequestID); !errors.Is(err, cm.ErrNotReady) {
+				t.Fatalf("cancelled approval activated: %v", err)
+			}
+		})
+	}
+}
+func TestConsumerCancellationBlocksPendingConsent(t *testing.T) {
+	f := setup(t)
+	n := create(t, f)
+	requests := access.Repository{Pool: f.pool}
+	ctx := context.Background()
+	if _, err := requests.Cancel(ctx, f.input.Snapshot.RequestID, "another-consumer"); !errors.Is(err, access.ErrNotFound) {
+		t.Fatalf("ownership bypass: %v", err)
+	}
+	cancelled, err := requests.Cancel(ctx, f.input.Snapshot.RequestID, f.input.Snapshot.ConsumerID)
+	if err != nil || cancelled.Status != "CANCELLED" {
+		t.Fatalf("%+v %v", cancelled, err)
+	}
+	retry, err := requests.Cancel(ctx, cancelled.ID, f.input.Snapshot.ConsumerID)
+	if err != nil || retry.Version != cancelled.Version {
+		t.Fatalf("retry: %+v %v", retry, err)
+	}
+	if _, err = f.service.Decide(ctx, n.ConsentRequestID, f.principal, decision(n, "approve")); err == nil {
+		t.Fatal("cancelled notice approved")
+	}
+	if _, err = requests.Advance(ctx, cancelled.ID, cancelled.Version, "consent_activated"); err == nil {
+		t.Fatal("late callback resurrected request")
+	}
+	var event string
+	if err = f.pool.QueryRow(ctx, "SELECT event_type FROM outbox WHERE aggregate_type='consent' AND aggregate_id=$1 ORDER BY aggregate_version DESC LIMIT 1", n.ConsentRequestID).Scan(&event); err != nil || event != "consent.cancelled" {
+		t.Fatalf("event %s %v", event, err)
+	}
+}
+
+func TestCancelledRequestCannotCreateConsent(t *testing.T) {
+	f := setup(t)
+	ctx := context.Background()
+	if _, err := (access.Repository{Pool: f.pool}).Cancel(ctx, f.input.Snapshot.RequestID, f.input.Snapshot.ConsumerID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.service.Create(ctx, f.input); !errors.Is(err, cm.ErrNotReady) {
+		t.Fatalf("consent created for cancelled request: %v", err)
+	}
+}

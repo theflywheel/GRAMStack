@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "initial": "AUTHENTICATION_PENDING",
   "terminal": [
     "COMPLETED",
@@ -8,39 +8,45 @@
     "DENIED",
     "WITHDRAWN",
     "EXPIRED",
-    "FAILED"
+    "FAILED",
+    "CANCELLED"
   ],
   "transitions": {
     "AUTHENTICATION_PENDING": [
       "BINDING_PENDING",
       "FAILED",
       "DENIED",
-      "EXPIRED"
+      "EXPIRED",
+      "CANCELLED"
     ],
     "BINDING_PENDING": [
       "CONSENT_PENDING",
       "FAILED",
       "DENIED",
-      "EXPIRED"
+      "EXPIRED",
+      "CANCELLED"
     ],
     "CONSENT_PENDING": [
       "CONSENTED",
       "FAILED",
       "DENIED",
       "EXPIRED",
-      "REJECTED"
+      "REJECTED",
+      "CANCELLED"
     ],
     "CONSENTED": [
       "AUTHORIZED",
       "FAILED",
       "WITHDRAWN",
-      "EXPIRED"
+      "EXPIRED",
+      "CANCELLED"
     ],
     "AUTHORIZED": [
       "REDEEMING",
       "FAILED",
       "WITHDRAWN",
-      "EXPIRED"
+      "EXPIRED",
+      "CANCELLED"
     ],
     "REDEEMING": [
       "EVIDENCE_COMMITTED",
@@ -62,6 +68,7 @@
     "DENIED": [],
     "WITHDRAWN": [],
     "EXPIRED": [],
-    "FAILED": []
+    "FAILED": [],
+    "CANCELLED": []
   }
 }

@@ -3,13 +3,13 @@ title: Message schemas
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.1.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.1.0/schemas.json)
+Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/schemas.json)
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://docs.gramstack.try-dough.com/static/specs/0.1.0/schemas.json",
-  "title": "GRAMStack 0.1.0 messages",
+  "$id": "https://docs.gramstack.try-dough.com/static/specs/0.2.0/schemas.json",
+  "title": "GRAMStack 0.2.0 messages",
   "$defs": {
     "Error": {
       "type": "object",
@@ -232,7 +232,8 @@ Specification version **0.1.0** · [Specifications index](/specifications/) · [
             "DENIED",
             "WITHDRAWN",
             "EXPIRED",
-            "FAILED"
+            "FAILED",
+            "CANCELLED"
           ]
         },
         "version": {
@@ -1130,7 +1131,7 @@ Specification version **0.1.0** · [Specifications index](/specifications/) · [
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
         },
         "contract_version": {
-          "const": "0.1.0"
+          "const": "0.2.0"
         },
         "audience": {
           "type": "string",
@@ -1268,4 +1269,4 @@ Specification version **0.1.0** · [Specifications index](/specifications/) · [
 }
 ```
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.1.0/schemas.json).
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/schemas.json).

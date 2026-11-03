@@ -3,14 +3,14 @@ title: HTTP API specification
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.1.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.1.0/openapi.json)
+Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/openapi.json)
 
 ```json
 {
   "openapi": "3.1.0",
   "info": {
     "title": "GRAMStack contracts",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Paths belong to the component named on each operation. Internal routes require authenticated service transport and private routing. See protocol.md for behavioral requirements."
   },
   "paths": {
@@ -2364,6 +2364,134 @@ Specification version **0.1.0** · [Specifications index](/specifications/) · [
           }
         }
       }
+    },
+    "/v1/access-requests/{id}/cancel": {
+      "post": {
+        "operationId": "cancelAccessRequest",
+        "summary": "Cancel an unadmitted access request",
+        "tags": [
+          "Gateway"
+        ],
+        "description": "Gateway. Owning consumer only. Idempotent cancellation under shared request/consent locks. Returns CANCELLED; 409 if admission has already occurred or the terminal state cannot be cancelled. Does not recall prior disclosure.",
+        "security": [
+          {
+            "consumerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/RequestStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./schemas.json#/$defs/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2395,4 +2523,4 @@ Specification version **0.1.0** · [Specifications index](/specifications/) · [
 }
 ```
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.1.0/openapi.json).
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/openapi.json).

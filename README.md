@@ -60,7 +60,7 @@ The documentation site vendors [Jacky Zhao's Quartz](https://github.com/jackyzha
 
 ## Go implementation
 
-The internal [implementation task ledger](IMPLEMENTATION.md) tracks the build. Independent modules live in `services/gateway/`, `sdk/go/adapter/` and `adapters/lokos/`; the root `go.work` supports local development. There is no root Go module. LokOS imports and exercises the SDK.
+The internal [implementation task ledger](IMPLEMENTATION.md) and [gated demo checklist](DEMO-TODO.md) track the build and recorded-demo deliverables. Independent modules live in `services/gateway/`, `sdk/go/adapter/` and `adapters/lokos/`; the root `go.work` supports local development. There is no root Go module. LokOS imports and exercises the SDK.
 
 ```sh
 ./scripts/check-go.sh

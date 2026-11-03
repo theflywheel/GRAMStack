@@ -52,6 +52,10 @@ This is the internal delivery ledger. Versioned protocol contracts live under `s
 | T19 | Versioned SDK release and independently consumable LokOS build | T08 | Module-prefixed SDK tag, pinned adapter dependency, no committed local replace; external consumer smoke test |
 | T20 | Demo acceptance, failure matrix, load/recovery tests and operator guide | T18,T19 | Happy path plus rejection, withdrawal race, replay, source/evidence outage and restart scenarios; no payload leakage |
 
+## End-to-end delivery
+
+The executable demo work is tracked as cross-off tasks and gated phases in [DEMO-TODO.md](DEMO-TODO.md), including the capability report and recorded demo. D tasks map the remaining T tasks into delivery order; only passed gates are checked.
+
 ## Working increments
 
 - Completed: T01 (independent development modules/CI), T02 (library-backed request and consent FSMs), T03 (process shells and live HTTP/shutdown checks), T04 (SDK provider contract and field projection), T14 (signed DeDi client, proof verification, actual-node and gateway CLI integration).

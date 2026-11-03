@@ -3,7 +3,7 @@ title: Conformance and evolution
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.1.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.1.0/conformance.md)
+Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/conformance.md)
 
 # Conformance and evolution
 
@@ -31,10 +31,14 @@ JSON Schema fixtures check message shapes, not these transactional or cryptograp
 
 ## Compatibility
 
-Version 0.1.0 is the contract baseline. Breaking schema/behavior changes receive a new release directory and explicit adapter capability negotiation. Never edit a deployed signed artefact to upgrade it. Preserve old verification profiles through their evidence retention horizon. Add new resources through approved manifests and schemas rather than treating arbitrary JSON as a resource contract.
+Version 0.2.0 is the contract baseline. Breaking schema/behavior changes receive a new release directory and explicit adapter capability negotiation. Never edit a deployed signed artefact to upgrade it. Preserve old verification profiles through their evidence retention horizon. Add new resources through approved manifests and schemas rather than treating arbitrary JSON as a resource contract.
 
 ## Automated checks
 
 `npm run verify:specs` in `docs/` validates OpenAPI, resolves its message schema references, compiles the JSON Schema, checks positive/negative examples, verifies lifecycle reachability and asserts key safety constraints in fixtures. The documentation build runs these checks and publishes exact source copies. Runtime conformance remains an implementation responsibility.
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.1.0/conformance.md).
+## Cancellation acceptance
+
+Verify owner-only cancellation with privacy-safe non-owner lookup; before-consent cancellation; cancellation during signing; activation and redemption races; repeated cancellation status/version; outbox rollback; immutable signed artefact preservation; no resurrection from delayed callbacks; and 409 after a consumed reservation even when the workflow projection is stale. Consumer cancellation events must not impersonate subject rejection/withdrawal.
+
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/conformance.md).

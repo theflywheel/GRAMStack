@@ -290,3 +290,78 @@ func TestPostgresRequestDeadlineBeforeAndAfterAdmission(t *testing.T) {
 		t.Fatalf("admitted outcome could not be recorded: %v", err)
 	}
 }
+
+func TestPostgresCancellationWithoutConsent(t *testing.T) {
+	pool := database(t)
+	ctx := context.Background()
+	repo := access.Repository{Pool: pool}
+	id := rand.Text()
+	digest := "sha256:" + strings.Repeat("a", 64)
+	if err := repo.Create(ctx, id, "consumer", digest, time.Now().Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.Advance(ctx, id, 1, "cancelled"); !errors.Is(err, access.ErrNotCancellable) {
+		t.Fatalf("unguarded cancellation: %v", err)
+	}
+	result, err := repo.Cancel(ctx, id, "consumer")
+	if err != nil || result.Status != "CANCELLED" {
+		t.Fatalf("%+v %v", result, err)
+	}
+	if _, err := repo.Advance(ctx, id, result.Version, "authenticated"); err == nil {
+		t.Fatal("cancelled request resumed")
+	}
+}
+func TestPostgresCancelRedemptionRace(t *testing.T) {
+	pool := database(t)
+	ctx := context.Background()
+	requests := access.Repository{Pool: pool}
+	repo := Repository{Pool: pool}
+	for range 12 {
+		input := active(t, pool)
+		start := make(chan struct{})
+		var wg sync.WaitGroup
+		var cancelErr, redeemErr error
+		var reservation Reservation
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			<-start
+			_, cancelErr = requests.Cancel(ctx, input.RequestID, "test-consumer")
+		}()
+		go func() { defer wg.Done(); <-start; reservation, redeemErr = repo.Redeem(ctx, input) }()
+		close(start)
+		wg.Wait()
+		if cancelErr == nil {
+			if !errors.Is(redeemErr, ErrInactive) {
+				t.Fatalf("cancel won but redemption=%v", redeemErr)
+			}
+			if _, err := repo.Redeem(ctx, input); !errors.Is(err, ErrInactive) {
+				t.Fatalf("late admission: %v", err)
+			}
+		} else if !errors.Is(cancelErr, access.ErrAdmitted) || redeemErr != nil || !reservation.FirstRedemption {
+			t.Fatalf("cancel=%v redemption=%+v %v", cancelErr, reservation, redeemErr)
+		}
+	}
+}
+func TestPostgresCancellationRollback(t *testing.T) {
+	pool := database(t)
+	ctx := context.Background()
+	input := active(t, pool)
+	// Force the request event write to fail after consent was provisionally stopped.
+	if _, err := pool.Exec(ctx, `INSERT INTO outbox(event_id,aggregate_type,aggregate_id,aggregate_version,event_type,payload) VALUES($1,'request',$2,2,'test.injected','{}')`, rand.Text(), input.RequestID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (access.Repository{Pool: pool}).Cancel(ctx, input.RequestID, "test-consumer"); err == nil {
+		t.Fatal("outbox error ignored")
+	}
+	var status, use, requestStatus string
+	if err := pool.QueryRow(ctx, "SELECT status,use_state FROM consent_state WHERE consent_id=$1", input.ConsentID).Scan(&status, &use); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, "SELECT status FROM access_requests WHERE request_id=$1", input.RequestID).Scan(&requestStatus); err != nil {
+		t.Fatal(err)
+	}
+	if status != "ACTIVE" || use != "AVAILABLE" || requestStatus != "AUTHENTICATION_PENDING" {
+		t.Fatalf("partial cancellation: %s %s %s", status, use, requestStatus)
+	}
+}

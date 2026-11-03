@@ -3,7 +3,7 @@ title: Independently hosted registry adapters
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.1.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.1.0/adapter.md)
+Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/adapter.md)
 
 # Independently hosted registry adapters
 
@@ -29,4 +29,4 @@ Adapters own upstream API integration, credentials, mapping and request-scoped s
 
 The core Go backend, optional SDK, reference adapter and mock sources are distinct deliverables; this contract does not require their code to exist inside the registry catalogue. Registry onboarding changes configuration plus the independently deployed adapter, not the gateway binary.
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.1.0/adapter.md).
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/adapter.md).

@@ -424,7 +424,7 @@ Products supply use cases and user interfaces; GRAMStack supplies bounded disclo
 | Authority context | Initiate an approved self/representative verification flow | Verify issuer, subject, request, assurance, authority scope and expiry |
 | Rights and handling interfaces | Provide user screens and perform downstream actions | Authorize requests, route to responsible organisations and retain authenticated outcomes |
 
-These are architecture extension contracts. Their illustrative records below do not add accepted fields to the published [v0.1 message schema](specifications/schemas). Extensions require explicit capability negotiation and a versioned contract before wire use. Unknown security-sensitive fields remain rejected.
+These are architecture extension contracts. Their illustrative records below do not add accepted fields to the published [v0.2 message schema](specifications/schemas). Extensions require explicit capability negotiation and a versioned contract before wire use. Unknown security-sensitive fields remain rejected.
 
 ## Purpose and processing profiles
 
@@ -691,7 +691,7 @@ All active stages have deadline and integrity-failure handling. The graph highli
 | COMPLETED | Defined server transmission condition met | Evidence reconciliation and eventual cleanup |
 | DELIVERY_UNKNOWN | Transmission/crash outcome uncertain | Preserve evidence; no automatic resend |
 
-REJECTED, DENIED, WITHDRAWN, EXPIRED and FAILED are distinct terminal outcomes. FAILED carries a safe reason/stage and a separate internal diagnostic reference. Consumer-visible failures must not reveal whether a guessed citizen record exists.
+CANCELLED, REJECTED, DENIED, WITHDRAWN, EXPIRED and FAILED are distinct terminal outcomes. Owner-initiated cancellation atomically invalidates unadmitted consent and records its consumer actor separately from a human rejection or withdrawal. It conflicts after a consumed reservation, even if the workflow projection has not caught up. FAILED carries a safe reason/stage and a separate internal diagnostic reference. Consumer-visible failures must not reveal whether a guessed citizen record exists.
 
 ## Conditional transitions
 
@@ -749,6 +749,7 @@ A `202` acknowledges durable workflow acceptance, not a successful disclosure. L
 | `POST /oauth2/token` | Registered consumer client authentication | Hydra consumer token; institutional identity only |
 | `POST /v1/access-requests` | Consumer token + idempotency key | Validate, persist, return 202 and interaction/status locators |
 | `GET /v1/access-requests/{id}` | Owning consumer token | Current safe status and next action; no private verification candidates |
+| `POST /v1/access-requests/{id}/cancel` | Owning consumer token | Idempotently cancel unadmitted authority; 409 after admission or incompatible terminal state (contract v0.2) |
 | `POST /v1/access-requests/{id}/grant` | Owning consumer token + idempotency key | Evaluate consent/context/policy; return grant or safe denial |
 | `GET /v1/access-requests/{id}/data` | Retrieval grant plus defined presenter authentication | Single admitted retrieval; evidence before release; no-store |
 
@@ -904,11 +905,10 @@ Capability discovery and verification workflows are adapter responsibilities. Th
 
 ## Platform extension interfaces
 
-These architecture interfaces expose the additional platform responsibilities described in [consent](04-consent) and [data handling](08-state-and-evidence). Route shapes below are illustrative; they are not additions to the published v0.1 OpenAPI contract. A versioned capability/schema defines each extension before client adoption.
+These architecture interfaces expose the additional platform responsibilities described in [consent](04-consent) and [data handling](08-state-and-evidence). These interfaces are separate from the published v0.2 cancellation API; they are not additional implemented wire operations. A versioned capability/schema defines each extension before client adoption.
 
 | Interface | Authorised caller | Contract and timing |
 |---|---|---|
-| Cancel access request | Owning consumer | Idempotent command; atomically block future admission and return the authoritative cutoff result |
 | Resolve purpose/processing profile | Gateway and authorised clients | Read approved versions/digests; reject arbitrary URLs and incompatible scope |
 | Record presentation evidence | Trusted consent presentation component | Bind exact notice, channel, language and authenticated decision; durable before activation |
 | Consent/disclosure history and export | Reauthenticated subject or supported representative | Access-controlled, paginated/minimised history and machine-readable export |

@@ -15,6 +15,7 @@ date: 2026-11-03
 | `POST /oauth2/token` | Registered consumer client authentication | Hydra consumer token; institutional identity only |
 | `POST /v1/access-requests` | Consumer token + idempotency key | Validate, persist, return 202 and interaction/status locators |
 | `GET /v1/access-requests/{id}` | Owning consumer token | Current safe status and next action; no private verification candidates |
+| `POST /v1/access-requests/{id}/cancel` | Owning consumer token | Idempotently cancel unadmitted authority; 409 after admission or incompatible terminal state (contract v0.2) |
 | `POST /v1/access-requests/{id}/grant` | Owning consumer token + idempotency key | Evaluate consent/context/policy; return grant or safe denial |
 | `GET /v1/access-requests/{id}/data` | Retrieval grant plus defined presenter authentication | Single admitted retrieval; evidence before release; no-store |
 
@@ -170,11 +171,10 @@ Capability discovery and verification workflows are adapter responsibilities. Th
 
 ## Platform extension interfaces
 
-These architecture interfaces expose the additional platform responsibilities described in [consent](04-consent) and [data handling](08-state-and-evidence). Route shapes below are illustrative; they are not additions to the published v0.1 OpenAPI contract. A versioned capability/schema defines each extension before client adoption.
+These architecture interfaces expose the additional platform responsibilities described in [consent](04-consent) and [data handling](08-state-and-evidence). These interfaces are separate from the published v0.2 cancellation API; they are not additional implemented wire operations. A versioned capability/schema defines each extension before client adoption.
 
 | Interface | Authorised caller | Contract and timing |
 |---|---|---|
-| Cancel access request | Owning consumer | Idempotent command; atomically block future admission and return the authoritative cutoff result |
 | Resolve purpose/processing profile | Gateway and authorised clients | Read approved versions/digests; reject arbitrary URLs and incompatible scope |
 | Record presentation evidence | Trusted consent presentation component | Bind exact notice, channel, language and authenticated decision; durable before activation |
 | Consent/disclosure history and export | Reauthenticated subject or supported representative | Access-controlled, paginated/minimised history and machine-readable export |

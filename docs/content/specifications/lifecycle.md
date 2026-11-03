@@ -3,11 +3,11 @@ title: Lifecycle transitions
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-Specification version **0.1.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.1.0/lifecycle.json)
+Specification version **0.2.0** · [Specifications index](/specifications/) · [Download source](https://docs.gramstack.try-dough.com/static/specs/0.2.0/lifecycle.json)
 
 ```json
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "initial": "AUTHENTICATION_PENDING",
   "terminal": [
     "COMPLETED",
@@ -16,39 +16,45 @@ Specification version **0.1.0** · [Specifications index](/specifications/) · [
     "DENIED",
     "WITHDRAWN",
     "EXPIRED",
-    "FAILED"
+    "FAILED",
+    "CANCELLED"
   ],
   "transitions": {
     "AUTHENTICATION_PENDING": [
       "BINDING_PENDING",
       "FAILED",
       "DENIED",
-      "EXPIRED"
+      "EXPIRED",
+      "CANCELLED"
     ],
     "BINDING_PENDING": [
       "CONSENT_PENDING",
       "FAILED",
       "DENIED",
-      "EXPIRED"
+      "EXPIRED",
+      "CANCELLED"
     ],
     "CONSENT_PENDING": [
       "CONSENTED",
       "FAILED",
       "DENIED",
       "EXPIRED",
-      "REJECTED"
+      "REJECTED",
+      "CANCELLED"
     ],
     "CONSENTED": [
       "AUTHORIZED",
       "FAILED",
       "WITHDRAWN",
-      "EXPIRED"
+      "EXPIRED",
+      "CANCELLED"
     ],
     "AUTHORIZED": [
       "REDEEMING",
       "FAILED",
       "WITHDRAWN",
-      "EXPIRED"
+      "EXPIRED",
+      "CANCELLED"
     ],
     "REDEEMING": [
       "EVIDENCE_COMMITTED",
@@ -70,9 +76,10 @@ Specification version **0.1.0** · [Specifications index](/specifications/) · [
     "DENIED": [],
     "WITHDRAWN": [],
     "EXPIRED": [],
-    "FAILED": []
+    "FAILED": [],
+    "CANCELLED": []
   }
 }
 ```
 
-[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.1.0/lifecycle.json).
+[Repository source](https://github.com/theflywheel/GRAMStack/tree/main/specs/0.2.0/lifecycle.json).
