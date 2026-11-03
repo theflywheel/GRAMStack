@@ -83,11 +83,11 @@ jobs:
           go-version: '1.26.8'
           cache-dependency-path: |
             services/gateway/go.*
-            adapters/auth/oidc/go.*
             sdk/go/adapter/go.*
             adapters/lokos/go.*
-            mocks/lokos/go.*
+            adapters/auth/oidc/go.*
             mocks/identity/go.*
+            mocks/lokos/go.*
       - name: Fetch pinned official Hydra release
         run: |
           mkdir -p "$RUNNER_TEMP/hydra"
