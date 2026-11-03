@@ -22,6 +22,7 @@ import (
 
 	az "github.com/theflywheel/GRAMStack/services/gateway/internal/authorization"
 	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/discovery"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/evidence/custody"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/retrieval"
 )
@@ -78,7 +79,16 @@ func setupGatewayRetrieval(t *testing.T, mode string) *gatewayFixture {
 	}
 	public := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: pair.Certificate[0]})
 	parsed, _ := url.Parse(adapter.URL)
-	gateway, err := retrieval.New(retrieval.Config{Pool: f.pool, Authority: service, Receipts: custodian, Endpoints: []retrieval.Endpoint{{Registry: "lokos", AdapterID: "lokos-adapter", Audience: "lokos-adapter", Origin: adapter.URL, ServerName: parsed.Hostname()}}, CA: public, Certificate: public, Key: pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: secret}), MaxConcurrent: 2})
+	approved, err := discovery.Approve(discovery.Descriptor{Version: discovery.Version, Origin: adapter.URL, Registry: "lokos", AdapterID: "lokos-adapter", Audience: "lokos-adapter", VerificationMethod: "test-registry-approved", Resources: []discovery.Resource{{Name: "shg.membership", Version: "1", Fields: claims.Fields}}, Keys: map[string]*ecdsa.PublicKey{"adapter-key": &key.PublicKey}}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	metadata, err := discovery.New(public)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(metadata.Close)
+	gateway, err := retrieval.New(retrieval.Config{Discovery: metadata, Pool: f.pool, Authority: service, Receipts: custodian, Endpoints: []retrieval.Endpoint{{Registry: "lokos", AdapterID: "lokos-adapter", Audience: "lokos-adapter", Origin: adapter.URL, ServerName: parsed.Hostname(), Discovery: approved}}, CA: public, Certificate: public, Key: pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: secret}), MaxConcurrent: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,6 +96,36 @@ func setupGatewayRetrieval(t *testing.T, mode string) *gatewayFixture {
 	return fixture
 }
 func (f *gatewayFixture) adapter(t *testing.T, w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == discovery.ManifestPath || r.URL.Path == discovery.KeysPath {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Gramstack-Contract-Version", "0.3.0")
+		w.Header().Set(discovery.VersionHeader, discovery.Version)
+		if f.mode == "metadata offline" {
+			w.WriteHeader(503)
+			return
+		}
+		if r.URL.Path == discovery.ManifestPath {
+			m := discovery.Manifest{AdapterID: "lokos-adapter", Registry: "lokos", Audience: "lokos-adapter", ContractVersion: "0.3.0", Authentication: "mtls", SigningKeyIDs: []string{"adapter-key"}, VerificationMethods: []string{"test-registry-approved"}, Capabilities: []string{"atomic-redemption", "evidence-before-release"}, Resources: []discovery.Resource{{Name: "shg.membership", Version: "1", Fields: f.claims.Fields}}}
+			if f.mode == "metadata wrong resource" {
+				m.Resources[0].Version = "2"
+			}
+			json.NewEncoder(w).Encode(m)
+			return
+		}
+		key := &f.key.PublicKey
+		if f.mode == "metadata wrong key" {
+			other, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			if err != nil {
+				t.Error(err)
+				w.WriteHeader(500)
+				return
+			}
+			key = &other.PublicKey
+		}
+		json.NewEncoder(w).Encode(map[string]any{"keys": []discovery.PublicJWK{{KeyType: "EC", Curve: "P-256", X: base64.RawURLEncoding.EncodeToString(key.X.FillBytes(make([]byte, 32))), Y: base64.RawURLEncoding.EncodeToString(key.Y.FillBytes(make([]byte, 32))), ID: "adapter-key", Algorithm: "ES256", Use: "sig"}}})
+		return
+	}
 	f.calls.Add(1)
 	var input struct {
 		AttemptID string       `json:"attempt_id"`
@@ -284,6 +324,31 @@ func TestGatewayAbandonedDispatchRecoveryNeverFetches(t *testing.T) {
 			}
 			if _, err := f.pool.Exec(ctx, `UPDATE gateway_retrieval_attempts SET deadline=clock_timestamp()+interval '1 minute' WHERE request_id=$1`, f.claims.RequestID); err == nil {
 				t.Fatal("dispatch lease was silently renewable")
+			}
+		})
+	}
+}
+
+func TestDiscoveryDenialDoesNotClaimOrDispatch(t *testing.T) {
+	for _, mode := range []string{"metadata offline", "metadata wrong resource", "metadata wrong key"} {
+		t.Run(mode, func(t *testing.T) {
+			f := setupGatewayRetrieval(t, mode)
+			ctx := context.Background()
+			w := httptest.NewRecorder()
+			f.gateway.Handler().ServeHTTP(w, f.request())
+			if w.Code != 503 || f.calls.Load() != 0 {
+				t.Fatal("unapproved metadata reached protected adapter", w.Code)
+			}
+			var count int
+			if err := f.pool.QueryRow(ctx, `SELECT count(*) FROM gateway_retrieval_attempts WHERE request_id=$1`, f.claims.RequestID).Scan(&count); err != nil || count != 0 {
+				t.Fatal("discovery failure consumed a dispatch", err)
+			}
+			requestState(t, f.fixture, "AUTHORIZED")
+			f.mode = "normal"
+			again := httptest.NewRecorder()
+			f.gateway.Handler().ServeHTTP(again, f.request())
+			if again.Code != 200 || f.calls.Load() != 1 {
+				t.Fatal("metadata recovery could not safely use the unclaimed request", again.Code)
 			}
 		})
 	}

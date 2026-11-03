@@ -23,6 +23,7 @@ import (
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/access"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/authn"
 	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/discovery"
 )
 
 var identifier = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
@@ -35,6 +36,11 @@ type Registry struct {
 	ServerName      string `json:"server_name"`
 	Method          string `json:"verification_method"`
 	Demo            bool   `json:"demo"`
+	Discovery       *struct {
+		Version   string               `json:"version"`
+		Origin    string               `json:"origin"`
+		Resources []discovery.Resource `json:"resources"`
+	} `json:"discovery"`
 }
 type Config struct {
 	ConsentPortalEnabled bool

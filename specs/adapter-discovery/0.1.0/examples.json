@@ -1,0 +1,257 @@
+{
+  "cases": [
+    {
+      "name": "public configured capabilities",
+      "schema": "Manifest",
+      "valid": true,
+      "value": {
+        "adapter_id": "lokos-adapter",
+        "registry": "lokos",
+        "contract_version": "0.3.0",
+        "audience": "lokos-adapter",
+        "authentication": "mtls",
+        "signing_key_ids": [
+          "example-public-key"
+        ],
+        "verification_methods": [
+          "demo.registry-map-v1"
+        ],
+        "capabilities": [
+          "atomic-redemption",
+          "evidence-before-release"
+        ],
+        "resources": [
+          {
+            "name": "shg.membership",
+            "version": "1",
+            "fields": [
+              "membership_status",
+              "savings_summary"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "public verification key shape",
+      "schema": "PublicJWK",
+      "valid": true,
+      "value": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+        "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+        "kid": "example-public-key",
+        "alg": "ES256",
+        "use": "sig"
+      }
+    },
+    {
+      "name": "public verification key set",
+      "schema": "PublicKeySet",
+      "valid": true,
+      "value": {
+        "keys": [
+          {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+            "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+            "kid": "example-public-key",
+            "alg": "ES256",
+            "use": "sig"
+          }
+        ]
+      }
+    },
+    {
+      "name": "private key forbidden",
+      "schema": "PublicJWK",
+      "valid": false,
+      "value": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+        "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+        "kid": "example-public-key",
+        "alg": "ES256",
+        "use": "sig",
+        "d": "private"
+      }
+    },
+    {
+      "name": "unsupported curve",
+      "schema": "PublicJWK",
+      "valid": false,
+      "value": {
+        "kty": "EC",
+        "crv": "P-384",
+        "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+        "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+        "kid": "example-public-key",
+        "alg": "ES256",
+        "use": "sig"
+      }
+    },
+    {
+      "name": "unsupported algorithm",
+      "schema": "PublicJWK",
+      "valid": false,
+      "value": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+        "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+        "kid": "example-public-key",
+        "alg": "RS256",
+        "use": "sig"
+      }
+    },
+    {
+      "name": "unsupported usage",
+      "schema": "PublicJWK",
+      "valid": false,
+      "value": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+        "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+        "kid": "example-public-key",
+        "alg": "ES256",
+        "use": "enc"
+      }
+    },
+    {
+      "name": "padded coordinate",
+      "schema": "PublicJWK",
+      "valid": false,
+      "value": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY=",
+        "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+        "kid": "example-public-key",
+        "alg": "ES256",
+        "use": "sig"
+      }
+    },
+    {
+      "name": "coordinate noncanonical bits",
+      "schema": "PublicJWK",
+      "valid": false,
+      "value": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpB",
+        "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+        "kid": "example-public-key",
+        "alg": "ES256",
+        "use": "sig"
+      }
+    },
+    {
+      "name": "unapproved key URL not a manifest field",
+      "schema": "Manifest",
+      "valid": false,
+      "value": {
+        "adapter_id": "lokos-adapter",
+        "registry": "lokos",
+        "contract_version": "0.3.0",
+        "audience": "lokos-adapter",
+        "authentication": "mtls",
+        "signing_key_ids": [
+          "example-public-key"
+        ],
+        "verification_methods": [
+          "demo.registry-map-v1"
+        ],
+        "capabilities": [
+          "atomic-redemption",
+          "evidence-before-release"
+        ],
+        "resources": [
+          {
+            "name": "shg.membership",
+            "version": "1",
+            "fields": [
+              "membership_status",
+              "savings_summary"
+            ]
+          }
+        ],
+        "jwks_url": "https://unapproved.example/keys"
+      }
+    },
+    {
+      "name": "unsupported core contract",
+      "schema": "Manifest",
+      "valid": false,
+      "value": {
+        "adapter_id": "lokos-adapter",
+        "registry": "lokos",
+        "contract_version": "9.0.0",
+        "audience": "lokos-adapter",
+        "authentication": "mtls",
+        "signing_key_ids": [
+          "example-public-key"
+        ],
+        "verification_methods": [
+          "demo.registry-map-v1"
+        ],
+        "capabilities": [
+          "atomic-redemption",
+          "evidence-before-release"
+        ],
+        "resources": [
+          {
+            "name": "shg.membership",
+            "version": "1",
+            "fields": [
+              "membership_status",
+              "savings_summary"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "missing evidence gate",
+      "schema": "Manifest",
+      "valid": false,
+      "value": {
+        "adapter_id": "lokos-adapter",
+        "registry": "lokos",
+        "contract_version": "0.3.0",
+        "audience": "lokos-adapter",
+        "authentication": "mtls",
+        "signing_key_ids": [
+          "example-public-key"
+        ],
+        "verification_methods": [
+          "demo.registry-map-v1"
+        ],
+        "capabilities": [
+          "atomic-redemption"
+        ],
+        "resources": [
+          {
+            "name": "shg.membership",
+            "version": "1",
+            "fields": [
+              "membership_status",
+              "savings_summary"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "empty public key set",
+      "schema": "PublicKeySet",
+      "valid": false,
+      "value": {
+        "keys": []
+      }
+    }
+  ]
+}

@@ -205,6 +205,7 @@ func (s *Service) Run(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	defer func() {
+		s.discovery.Close()
 		for _, e := range s.endpoints {
 			e.client.CloseIdleConnections()
 		}

@@ -18,6 +18,7 @@ import (
 type adapterRuntime struct {
 	db        *sql.DB
 	server    *http.Server
+	metadata  http.Handler
 	cert, key string
 }
 
@@ -112,7 +113,8 @@ func configureAdapter(ctx context.Context, migrate bool) (*adapterRuntime, error
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/", service.Handler())
-	if err = configureRetrieval(mux, store, attempts, provider, method, ca, cert, key, mode); err != nil {
+	metadata, err := configureRetrieval(mux, store, attempts, provider, method, ca, cert, key, mode)
+	if err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -120,5 +122,5 @@ func configureAdapter(ctx context.Context, migrate bool) (*adapterRuntime, error
 	if port == "" {
 		port = "8443"
 	}
-	return &adapterRuntime{db: db, server: &http.Server{Addr: ":" + port, Handler: mux, TLSConfig: tlsConfig, ReadHeaderTimeout: 5e9, ReadTimeout: 30e9, WriteTimeout: 30e9, IdleTimeout: 60e9}, cert: certPath, key: keyPath}, nil
+	return &adapterRuntime{db: db, metadata: metadata, server: &http.Server{Addr: ":" + port, Handler: mux, TLSConfig: tlsConfig, ReadHeaderTimeout: 5e9, ReadTimeout: 30e9, WriteTimeout: 30e9, IdleTimeout: 60e9}, cert: certPath, key: keyPath}, nil
 }

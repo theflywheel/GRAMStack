@@ -41,3 +41,8 @@ Set `ADAPTER_RETRIEVAL_CONFIG_FILE` and a separate PKCS8 `ADAPTER_EVIDENCE_SIGNI
 ```
 
 Private authority/custody calls use the adapter's service identity and pinned gateway server name. Evidence, grant and service signing keys must be distinct. The native client disables connection reuse to prevent implicit retries of its GET after an ambiguous disconnect; application-level retries are absent. Neither the gateway nor adapter serves cached business responses. The batch release profile requires real durable custody acknowledgement; a pending anchor does not claim DeDi publication. Shared conformance/discovery and real registry onboarding remain separate from the fictional native transport.
+
+
+## Discovery listener
+
+When protected retrieval is configured, the public `PORT` listener publishes the SDK manifest and public JWK set. It serves no retrieval RPC. `ADAPTER_TLS_PORT` remains mandatory-mTLS for protected operations. Gateway registry configuration pins `discovery.version=0.1.0`, its public origin and required resources, while the existing private origin/server name and approved evidence keys remain separate. The public metadata expresses configured capabilities; readiness and successful source access are separate checks. No data/private-key material is part of discovery.

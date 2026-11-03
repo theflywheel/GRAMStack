@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	az "github.com/theflywheel/GRAMStack/services/gateway/internal/authorization"
 	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/discovery"
 )
 
 var ErrConflict = errors.New("disclosure dispatch already exists or stopped")
@@ -28,7 +29,10 @@ var ErrDenied = errors.New("disclosure request binding denied")
 var ErrDependency = errors.New("protected retrieval unavailable")
 var identifier = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
 
-type Endpoint struct{ Registry, AdapterID, Audience, Origin, ServerName string }
+type Endpoint struct {
+	Registry, AdapterID, Audience, Origin, ServerName string
+	Discovery                                         *discovery.Approved
+}
 type ReceiptVerifier interface {
 	VerifyReceipt(context.Context, string, string, string, az.Grant) error
 }
@@ -39,6 +43,7 @@ type Config struct {
 	Endpoints            []Endpoint
 	CA, Certificate, Key []byte
 	MaxConcurrent        int
+	Discovery            *discovery.Verifier
 }
 type endpoint struct {
 	descriptor Endpoint
@@ -50,6 +55,7 @@ type Service struct {
 	receipts  ReceiptVerifier
 	endpoints map[string]endpoint
 	slots     chan struct{}
+	discovery *discovery.Verifier
 }
 type request struct {
 	AttemptID string       `json:"attempt_id"`
@@ -65,7 +71,7 @@ type response struct {
 }
 
 func New(c Config) (*Service, error) {
-	if c.Pool == nil || c.Authority == nil || c.Receipts == nil || len(c.Endpoints) == 0 || c.MaxConcurrent < 1 || c.MaxConcurrent > 64 {
+	if c.Pool == nil || c.Authority == nil || c.Receipts == nil || c.Discovery == nil || len(c.Endpoints) == 0 || c.MaxConcurrent < 1 || c.MaxConcurrent > 64 {
 		return nil, errors.New("retrieval dependencies and bounded concurrency required")
 	}
 	roots := x509.NewCertPool()
@@ -76,12 +82,17 @@ func New(c Config) (*Service, error) {
 	if err != nil {
 		return nil, ErrDenied
 	}
-	s := &Service{c.Pool, c.Authority, c.Receipts, map[string]endpoint{}, make(chan struct{}, c.MaxConcurrent)}
+	s := &Service{c.Pool, c.Authority, c.Receipts, map[string]endpoint{}, make(chan struct{}, c.MaxConcurrent), c.Discovery}
+	audiences := map[string]bool{}
 	for _, e := range c.Endpoints {
 		u, err := url.Parse(e.Origin)
 		if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") || !identifier.MatchString(e.Registry) || !identifier.MatchString(e.AdapterID) || !identifier.MatchString(e.Audience) || e.ServerName == "" {
 			return nil, ErrDenied
 		}
+		if !e.Discovery.Matches(e.Registry, e.AdapterID, e.Audience) || audiences[e.Audience] {
+			return nil, ErrDenied
+		}
+		audiences[e.Audience] = true
 		if _, ok := s.endpoints[e.Registry]; ok {
 			return nil, ErrDenied
 		}
@@ -149,4 +160,19 @@ func (s *Service) fetch(ctx context.Context, e endpoint, input request) (respons
 		}
 	}
 	return out, nil
+}
+
+func (s *Service) checkDiscovery(ctx context.Context, g az.Grant) error {
+	for _, e := range s.endpoints {
+		if e.descriptor.Audience == g.Audience {
+			if !e.descriptor.Discovery.Allows(g.Resource, g.Fields) {
+				return ErrDenied
+			}
+			if err := s.discovery.Check(ctx, e.descriptor.Discovery); err != nil {
+				return ErrDependency
+			}
+			return nil
+		}
+	}
+	return ErrDenied
 }

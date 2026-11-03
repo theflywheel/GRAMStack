@@ -77,3 +77,14 @@ for (const name of Object.keys(portalSchemas.$defs)) {
   }
 }
 console.log(`Verified consent portal profile 0.1.0 and ${portalCases.length} fixtures.`)
+
+const discoveryRoot = new URL('../../specs/adapter-discovery/0.1.0/', import.meta.url)
+const discoverySchemas = JSON.parse(readFileSync(new URL('schemas.json', discoveryRoot), 'utf8'))
+ajv.addSchema(discoverySchemas)
+const discoveryCases = JSON.parse(readFileSync(new URL('examples.json', discoveryRoot), 'utf8')).cases
+for (const name of Object.keys(discoverySchemas.$defs)) {
+  const validate = ajv.getSchema(`${discoverySchemas.$id}#/$defs/${name}`)
+  assert.ok(discoveryCases.some(e => e.schema === name && e.valid), `Missing discovery example: ${name}`)
+  for (const example of discoveryCases.filter(e => e.schema === name)) assert.equal(validate(example.value), example.valid, `${example.name}: ${ajv.errorsText(validate.errors)}`)
+}
+console.log(`Verified adapter discovery profile 0.1.0 and ${discoveryCases.length} fixtures.`)

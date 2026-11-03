@@ -29,3 +29,8 @@ const portalReadme = await readFile(new URL('README.md', portalRoot), 'utf8')
 const portalDownload = 'https://docs.gramstack.try-dough.com/static/specs/consent-portal/0.1.0/'
 const portalText = portalReadme.replace(/\]\((schemas|examples)\.json\)/g, `](${portalDownload}$1.json)`)
 await writeFile(new URL('consent-portal.md', target), front('First-party consent portal') + portalText + '\n[Download schemas](' + portalDownload + 'schemas.json) · [Download fixtures](' + portalDownload + 'examples.json)\n')
+
+const discoveryRoot = new URL('adapter-discovery/0.1.0/', source)
+const discoveryReadme = await readFile(new URL('README.md', discoveryRoot), 'utf8')
+const discoveryDownload = 'https://docs.gramstack.try-dough.com/static/specs/adapter-discovery/0.1.0/'
+await writeFile(new URL('adapter-discovery.md', target), front('Adapter discovery and public keys') + discoveryReadme.replace(/\]\((schemas|examples)\.json\)/g, `](${discoveryDownload}$1.json)`) + '\n[Download schemas](' + discoveryDownload + 'schemas.json) · [Download fixtures](' + discoveryDownload + 'examples.json)\n')

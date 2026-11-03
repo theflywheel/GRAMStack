@@ -24,14 +24,14 @@ func boundedFile(path string) ([]byte, error) {
 	}
 	return raw, nil
 }
-func configureRetrieval(mux *http.ServeMux, contexts *sdk.SQLContextStore, attempts *sdk.SQLAttemptStore, provider sdk.Provider, method string, ca, cert, key []byte, mode string) error {
+func configureRetrieval(mux *http.ServeMux, contexts *sdk.SQLContextStore, attempts *sdk.SQLAttemptStore, provider sdk.Provider, method string, ca, cert, key []byte, mode string) (http.Handler, error) {
 	path := os.Getenv("ADAPTER_RETRIEVAL_CONFIG_FILE")
 	if path == "" {
-		return nil
+		return nil, nil
 	}
 	raw, err := boundedFile(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var c struct {
 		Issuer   string `json:"grant_issuer"`
@@ -47,80 +47,80 @@ func configureRetrieval(mux *http.ServeMux, contexts *sdk.SQLContextStore, attem
 		MaxConcurrent  int    `json:"max_concurrent"`
 	}
 	if sdk.Decode(raw, &c) != nil {
-		return errors.New("invalid retrieval configuration")
+		return nil, errors.New("invalid retrieval configuration")
 	}
 	keys := map[string]*ecdsa.PublicKey{}
 	for _, entry := range c.Keys {
 		if _, ok := keys[entry.KeyID]; ok {
-			return errors.New("duplicate grant key")
+			return nil, errors.New("duplicate grant key")
 		}
 		raw, err := boundedFile(entry.File)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		block, rest := pem.Decode(raw)
 		if block == nil || block.Type != "PUBLIC KEY" || len(rest) != 0 {
-			return errors.New("grant public key required")
+			return nil, errors.New("grant public key required")
 		}
 		value, err := x509.ParsePKIXPublicKey(block.Bytes)
 		if err != nil {
-			return errors.New("invalid grant public key")
+			return nil, errors.New("invalid grant public key")
 		}
 		public, ok := value.(*ecdsa.PublicKey)
 		if !ok {
-			return errors.New("ECDSA grant public key required")
+			return nil, errors.New("ECDSA grant public key required")
 		}
 		keys[entry.KeyID] = public
 	}
 	verifier, err := sdk.NewGrantVerifier(c.Issuer, c.Audience, keys, mode == "development")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	raw, err = boundedFile(os.Getenv("ADAPTER_EVIDENCE_SIGNING_KEY_FILE"))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	block, rest := pem.Decode(raw)
 	if block == nil || block.Type != "PRIVATE KEY" || len(rest) != 0 {
-		return errors.New("PKCS8 evidence private key required")
+		return nil, errors.New("PKCS8 evidence private key required")
 	}
 	parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
-		return errors.New("invalid evidence private key")
+		return nil, errors.New("invalid evidence private key")
 	}
 	signing, ok := parsed.(*ecdsa.PrivateKey)
 	if !ok {
-		return errors.New("ECDSA evidence key required")
+		return nil, errors.New("ECDSA evidence key required")
 	}
 	serviceCert, _ := pem.Decode(cert)
 	if serviceCert == nil {
-		return errors.New("service certificate required")
+		return nil, errors.New("service certificate required")
 	}
 	leaf, err := x509.ParseCertificate(serviceCert.Bytes)
 	if err != nil || signing.PublicKey.Equal(leaf.PublicKey) {
-		return errors.New("evidence signing and service TLS keys must be distinct")
+		return nil, errors.New("evidence signing and service TLS keys must be distinct")
 	}
 	for _, grantKey := range keys {
 		if signing.PublicKey.Equal(grantKey) {
-			return errors.New("grant and evidence signing keys must be distinct")
+			return nil, errors.New("grant and evidence signing keys must be distinct")
 		}
 	}
 	signer, err := sdk.NewEvidenceSigner(c.EvidenceKeyID, signing)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	client, err := sdk.ServiceClient(ca, cert, key, c.AuthorityPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	authority, err := sdk.NewAuthorityClient(c.Authority, client)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	service, err := sdk.NewRetrieval(sdk.RetrievalConfig{Registry: "lokos", AdapterID: "lokos-adapter", GatewayIdentity: "gateway.gramstack.internal", VerificationMethod: method, Provider: provider, Grants: verifier, Contexts: contexts, Attempts: attempts, Authority: authority, Custodian: authority, Signer: signer, SigningKeys: map[string]*ecdsa.PublicKey{c.EvidenceKeyID: &signing.PublicKey}, ReleaseProfile: c.ReleaseProfile, MaxConcurrent: c.MaxConcurrent})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	mux.Handle("POST /internal/v1/retrievals", service.Handler())
-	return nil
+	return service.DiscoveryHandler(), nil
 }

@@ -2,6 +2,7 @@
 # Isolated, real Hydra/PostgreSQL integration. No production URLs or credentials.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+if [[ "${GRAMSTACK_TEST_DISCOVERY:-}" == 1 ]]; then export GRAMSTACK_TEST_RETRIEVAL=1; fi
 if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then export GRAMSTACK_TEST_CUSTODY=1; fi
 if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then export GRAMSTACK_TEST_AUTHZ=1; fi
 if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then export GRAMSTACK_TEST_WORKERS=1; fi
@@ -176,7 +177,7 @@ PYA
   export GRAMSTACK_TEST_SOURCE_READ_GATE="$scratch/source-read-gate"
   source_port=$(free_port);adapter_port=$(free_port);adapter_health_port=$(free_port)
   export LOKOS_SOURCE_URL="https://127.0.0.1:$source_port" LOKOS_SOURCE_SERVER_NAME="mock-lokos.gramstack.internal" ADAPTER_TLS_PORT="$adapter_port"
-  export GRAMSTACK_TEST_ADAPTER_URL="https://127.0.0.1:$adapter_port" GRAMSTACK_TEST_SOURCE_URL="$LOKOS_SOURCE_URL"
+  export GRAMSTACK_TEST_ADAPTER_PUBLIC="http://127.0.0.1:$adapter_health_port" GRAMSTACK_TEST_ADAPTER_URL="https://127.0.0.1:$adapter_port" GRAMSTACK_TEST_SOURCE_URL="$LOKOS_SOURCE_URL"
   GOWORK=off go run "$root/tools/devcerts/main.go" -dir "$scratch/certs"
   cp "$root/adapters/lokos/go.mod" "$scratch/lokos.mod"; cp "$root/adapters/lokos/go.sum" "$scratch/lokos.sum"
   GOWORK=off go -C "$root/adapters/lokos" mod edit -modfile="$scratch/lokos.mod" -replace="github.com/theflywheel/GRAMStack/sdk/go/adapter=$root/sdk/go/adapter"
@@ -220,6 +221,7 @@ if os.environ.get('GRAMSTACK_TEST_CUSTODY')=='1':
  config['authorization']['adapters'][0].update(adapter_id='lokos-adapter',evidence_keys=[dict(key_id='demo-adapter-key',file=str(certs/'adapter-evidence.pub'))])
 if os.environ.get('GRAMSTACK_TEST_RETRIEVAL')=='1':
  config['authorization']['retrieval']=dict(max_concurrent=4)
+ config['registries'][0]['discovery']=dict(version='0.1.0',origin=os.environ['GRAMSTACK_TEST_ADAPTER_PUBLIC'],resources=[dict(name='shg.membership',version='1',fields=['membership_status','savings_summary'])])
  adapter=dict(grant_issuer=config['public_origin'],grant_audience='lokos-adapter',grant_keys=[dict(key_id='demo-grant-key',file=str(certs/'grant-signing.pub'))],authority_origin=os.environ['GRAMSTACK_TEST_AUTHZ_URL'],authority_service_identity='gateway.gramstack.internal',evidence_key_id='demo-adapter-key',release_profile='batch',max_concurrent=4)
  pathlib.Path(os.environ['ADAPTER_RETRIEVAL_CONFIG_FILE']).write_text(json.dumps(adapter))
 path.write_text(json.dumps(config))
@@ -249,6 +251,7 @@ PYW
   if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then pattern="$pattern|^TestActualAuthorization$"; fi
   if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceCustody$"; fi
   if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then pattern="$pattern|^TestActualProtectedRetrieval$"; fi
+  if [[ "${GRAMSTACK_TEST_DISCOVERY:-}" == 1 ]]; then pattern="$pattern|^TestActualAdapterDiscovery$"; fi
   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then
    stop_gateway

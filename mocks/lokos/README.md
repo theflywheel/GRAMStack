@@ -9,3 +9,6 @@ The service requires mTLS and the `lokos-adapter.gramstack.internal` certificate
 `SOURCE_TLS_PORT` defaults to 8444. Optional `MOCK_VERIFICATION_GATE_DIRECTORY` is a private local test control directory: file `unavailable` produces 503; file `enabled` makes verification create marker `entered` and await `release` or request cancellation. These filesystem controls exist only in this explicitly enabled mock; no remote failure-control API is exposed.
 
 The integration runner creates the CA, private configuration and databases, runs the test cases and cleans them up. Fixture balances are INR rupees and have no relation to real people. Durable production native integrations, discovery and protected disclosure are separate deliverables.
+
+
+`MOCK_READ_GATE_DIRECTORY` optionally enables operator-only acceptance controls: `reads.log` appends a fixed marker per native read attempt, `offline` returns unavailable, `disconnect` closes the native response connection, and `block` waits for `release` after creating `entered`. These private temporary files never form a public HTTP control API or authority store. They contain no source values. The source process is separate from the SDK adapter and gateway; all records/identity bindings are fictional. The full data suite uses these controls to prove no implicit retry, evidence withholding and the withdrawal admission cutoff.

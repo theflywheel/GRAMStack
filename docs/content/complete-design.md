@@ -190,6 +190,26 @@ The component contracts are language-independent. Deployment boundaries follow c
 Every GRAMStack-facing retrieval must pass authorized enforcement and produce required evidence before protected release. Upstream credentials must not be exposed to consumers. This claim covers GRAMStack-mediated retrieval, not unrelated native LokOS applications, administrative access or other integration credentials.
 
 
+## Adapter discovery and onboarding trust
+
+```mermaid
+graph TD
+    O["Operator-approved descriptor: origins, identity, resources, method and public keys"] --> V["Gateway validates public discovery metadata"]
+    M["Adapter public manifest and JWK set"] --> V
+    V --> D{"Exact approved contract and key material?"}
+    D -->|No or unavailable| N["Block before dispatch: no attempt or source call"]
+    D -->|Yes| T["Original sender, grant and request checks"]
+    T --> A["Private service-mTLS adapter retrieval"]
+    A --> R["Atomic redemption and evidence-before-release"]
+```
+
+An independently hosted adapter publishes public capabilities and public verification keys. Its protected verification/retrieval RPCs use a separate mTLS listener. The gateway's descriptor pins the public metadata origin, private data origin/service identity, registry, adapter ID/audience, verification method, resource name/version/fields and approved signing key material. Discovery confirms the deployed contract; it cannot enroll a key, choose a new host, broaden policy or verify a person's registry ownership.
+
+The [adapter discovery profile](specifications/adapter-discovery) defines fixed well-known paths, explicit versions, bounded JSON and strict EC/P-256 public JWKs. Before each protected dispatch, gateway checks the advertised method, required capabilities, resource versions and exact approved key points. Redirects, private key parameters, unknown fields, duplicate identities and unsupported algorithms fail closed. Metadata reads send no consumer token, cookie or private service credential. Production metadata uses HTTPS; explicit development permits literal-loopback HTTP only.
+
+Unavailable or incompatible metadata returns a safe failure before the gateway claims an attempt. The request can proceed after valid metadata is restored. Actual permission still requires current source policy, verified subject, ACTIVE consent, original consumer certificate, independent SDK checks, atomic one-use admission and durable evidence. The manifest is a capability declaration, with dependency availability checked separately from trust.
+
+
 ---
 
 # Authentication

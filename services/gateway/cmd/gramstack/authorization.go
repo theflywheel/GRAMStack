@@ -21,6 +21,7 @@ import (
 	az "github.com/theflywheel/GRAMStack/services/gateway/internal/authorization"
 	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/consumer"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/discovery"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/evidence/custody"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/retrieval"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/subjectbinding"
@@ -214,7 +215,20 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 						if registry.ServerName != a.Peer {
 							return nil, errors.New("adapter identities disagree")
 						}
-						endpoints = append(endpoints, retrieval.Endpoint{Registry: a.Registry, AdapterID: a.ID, Audience: a.Audience, Origin: registry.Origin, ServerName: registry.ServerName})
+						if registry.Discovery == nil {
+							return nil, errors.New("approved discovery descriptor required")
+						}
+						var approvedKeys map[string]*ecdsa.PublicKey
+						for _, entry := range entries {
+							if entry.ID == a.ID {
+								approvedKeys = entry.Keys
+							}
+						}
+						approved, err := discovery.Approve(discovery.Descriptor{Version: registry.Discovery.Version, Origin: registry.Discovery.Origin, Registry: a.Registry, AdapterID: a.ID, Audience: a.Audience, VerificationMethod: registry.Method, Resources: registry.Discovery.Resources, Keys: approvedKeys}, loopback)
+						if err != nil {
+							return nil, err
+						}
+						endpoints = append(endpoints, retrieval.Endpoint{Registry: a.Registry, AdapterID: a.ID, Audience: a.Audience, Origin: registry.Origin, ServerName: registry.ServerName, Discovery: approved})
 						found = true
 					}
 				}
@@ -230,7 +244,11 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 			if err != nil {
 				return nil, err
 			}
-			dataService, err = retrieval.New(retrieval.Config{Pool: pool, Authority: service, Receipts: custodian, Endpoints: endpoints, CA: ca, Certificate: certificate, Key: secret, MaxConcurrent: c.Retrieval.MaxConcurrent})
+			metadata, err := discovery.New(ca)
+			if err != nil {
+				return nil, err
+			}
+			dataService, err = retrieval.New(retrieval.Config{Discovery: metadata, Pool: pool, Authority: service, Receipts: custodian, Endpoints: endpoints, CA: ca, Certificate: certificate, Key: secret, MaxConcurrent: c.Retrieval.MaxConcurrent})
 			if err != nil {
 				return nil, err
 			}

@@ -37,6 +37,10 @@ func main() {
 		port = "8080"
 	}
 	mux := http.NewServeMux()
+	if runtime != nil && runtime.metadata != nil {
+		mux.Handle("GET /.well-known/gramstack-adapter", runtime.metadata)
+		mux.Handle("GET /.well-known/gramstack-adapter/jwks.json", runtime.metadata)
+	}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte("ok\n"))

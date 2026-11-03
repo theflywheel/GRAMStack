@@ -49,6 +49,14 @@ func (s *Service) Handler() http.Handler {
 			failure(w, 429, "CAPACITY_UNAVAILABLE")
 			return
 		}
+		if err = s.checkDiscovery(r.Context(), g); err != nil {
+			status, code := 503, "ADAPTER_NOT_READY"
+			if errors.Is(err, ErrDenied) {
+				status, code = 403, "RESOURCE_NOT_APPROVED"
+			}
+			failure(w, status, code)
+			return
+		}
 		input, e, err := s.claim(r.Context(), g, compact)
 		if err != nil {
 			status, code := 503, "RETRIEVAL_UNAVAILABLE"
