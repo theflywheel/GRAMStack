@@ -154,6 +154,8 @@ func TestRequestRejections(t *testing.T) {
 		name, token, key, body string
 		want                   int
 	}{
+		{"null body", "one", rand.Text(), "null", 400},
+		{"empty object", "one", rand.Text(), "{}", 400},
 		{"missing token", "", rand.Text(), requestJSON, 401},
 		{"invalid token", "invalid", rand.Text(), requestJSON, 401},
 		{"missing key", "one", "", requestJSON, 400},

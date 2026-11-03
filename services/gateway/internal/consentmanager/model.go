@@ -150,12 +150,25 @@ func validFields(fields []string) bool {
 
 // ValidateSnapshot checks structural bounds; it does not establish identity or consent.
 func ValidateSnapshot(s Snapshot) error {
-	for _, id := range []string{s.RequestID, s.ConsumerID, s.Request.Registry, s.Request.Resource, s.Request.Purpose, s.Request.SubjectHint.Type, s.Request.RecipientTerms.RetentionPolicyID} {
+	for _, id := range []string{s.RequestID, s.ConsumerID} {
 		if !identifier.MatchString(id) {
 			return ErrBinding
 		}
 	}
-	if !validFields(s.Request.Fields) || !digestPattern.MatchString(s.RecipientTermsDigest) || s.Request.SubjectHint.Value == "" || len(s.Request.SubjectHint.Value) > 1024 || !utf8.ValidString(s.Request.SubjectHint.Value) || s.Request.Access.Mode != "single_use" || s.Request.Access.ValidForSeconds < 1 || s.Request.Access.ValidForSeconds > 300 || s.CreatedAt.IsZero() || !s.ExpiresAt.After(s.CreatedAt) {
+	if !digestPattern.MatchString(s.RecipientTermsDigest) || s.CreatedAt.IsZero() || !s.ExpiresAt.After(s.CreatedAt) {
+		return ErrBinding
+	}
+	return ValidateAccessRequest(s.Request)
+}
+
+// ValidateAccessRequest checks wire structure without treating it as approved scope.
+func ValidateAccessRequest(r AccessRequest) error {
+	for _, id := range []string{r.Registry, r.Resource, r.Purpose, r.SubjectHint.Type, r.RecipientTerms.RetentionPolicyID} {
+		if !identifier.MatchString(id) {
+			return ErrBinding
+		}
+	}
+	if !validFields(r.Fields) || r.SubjectHint.Value == "" || len(r.SubjectHint.Value) > 1024 || !utf8.ValidString(r.SubjectHint.Value) || r.Access.Mode != "single_use" || r.Access.ValidForSeconds < 1 || r.Access.ValidForSeconds > 300 {
 		return ErrBinding
 	}
 	return nil

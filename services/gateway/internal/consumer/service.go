@@ -100,6 +100,9 @@ func (s *Service) Create(ctx context.Context, client, key string, input cm.Acces
 	if !idPattern.MatchString(key) {
 		return Accepted{}, ErrInput
 	}
+	if cm.ValidateAccessRequest(input) != nil {
+		return Accepted{}, ErrInput
+	}
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	snapshot := cm.Snapshot{RequestID: rand.Text(), ConsumerID: client, CreatedAt: now, ExpiresAt: now.Add(10 * time.Minute), Request: input}
 	// Bind approved text, not merely a mutable policy label.
