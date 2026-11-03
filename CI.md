@@ -42,7 +42,9 @@ Baseline hosted warm run: [7c6b17a](https://github.com/theflywheel/GRAMStack/act
 
 The verifier execution step was 22 seconds; Go setup/cache restore was 10–14 seconds per job. The docs baseline [9d8f991](https://github.com/theflywheel/GRAMStack/actions/runs/41607163502) was 22 seconds including setup/install/build.
 
-On the local warm cache, the unchanged full verification command measured 6.54 seconds before parallelisation and 3.78 seconds after. These are single local observations, not a hosted-CI speed guarantee. Record hosted results after the updated workflow has warmed its revised cache keys.
+On the local warm cache, the unchanged full verification command measured 6.54 seconds before parallelisation and 3.78 seconds after. These are single local observations, not a hosted-CI speed guarantee. The [warm hosted repeat](https://github.com/theflywheel/GRAMStack/actions/runs/41613574810/attempts/2) passed every check: overall elapsed 33 seconds and summed job elapsed 105 seconds (verifier 21, PostgreSQL 24, DeDi 28, combined Hydra 32). Relative to the baseline, those single-run observations are about 28% less elapsed time and 35% less summed job work, not a statistical benchmark or billing estimate.
+
+The first run with revised dependency keys also passed, but took 134 seconds overall / 453 summed job seconds while recompiling cold caches. Keep this cost visible when changing dependencies; do not compare a cold run with a warm baseline. Exact dependency caches are retained. A proposed broader toolchain-only fallback was rejected by automatic approval review due to the expanded cache-poisoning trust boundary and was not implemented.
 
 ## Ongoing acceptance
 

@@ -55,7 +55,7 @@ Gate E: D15–D17 pass. Final deliverables are a working product, reusable platf
 
 ## Continuous CI acceptance
 
-CI speed is part of each phase gate. Measure critical-path and total job time, remove duplicate setup/build work, maintain complete cache keys, and keep local feedback fast without weakening race, security, live-integration or usability checks. See [CI.md](CI.md) for coverage, optimisations and measured evidence.
+CI speed is part of each phase gate. Measure critical-path and total job time, remove duplicate setup/build work, maintain complete cache keys, and keep local feedback fast without weakening race, security, live-integration or usability checks. See [CI.md](CI.md) for coverage, optimisations and measured evidence. Current measured warm Go CI: 46 → 33 seconds elapsed and 161 → 105 summed job seconds, with all checks passing; exact dependency caches retained.
 
 ## Evidence and current work
 
