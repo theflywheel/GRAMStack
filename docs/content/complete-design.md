@@ -299,11 +299,13 @@ Arbitrary query parameters and the browser's returned `request_id` are not trust
 
 ## eSignet and Indian integrations
 
-MOSIP eSignet serves as an upstream OIDC test provider and an optional registry-owned identity pattern. It is not mandatory for every registry. A registry-run IdP only solves subject ownership if it authenticates the actual member and securely asserts the account-to-record relationship; an operator login or arbitrary `sub` does not produce that guarantee.
+The reference demo uses the official MOSIP eSignet service and UI as its upstream OIDC provider, backed by MOSIP’s mock identity system. Other deployments select a trusted provider through the adapter profile. A registry-run IdP only solves subject ownership if it authenticates the actual member and securely asserts the account-to-record relationship; an operator login or arbitrary `sub` does not produce that guarantee.
 
 MeriPehchaan/JanParichay is a production integration candidate subject to onboarding, partner contracts and verified protocol documentation. Do not assume an endpoint described as OAuth is OIDC. SAML or custom integration may be needed. An AUA is a UIDAI ecosystem role, not automatically a third-party OIDC provider.
 
-Local eSignet/mock OIDC and a mock SAML provider support deterministic protocol tests independently of government partner onboarding. Production identity integrations use the provider's documented protocols, trust configuration and access agreements.
+The independent Go module `adapters/auth/oidc` owns provider discovery, token authentication, signature verification and normalization to a verified principal. A versioned public profile pins issuer, client ID, accepted ID-token algorithms and the client-assertion audience; secrets and signing keys are supplied separately. The eSignet profile uses `private_key_jwt` and PS256. State custody, browser binding, request ownership and short-lived first-party sessions remain platform responsibilities. Neither OAuth login nor an upstream identity claim grants disclosure consent.
+
+Local mock OIDC tests provide fast protocol regressions alongside the official eSignet integration. SAML and government integrations use the provider’s documented protocols, trust configuration and access agreements through the same transaction-oriented adapter boundary. An authentication result preserves issuer, pairwise subject, signed authentication time, methods when supplied, assurance provenance and transaction correlation; it invents no registry ownership or assurance equivalence.
 
 ## Security and failure behavior
 

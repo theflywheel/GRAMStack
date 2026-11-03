@@ -11,6 +11,8 @@ cleanup(){
   rm -rf "$scratch"
 }
 trap cleanup EXIT
+source "$root/scripts/gateway-module.sh"
+prepare_gateway_module "$root" "$scratch"
 cmp "$root/specs/0.2.0/lifecycle.json" "$root/services/gateway/internal/access/testdata/lifecycle.json"
 # Before the first SDK release, resolve its source in a temporary module file.
 cp "$root/adapters/lokos/go.mod" "$scratch/lokos.mod"
@@ -40,15 +42,20 @@ wait_checks(){
 }
 # Two workers bound compiler/memory contention on small CI runners. Logs stay
 # per module and every worker's exit status is collected before the next gate.
-launch gateway check_module services/gateway
+launch gateway check_module services/gateway -modfile="$gramstack_gateway_modfile"
 launch sdk check_module sdk/go/adapter
 wait_checks
 launch lokos check_module adapters/lokos -modfile="$scratch/lokos.mod"
 launch identity check_module mocks/identity
 wait_checks
+check_esignet_tool(){
+  GOWORK=off go -C "$root/adapters/auth/oidc" test -race "$root/tools/esignet-demo/main.go" "$root/tools/esignet-demo/main_test.go"
+  GOWORK=off go -C "$root/adapters/auth/oidc" vet "$root/tools/esignet-demo/main.go" "$root/tools/esignet-demo/main_test.go"
+}
 launch oidc check_module adapters/auth/oidc
+launch esignet-tool check_esignet_tool
 wait_checks
-launch gateway-build env GOWORK=off go -C "$root/services/gateway" build -o "$scratch/gateway" ./cmd/gramstack
+launch gateway-build gateway_go build -o "$scratch/gateway" ./cmd/gramstack
 launch lokos-build env GOWORK=off go -C "$root/adapters/lokos" build -modfile="$scratch/lokos.mod" -o "$scratch/lokos-adapter" ./cmd/lokos-adapter
 wait_checks
 

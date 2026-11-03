@@ -8,9 +8,11 @@ cleanup(){
   rm -rf "$scratch"
 }
 trap cleanup EXIT
+source "$root/scripts/gateway-module.sh"
+prepare_gateway_module "$root" "$scratch"
 "$PG_BIN/initdb" -D "$scratch/pg" -U gramstack --auth-local=trust --auth-host=scram-sha-256 > "$scratch/initdb.log"
 "$PG_BIN/pg_ctl" -D "$scratch/pg" -l "$scratch/pg.log" -o "-k $scratch -p 55439 -c listen_addresses=''" -w start >/dev/null
 "$PG_BIN/createdb" -h "$scratch" -p 55439 -U gramstack gramstack_core
 export GRAMSTACK_TEST_DATABASE_URL="postgres://gramstack@localhost/gramstack_core?host=$scratch&port=55439&sslmode=disable"
-GOWORK=off go -C "$root/services/gateway" test -race -count=1 -v ./internal/enforcement ./internal/consentmanager ./internal/consumer ./internal/authn
-DATABASE_URL="$GRAMSTACK_TEST_DATABASE_URL" GOWORK=off go -C "$root/services/gateway" run ./cmd/gramstack migrate
+gateway_go test -race -count=1 -v ./internal/enforcement ./internal/consentmanager ./internal/consumer ./internal/authn
+DATABASE_URL="$GRAMSTACK_TEST_DATABASE_URL" gateway_go run ./cmd/gramstack migrate

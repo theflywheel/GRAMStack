@@ -196,3 +196,22 @@ func TestCallbackShape(t *testing.T) {
 		}
 	}
 }
+
+func TestExpiredPrincipalCannotAuthorize(t *testing.T) {
+	pool, key := database(t)
+	store, err := NewStore(pool, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	expired := Principal{Reference: "expired-principal", Issuer: "https://issuer.example", Subject: "person", ExpiresAt: time.Now().Add(-time.Second)}
+	// The request-scoped identity binding can outlive authentication solely to
+	// reject a different person on reauth; it confers no current authority.
+	if err = store.Put(ctx, "auth.principal", "expired-principal-request", "server", expired, time.Now().Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	service := &Service{store: store}
+	if _, err = service.Principal(ctx, "expired-principal-request", expired.Reference); !errors.Is(err, ErrAuthentication) {
+		t.Fatal("expired principal authorized an operation")
+	}
+}

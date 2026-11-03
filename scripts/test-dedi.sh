@@ -11,6 +11,8 @@ cleanup() {
   rm -rf "$scratch"
 }
 trap cleanup EXIT
+source "$root/scripts/gateway-module.sh"
+prepare_gateway_module "$root" "$scratch"
 if [[ -n "${DEDI_BINARY:-}" ]]; then cp "$DEDI_BINARY" "$scratch/dedid"; else
   GOWORK=off go -C "$DEDI_SOURCE" build -mod=readonly -o "$scratch/dedid" ./cmd/dedid
 fi
@@ -37,12 +39,12 @@ export GRAMSTACK_TEST_DEDI_URL="http://127.0.0.1:$port"
 export GRAMSTACK_TEST_DEDI_PUBLISHER_KEY=$(cat "$scratch/publisher.key")
 export GRAMSTACK_TEST_DEDI_PASSWORD="$password"
 export GRAMSTACK_TEST_DEDI_VERIFIER=$(tail -n 1 "$scratch/node-public.txt")
-GOWORK=off go -C "$root/services/gateway" test -race -count=1 -v ./internal/evidence/dedi -run TestLiveNode
+gateway_go test -race -count=1 -v ./internal/evidence/dedi -run TestLiveNode
 export DEDI_NODE_URL="$GRAMSTACK_TEST_DEDI_URL" DEDI_NAMESPACE=gramstack-test DEDI_REGISTRY=commitments
 export DEDI_PUBLISHER_KEY_ID=gramstack-test DEDI_PUBLISHER_KEY_FILE="$scratch/publisher.key"
 export DEDI_ADMIN_USER=admin DEDI_ADMIN_PASSWORD="$password" DEDI_CHECKPOINT_ORIGIN=gramstack-test/log
 export DEDI_CHECKPOINT_VERIFIER="$GRAMSTACK_TEST_DEDI_VERIFIER"
-GOWORK=off go -C "$root/services/gateway" run ./cmd/gramstack anchor -development-loopback -event-id cli-integration-event -digest "sha256:$(printf '%064d' 0)" > "$scratch/anchor.json"
+gateway_go run ./cmd/gramstack anchor -development-loopback -event-id cli-integration-event -digest "sha256:$(printf '%064d' 0)" > "$scratch/anchor.json"
 python3 - "$scratch/anchor.json" <<'CHECK'
 import json,sys
 v=json.load(open(sys.argv[1]));assert v['tree_size']>0 and len(v['record_id'])==64 and v['checkpoint']

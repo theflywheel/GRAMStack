@@ -172,6 +172,21 @@ func TestActualESignet(t *testing.T) {
 	if result.Scheme != "http" || result.Host != "127.0.0.1:19999" || result.Path != "/auth/provider/callback" || result.Query().Get("state") != tx.State || result.Query().Get("code") == "" || result.Query().Get("error") != "" {
 		t.Fatal("invalid callback binding")
 	}
+	wrongKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrongDER, err := x509.MarshalPKCS8PrivateKey(wrongKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	invalidClient, err := New(context.Background(), profile, Credentials{PrivateKeyPEM: pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: wrongDER})}, callback, Options{AllowLoopback: true, AllowDemo: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = invalidClient.Complete(context.Background(), result.Query().Get("code"), tx); err == nil {
+		t.Fatal("unregistered client assertion key accepted by actual eSignet")
+	}
 	principal, err := adapter.Complete(context.Background(), result.Query().Get("code"), tx)
 	if err != nil {
 		t.Fatal("real eSignet token exchange:", err)

@@ -29,6 +29,7 @@ type provider struct {
 	client   *http.Client
 }
 type Principal struct {
+	Assurance                   string
 	Reference, Issuer, Subject  string
 	AuthenticationTransactionID string
 	ExpiresAt                   time.Time

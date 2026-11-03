@@ -1,6 +1,6 @@
 # First-party authentication and federation
 
-Hydra v26.2.0 remains the OAuth/OIDC engine. This package implements the first-party request-scoped login client and Hydra login/consent handlers, with an upstream provider adapter using coreos/go-oidc v3.21.0 and golang.org/x/oauth2. It creates no citizen accounts or reusable cross-registry subject index.
+Hydra v26.2.0 remains the OAuth/OIDC engine. This package implements the first-party request-scoped login client and Hydra login/consent handlers, with the independent `adapters/auth/oidc` upstream provider module. Provider-specific token authentication, cryptography settings and verified-claim normalization stay in that adapter; request/session authority stays here. It creates no citizen accounts or reusable cross-registry subject index.
 
 ## Flow
 
@@ -24,14 +24,22 @@ HTTPS uses Secure, HttpOnly, SameSite=Lax `__Host-` cookies. Literal-loopback de
 
 ## Configuration and supported scope
 
-The gateway's optional `authentication` configuration supplies `client_id`, `hydra_admin_url`, `upstream_issuer`, `upstream_client_id` and `demo_upstream`. Supply `GRAMSTACK_PORTAL_CLIENT_SECRET`, `GRAMSTACK_UPSTREAM_CLIENT_SECRET` and `GRAMSTACK_AUTH_KEY` separately in the environment. Register the exact gateway `/auth/callback` with Hydra and `/auth/provider/callback` with the upstream provider. Configure Hydra login/consent URLs as gateway `/auth/login` and `/auth/oauth-consent`.
+The gateway's optional `authentication` configuration supplies `client_id`, `hydra_admin_url`, a versioned `provider` profile and `demo_upstream`. The public profile contains issuer, client ID, token authentication method, assertion audience/key ID and allowed ID-token algorithms. See `adapters/auth/oidc/README.md` for the format. Supply `GRAMSTACK_PORTAL_CLIENT_SECRET` and `GRAMSTACK_AUTH_KEY` separately. For a basic-secret upstream, set `GRAMSTACK_UPSTREAM_CLIENT_SECRET`; for eSignet's private-key authentication, set `GRAMSTACK_UPSTREAM_PRIVATE_KEY_FILE` to a protected PKCS8 PEM file and leave the upstream secret unset. Credentials are never embedded in the public profile. Startup bounds key reads and rejects mixed credentials.
+
+Register the exact gateway `/auth/callback` with Hydra and `/auth/provider/callback` with the upstream provider. Configure Hydra login/consent URLs as gateway `/auth/login` and `/auth/oauth-consent`. The pinned eSignet profile uses PS256 assertions, issuer audience and PS256 ID tokens. An explicit demo-only profile option handles its mock backend's malformed optional JWKS certificate metadata; JOSE signature checks remain mandatory. No process-wide x509 relaxation is used.
+
+The first-party session cannot outlive the request, the current upstream authentication, the verified Hydra token or ten minutes. An expired principal binding is retained only to enforce same-person reauthentication for that request; it cannot authorize a registry operation.
 
 A fictional upstream declares `gramstack_demo` in discovery and is rejected unless `demo_upstream` is explicitly enabled. The gateway allows that flag only in `GRAMSTACK_ENV=development` or `demo`. HTTP is separately limited to explicitly enabled literal loopback in development. The demo IdP is under `mocks/identity`, not in core `cmd/`.
 
-This increment supports OIDC code flow with RS256/ES256 ID tokens, one configured upstream provider, no remembered identity login/consent and no refresh tokens. It does not implement SAML, native government identity onboarding, registry verification, data grants or the final consent portal. Process readiness remains unavailable until the full disclosure path is configured.
+The upstream adapter supports explicitly pinned RS256/ES256/PS256 ID tokens; Hydra retains its separate RS256/ES256 verification profile. The reference supports OIDC code flow, one configured upstream provider, no remembered identity login/consent and no refresh tokens. It does not implement SAML, native government identity onboarding, registry verification, data grants or the final consent portal. Process readiness remains unavailable until the full disclosure path is configured.
 
 ## Tests
 
 `./scripts/check-go.sh` runs race/vet checks. `PG_BIN=... ./scripts/test-postgres.sh` exercises encrypted state, wrong binding/key, expiry, authenticated-expiry tampering, atomic consumption, restart and session/CSRF rules.
 
 `PG_BIN=... HYDRA_BIN=... GRAMSTACK_TEST_AUTHN=1 ./scripts/test-hydra.sh` starts isolated PostgreSQL, official Hydra, the separate fictional IdP and the configured gateway. It runs the entire redirect/code exchange chain and checks wrong-browser callback, replay, request cancellation/expiry and different-person reauthentication. Authentication stops at BINDING_PENDING with no disclosure consent. CI runs consumer-only and federation variants. Negative token tests cover issuer, audience, nonce, expiry, future issuance, subject, signature and forbidden token-endpoint redirects.
+
+`GRAMSTACK_TEST_ESIGNET=1 PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` runs the real eSignet alternative against the loopback stack in `infra/esignet`. The development-only `tools/esignet-demo` onboards an ephemeral client/key and fictional Sunita/Rani identities. The test reaches the official UI URL, executes its mock OTP flow API, completes both code exchanges, and checks state/browser binding, callback replay, capped session lifetime, same-person renewal, different-person denial and late callbacks after cancellation/expiry. It checks no disclosure consent was created. This is full HTTP federation integration; rendered UI interaction and recording remain separate browser acceptance work.
+
+Before module releases, root `go.work` resolves the auth adapter locally. Standalone CI/integration runners use `scripts/gateway-module.sh` to create temporary module files; no local replace is committed in `go.mod`, and public checksum verification is not disabled. D13 tracks release versions/private-module distribution. The current repository is private and cannot be fetched through the public Go checksum service without appropriate distribution configuration.

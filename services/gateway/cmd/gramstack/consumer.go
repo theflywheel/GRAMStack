@@ -13,6 +13,7 @@ import (
 
 	"github.com/gowebpki/jcs"
 	"github.com/jackc/pgx/v5/pgxpool"
+	oidcadapter "github.com/theflywheel/GRAMStack/adapters/auth/oidc"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/authn"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/consumer"
 )
@@ -46,11 +47,10 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 		AllowLoopbackHTTP     bool                         `json:"allow_loopback_http"`
 		Consumers             map[string][]consumer.Policy `json:"consumers"`
 		Authentication        *struct {
-			ClientID         string `json:"client_id"`
-			HydraAdmin       string `json:"hydra_admin_url"`
-			UpstreamIssuer   string `json:"upstream_issuer"`
-			UpstreamClientID string `json:"upstream_client_id"`
-			DemoUpstream     bool   `json:"demo_upstream"`
+			ClientID     string              `json:"client_id"`
+			HydraAdmin   string              `json:"hydra_admin_url"`
+			Provider     oidcadapter.Profile `json:"provider"`
+			DemoUpstream bool                `json:"demo_upstream"`
 		} `json:"authentication"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
@@ -101,7 +101,21 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 			pool.Close()
 			return nil, err
 		}
-		federation, err := authn.New(ctx, authn.Config{Pool: pool, Store: store, Origin: config.PublicOrigin, HydraAdmin: c.HydraAdmin, AllowLoopback: config.AllowLoopbackHTTP, Hydra: authn.ProviderConfig{Issuer: config.HydraIssuer, ClientID: c.ClientID, ClientSecret: os.Getenv("GRAMSTACK_PORTAL_CLIENT_SECRET")}, Upstream: authn.ProviderConfig{Issuer: c.UpstreamIssuer, ClientID: c.UpstreamClientID, ClientSecret: os.Getenv("GRAMSTACK_UPSTREAM_CLIENT_SECRET"), AllowDemo: c.DemoUpstream}})
+		credentials := oidcadapter.Credentials{ClientSecret: os.Getenv("GRAMSTACK_UPSTREAM_CLIENT_SECRET")}
+		if path := os.Getenv("GRAMSTACK_UPSTREAM_PRIVATE_KEY_FILE"); path != "" {
+			file, err := os.Open(path)
+			if err != nil {
+				pool.Close()
+				return nil, errors.New("cannot read upstream client assertion key")
+			}
+			credentials.PrivateKeyPEM, err = io.ReadAll(io.LimitReader(file, 16385))
+			closeErr := file.Close()
+			if err != nil || closeErr != nil || len(credentials.PrivateKeyPEM) > 16384 {
+				pool.Close()
+				return nil, errors.New("invalid upstream assertion key size")
+			}
+		}
+		federation, err := authn.New(ctx, authn.Config{Pool: pool, Store: store, Origin: config.PublicOrigin, HydraAdmin: c.HydraAdmin, AllowLoopback: config.AllowLoopbackHTTP, Hydra: authn.ProviderConfig{Issuer: config.HydraIssuer, ClientID: c.ClientID, ClientSecret: os.Getenv("GRAMSTACK_PORTAL_CLIENT_SECRET")}, UpstreamProfile: c.Provider, UpstreamCredentials: credentials, AllowDemoUpstream: c.DemoUpstream})
 		if err != nil {
 			pool.Close()
 			return nil, err

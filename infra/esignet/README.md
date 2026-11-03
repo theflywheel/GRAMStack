@@ -19,3 +19,13 @@ If Docker Desktop's credential helper waits on a locked macOS keychain, public i
 SQL and nginx configuration originate from [MOSIP eSignet v2.0.0](https://github.com/mosip/esignet/tree/db528423dac7898ad546cb7b2f5f867a949676a7/docker-compose), commit `db528423dac7898ad546cb7b2f5f867a949676a7`, under MPL-2.0 (included). The upstream personal-looking example identity was omitted from SQL. Compose adds Redis, persistent key files, dependency health checks, loopback ports and immutable image references. Upstream documentation: https://docs.esignet.io/.
 
 Provider integration must support eSignet's advertised `private_key_jwt` token authentication and `PS256` ID tokens. Keep this in the auth-provider adapter/profile; Hydra and request/session enforcement remain shared platform behavior. See D03a in the demo checklist for the login acceptance gate.
+
+## Full gateway federation check
+
+With the stack running, use the repository runner with PostgreSQL and the official Hydra v26.2.0 binary:
+
+```sh
+GRAMSTACK_TEST_ESIGNET=1 PG_BIN=/path/to/postgres/bin HYDRA_BIN=/path/to/hydra ./scripts/test-hydra.sh
+```
+
+It creates isolated gateway/Hydra SQL databases, onboards a new client into the local eSignet instance, seeds fictional Sunita/Rani records, keeps its client key in a private temporary directory, and tests the complete HTTP federation and denial paths. Each run adds an ephemeral client to this disposable eSignet database; the private key and temporary SQL instance are cleaned up. The browser UI rendering and final recorded demo have separate acceptance checks. Public local fixture OTP is `111111`; the identity service is mock, not a government connection.

@@ -2,9 +2,9 @@ name: Verify Go services and SDK
 on:
   push:
     branches: [main]
-    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "tools/esignet-demo/**", "scripts/check-go.sh", "scripts/gateway-module.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
   pull_request:
-    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "scripts/check-go.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["services/**", "sdk/**", "adapters/**", "mocks/**", "tools/esignet-demo/**", "scripts/check-go.sh", "scripts/gateway-module.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -47,6 +47,7 @@ jobs:
           go-version: '1.26.8'
           cache-dependency-path: |
             gramstack/services/gateway/go.*
+            gramstack/adapters/auth/oidc/go.*
             dedi/go.*
       - name: Test actual DeDi publication and proof verification
         working-directory: gramstack
@@ -63,7 +64,9 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.26.8'
-          cache-dependency-path: services/gateway/go.*
+          cache-dependency-path: |
+            services/gateway/go.*
+            adapters/auth/oidc/go.*
       - name: Test PostgreSQL consent, enforcement races and migrations
         run: |
           export PG_BIN="$(pg_config --bindir)"
@@ -79,6 +82,7 @@ jobs:
           go-version: '1.26.8'
           cache-dependency-path: |
             services/gateway/go.*
+            adapters/auth/oidc/go.*
             mocks/identity/go.*
       - name: Fetch pinned official Hydra release
         run: |

@@ -2,6 +2,7 @@
 # Isolated, real Hydra/PostgreSQL integration. No production URLs or credentials.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then export GRAMSTACK_TEST_AUTHN=1; fi
 : "${PG_BIN:?Set PG_BIN to the PostgreSQL binary directory}"
 : "${HYDRA_BIN:?Set HYDRA_BIN to an official Ory Hydra v26.2.0 executable}"
 "$HYDRA_BIN" version | awk 'NR == 1 && $NF == "v26.2.0" {found=1} END {exit !found}'
@@ -17,6 +18,8 @@ cleanup(){
  rm -rf "$scratch"
 }
 trap cleanup EXIT
+source "$root/scripts/gateway-module.sh"
+prepare_gateway_module "$root" "$scratch"
 "$PG_BIN/initdb" -D "$scratch/pg" -U gramstack --auth-local=trust --auth-host=scram-sha-256 > "$scratch/initdb.log"
 "$PG_BIN/pg_ctl" -D "$scratch/pg" -l "$scratch/pg.log" -o "-k $scratch -p 55438 -c listen_addresses=''" -w start >/dev/null
 for db in gramstack_core hydra; do "$PG_BIN/createdb" -h "$scratch" -p 55438 -U gramstack "$db"; done
@@ -45,8 +48,8 @@ for _ in $(seq 1 150); do
  sleep 0.1
 done
 if [[ "$ready" != true ]]; then echo 'Isolated Hydra did not become ready' >&2; exit 1; fi
-GOWORK=off go -C "$root/services/gateway" test -race -count=1 -v -run TestActualHydraConsumerAPI ./internal/consumer
-GOWORK=off go -C "$root/services/gateway" build -o "$scratch/gateway" ./cmd/gramstack
+gateway_go test -race -count=1 -v -run TestActualHydraConsumerAPI ./internal/consumer
+gateway_go build -o "$scratch/gateway" ./cmd/gramstack
 DATABASE_URL="$GRAMSTACK_TEST_DATABASE_URL" "$scratch/gateway" migrate
 export GRAMSTACK_CONFIG_FILE="$scratch/gateway.json" GRAMSTACK_ENV=development DATABASE_URL="$GRAMSTACK_TEST_DATABASE_URL" PORT="$gateway_port"
 python3 - <<'PY'
@@ -90,30 +93,49 @@ print('PASS: real Hydra client credentials -> running gateway create/status/canc
 PY
 stop_gateway
 if [[ "${GRAMSTACK_TEST_AUTHN:-}" == 1 ]]; then
- export GRAMSTACK_TEST_IDP_URL="http://127.0.0.1:$idp_port"
- export OIDC_ISSUER="$GRAMSTACK_TEST_IDP_URL" OIDC_CLIENT_ID="gramstack-upstream" OIDC_CLIENT_SECRET="isolated-upstream-secret" OIDC_REDIRECT_URI="$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback"
  export GRAMSTACK_AUTH_KEY=$(python3 -c 'import base64,secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())')
- export GRAMSTACK_PORTAL_CLIENT_SECRET="isolated-portal-secret" GRAMSTACK_UPSTREAM_CLIENT_SECRET="$OIDC_CLIENT_SECRET"
- GOWORK=off go -C "$root/mocks/identity" build -o "$scratch/demo-idp" ./cmd/demo-idp
- PORT="$idp_port" "$scratch/demo-idp" > "$scratch/idp.log" 2>&1 &
- idp_pid=$!
- ready=false
- for _ in $(seq 1 100); do
-  if curl -fsS "$GRAMSTACK_TEST_IDP_URL/healthz" >/dev/null 2>&1; then ready=true; break; fi
-  sleep 0.1
- done
- if [[ "$ready" != true ]]; then echo 'Demo IdP failed startup' >&2; cat "$scratch/idp.log" >&2; exit 1; fi
+ export GRAMSTACK_PORTAL_CLIENT_SECRET="isolated-portal-secret"
+ if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then
+  export GRAMSTACK_TEST_IDP_URL="http://127.0.0.1:19080"
+  unset GRAMSTACK_UPSTREAM_CLIENT_SECRET
+  export GRAMSTACK_UPSTREAM_PRIVATE_KEY_FILE="$scratch/esignet-client.pem"
+  GOWORK=off go -C "$root/adapters/auth/oidc" build -o "$scratch/esignet-demo" "$root/tools/esignet-demo/main.go"
+  if GRAMSTACK_ENV=production "$scratch/esignet-demo" -callback "$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback" -directory "$scratch" >/dev/null 2>&1; then
+   echo 'Demo onboarding allowed outside development' >&2; exit 1
+  fi
+  "$scratch/esignet-demo" -callback "$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback" -directory "$scratch"
+ else
+  export GRAMSTACK_TEST_IDP_URL="http://127.0.0.1:$idp_port"
+  export OIDC_ISSUER="$GRAMSTACK_TEST_IDP_URL" OIDC_CLIENT_ID="gramstack-upstream" OIDC_CLIENT_SECRET="isolated-upstream-secret" OIDC_REDIRECT_URI="$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback"
+  export GRAMSTACK_UPSTREAM_CLIENT_SECRET="$OIDC_CLIENT_SECRET"
+  unset GRAMSTACK_UPSTREAM_PRIVATE_KEY_FILE
+  GOWORK=off go -C "$root/mocks/identity" build -o "$scratch/demo-idp" ./cmd/demo-idp
+  PORT="$idp_port" "$scratch/demo-idp" > "$scratch/idp.log" 2>&1 &
+  idp_pid=$!
+  ready=false
+  for _ in $(seq 1 100); do
+   if curl -fsS "$GRAMSTACK_TEST_IDP_URL/healthz" >/dev/null 2>&1; then ready=true; break; fi
+   sleep 0.1
+  done
+  if [[ "$ready" != true ]]; then echo 'Demo IdP failed startup' >&2; exit 1; fi
+ fi
  python3 - <<'PYA'
 import json,os,pathlib,urllib.request
 path=pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']);config=json.loads(path.read_text())
-config['authentication']=dict(client_id='gramstack-portal',hydra_admin_url=os.environ['GRAMSTACK_TEST_HYDRA_ADMIN'],upstream_issuer=os.environ['GRAMSTACK_TEST_IDP_URL'],upstream_client_id='gramstack-upstream',demo_upstream=True)
+if os.environ.get('GRAMSTACK_TEST_ESIGNET')=='1':
+ provider=json.loads((path.parent/'esignet-profile.json').read_text())
+else:
+ provider=dict(schema_version='gramstack.auth.oidc/v1',issuer=os.environ['GRAMSTACK_TEST_IDP_URL'],client_id='gramstack-upstream',token_endpoint_auth_method='client_secret_basic',id_token_algorithms=['RS256'])
+config['authentication']=dict(client_id='gramstack-portal',hydra_admin_url=os.environ['GRAMSTACK_TEST_HYDRA_ADMIN'],provider=provider,demo_upstream=True)
 path.write_text(json.dumps(config))
 body=dict(client_id='gramstack-portal',client_secret=os.environ['GRAMSTACK_PORTAL_CLIENT_SECRET'],grant_types=['authorization_code'],response_types=['code'],scope='openid',redirect_uris=[os.environ['GRAMSTACK_TEST_GATEWAY_URL']+'/auth/callback'],token_endpoint_auth_method='client_secret_basic')
 with urllib.request.urlopen(urllib.request.Request(os.environ['GRAMSTACK_TEST_HYDRA_ADMIN']+'/admin/clients',data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})) as response: assert response.status==201
 PYA
-fi
-if [[ "${GRAMSTACK_TEST_AUTHN:-}" == 1 ]]; then
  start_gateway
- GOWORK=off go -C "$root/services/gateway" test -race -count=1 -v -run TestActualFederation ./internal/authn
+ if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then
+  gateway_go test -race -count=1 -v -run TestActualESignetFederation ./internal/authn
+ else
+  gateway_go test -race -count=1 -v -run '^TestActualFederation$' ./internal/authn
+ fi
  stop_gateway
 fi

@@ -16,25 +16,30 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	oidcadapter "github.com/theflywheel/GRAMStack/adapters/auth/oidc"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/access"
 	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
 	"golang.org/x/oauth2"
 )
 
 type Config struct {
-	Pool               *pgxpool.Pool
-	Store              *Store
-	Origin, HydraAdmin string
-	Hydra, Upstream    ProviderConfig
-	AllowLoopback      bool
+	Pool                *pgxpool.Pool
+	Store               *Store
+	Origin, HydraAdmin  string
+	Hydra               ProviderConfig
+	UpstreamProfile     oidcadapter.Profile
+	UpstreamCredentials oidcadapter.Credentials
+	AllowDemoUpstream   bool
+	AllowLoopback       bool
 }
 type Service struct {
-	pool            *pgxpool.Pool
-	store           *Store
-	origin, admin   string
-	hydra, upstream *provider
-	client          *http.Client
-	secure          bool
+	pool          *pgxpool.Pool
+	store         *Store
+	origin, admin string
+	hydra         *provider
+	upstream      *oidcadapter.Adapter
+	client        *http.Client
+	secure        bool
 }
 type flow struct {
 	RequestID, Digest, State, Nonce, Verifier, PrincipalRef string
@@ -66,7 +71,7 @@ func New(ctx context.Context, c Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	upstream, err := newProvider(ctx, c.Upstream, origin+"/auth/provider/callback", c.AllowLoopback)
+	upstream, err := oidcadapter.New(ctx, c.UpstreamProfile, c.UpstreamCredentials, origin+"/auth/provider/callback", oidcadapter.Options{AllowLoopback: c.AllowLoopback, AllowDemo: c.AllowDemoUpstream})
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +248,12 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		fail(w)
 		return
 	}
-	http.Redirect(w, r, s.upstream.begin(state, inner.Nonce, inner.Verifier), http.StatusFound)
+	redirect, err := s.upstream.Begin(oidcadapter.Transaction{ID: outer.State, State: state, Nonce: inner.Nonce, Verifier: inner.Verifier})
+	if err != nil {
+		fail(w)
+		return
+	}
+	http.Redirect(w, r, redirect, http.StatusFound)
 }
 func callbackParameters(r *http.Request) (string, string, error) {
 	q := r.URL.Query()
@@ -269,26 +279,17 @@ func (s *Service) upstreamCallback(w http.ResponseWriter, r *http.Request) {
 		fail(w)
 		return
 	}
-	token, err := s.upstream.complete(r.Context(), code, inner.Nonce, inner.Verifier)
+	token, err := s.upstream.Complete(r.Context(), code, oidcadapter.Transaction{ID: inner.Outer.State, State: state, Nonce: inner.Nonce, Verifier: inner.Verifier})
 	if err != nil {
 		fail(w)
 		return
 	}
-	var claims struct {
-		AuthTime int64    `json:"auth_time"`
-		Methods  []string `json:"amr"`
+	untilAuthentication := inner.Outer.ExpiresAt
+	if token.ExpiresAt.Before(untilAuthentication) {
+		untilAuthentication = token.ExpiresAt
 	}
-	if token.Claims(&claims) != nil || claims.AuthTime <= 0 || claims.AuthTime > time.Now().Add(30*time.Second).Unix() || time.Since(time.Unix(claims.AuthTime, 0)) > 5*time.Minute || len(claims.Methods) > 16 {
-		fail(w)
-		return
-	}
-	for _, method := range claims.Methods {
-		if len(method) > 128 {
-			fail(w)
-			return
-		}
-	}
-	principal := Principal{Reference: rand.Text(), Issuer: token.Issuer, Subject: token.Subject, AuthenticationTransactionID: inner.Outer.State, ExpiresAt: inner.Outer.ExpiresAt, AuthenticatedAt: time.Unix(claims.AuthTime, 0).UTC(), Methods: claims.Methods}
+	principal := Principal{Reference: rand.Text(), Issuer: token.Issuer, Subject: token.Subject, AuthenticationTransactionID: token.TransactionID, ExpiresAt: untilAuthentication, AuthenticatedAt: token.AuthenticatedAt, Methods: token.Methods, Assurance: token.Assurance}
+
 	// Request-scoped reauthentication reuses an opaque reference only after the
 	// same issuer/subject is freshly verified. It creates no cross-registry index.
 	var previous Principal
@@ -392,13 +393,23 @@ func (s *Service) callback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var principal Principal
-	if s.store.Peek(r.Context(), "auth.principal", outer.RequestID, "server", &principal) != nil || principal.Reference != token.Subject {
+	if s.store.Peek(r.Context(), "auth.principal", outer.RequestID, "server", &principal) != nil || principal.Reference != token.Subject || !principal.ExpiresAt.After(time.Now()) {
 		fail(w)
 		return
 	}
 	until := value.Snapshot.ExpiresAt
 	if time.Until(until) > 10*time.Minute {
 		until = time.Now().Add(10 * time.Minute)
+	}
+	if principal.ExpiresAt.Before(until) {
+		until = principal.ExpiresAt
+	}
+	if token.Expiry.Before(until) {
+		until = token.Expiry
+	}
+	if !until.After(time.Now()) {
+		fail(w)
+		return
 	}
 	sessionID := rand.Text()
 	session := Session{outer.RequestID, principal.Reference, rand.Text(), principal.AuthenticatedAt, until}
@@ -434,7 +445,7 @@ func (s *Service) VerifyCSRF(r *http.Request, session Session, token string) err
 func (s *Service) Principal(ctx context.Context, requestID, principalRef string) (Principal, error) {
 	var principal Principal
 	err := s.store.Peek(ctx, "auth.principal", requestID, "server", &principal)
-	if err != nil || principal.Reference != principalRef {
+	if err != nil || principal.Reference != principalRef || !principal.ExpiresAt.After(time.Now()) {
 		return Principal{}, ErrAuthentication
 	}
 	return principal, nil
