@@ -2,6 +2,7 @@
 # Isolated, real Hydra/PostgreSQL integration. No production URLs or credentials.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+if [[ "${GRAMSTACK_TEST_PRODUCT:-}" == 1 ]]; then export GRAMSTACK_TEST_DISCOVERY=1; fi
 if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then export GRAMSTACK_TEST_DISCOVERY=1; fi
 if [[ "${GRAMSTACK_TEST_DISCOVERY:-}" == 1 ]]; then export GRAMSTACK_TEST_RETRIEVAL=1; fi
 if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then export GRAMSTACK_TEST_CUSTODY=1; fi
@@ -23,7 +24,9 @@ gateway_pid=''
 idp_pid=''
 adapter_pid=''
 source_pid=''
+product_pid=''
 cleanup(){
+ if [[ -n "$product_pid" ]]; then kill "$product_pid" 2>/dev/null || true; wait "$product_pid" 2>/dev/null || true; fi
  for pid in "$adapter_pid" "$source_pid"; do if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi; done
  if [[ -n "$gateway_pid" ]]; then kill "$gateway_pid" 2>/dev/null || true; wait "$gateway_pid" 2>/dev/null || true; fi
  if [[ -n "$hydra_pid" ]]; then kill "$hydra_pid" 2>/dev/null || true; wait "$hydra_pid" 2>/dev/null || true; fi
@@ -72,6 +75,34 @@ policy=dict(registry='lokos',resource='shg.membership',fields=['membership_statu
 config=dict(public_origin='http://127.0.0.1:'+os.environ['PORT'],hydra_introspection_url=os.environ['GRAMSTACK_TEST_HYDRA_ADMIN']+'/admin/oauth2/introspect',hydra_issuer=os.environ['GRAMSTACK_TEST_HYDRA_PUBLIC']+'/',audience='gramstack',scope='gramstack.access',allow_loopback_http=True,consumers={'consumer-one':[policy]})
 pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']).write_text(json.dumps(config))
 PY
+setup_product(){
+ GOWORK=off go -C "$root/apps/sakhicredit" build -o "$scratch/sakhicredit" ./cmd/sakhicredit
+ "$PG_BIN/createdb" -h "$scratch" -p 55438 -U gramstack sakhicredit
+ export SAKHI_DATABASE_URL="postgres://gramstack@localhost/sakhicredit?host=$scratch&port=55438&sslmode=disable"
+ "$scratch/sakhicredit" migrate
+ local product_port=$(free_port)
+ export GRAMSTACK_TEST_PRODUCT_URL="http://127.0.0.1:$product_port" GRAMSTACK_TEST_PRODUCT_RESUME="$scratch/product-resume.json"
+ export SAKHI_CONFIG_FILE="$scratch/product.json" SAKHI_STORAGE_KEY_FILE="$scratch/product-storage.key" SAKHI_ENV=development
+ export SAKHI_SERVICE_CA_FILE="$SERVICE_CA_FILE" SAKHI_CONSUMER_CERT_FILE="$scratch/certs/consumer-one.pem" SAKHI_CONSUMER_KEY_FILE="$scratch/certs/consumer-one.key"
+ export SAKHI_CLIENT_SECRET='isolated-synthetic-secret'
+ python3 - <<'PYS'
+import json,os,pathlib
+pathlib.Path(os.environ['SAKHI_STORAGE_KEY_FILE']).write_bytes(os.urandom(32));pathlib.Path(os.environ['SAKHI_STORAGE_KEY_FILE']).chmod(0o600)
+config=dict(public_origin=os.environ['GRAMSTACK_TEST_PRODUCT_URL'],gateway_origin=os.environ['GRAMSTACK_TEST_GATEWAY_URL'],gateway_data_origin=os.environ['GRAMSTACK_TEST_AUTHZ_URL'],hydra_token_url=os.environ['GRAMSTACK_TEST_HYDRA_PUBLIC']+'/oauth2/token',client_id='consumer-one',data_server_name='gateway.gramstack.internal',allow_loopback_http=True)
+pathlib.Path(os.environ['SAKHI_CONFIG_FILE']).write_text(json.dumps(config))
+PYS
+}
+start_product(){
+ PORT="${GRAMSTACK_TEST_PRODUCT_URL##*:}" "$scratch/sakhicredit" > "$scratch/product.log" 2>&1 &
+ product_pid=$!
+ local ready=false
+ for _ in $(seq 1 100); do
+  if curl -fsS "$GRAMSTACK_TEST_PRODUCT_URL/readyz" >/dev/null 2>&1; then ready=true; break; fi
+  sleep 0.1
+ done
+ if [[ "$ready" != true ]]; then echo 'SakhiCredit failed readiness' >&2; cat "$scratch/product.log" >&2; exit 1; fi
+}
+stop_product(){ kill -TERM "$product_pid"; wait "$product_pid"; product_pid=''; }
 start_gateway(){
 "$scratch/gateway" > "$scratch/gateway.log" 2>&1 &
 gateway_pid=$!
@@ -247,22 +278,27 @@ path.write_text(json.dumps(config))
 PYW
   fi
   start_binding; start_gateway
+  if [[ "${GRAMSTACK_TEST_PRODUCT:-}" == 1 ]]; then setup_product; start_product; fi
   pattern='^TestActualSubjectBindingRestart$'
   if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then pattern="$pattern|^TestActualConsentWorkers$"; fi
   if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then pattern="$pattern|^TestActualAuthorization$"; fi
   if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceCustody$"; fi
   if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then pattern="$pattern|^TestActualProtectedRetrieval$"; fi
   if [[ "${GRAMSTACK_TEST_DISCOVERY:-}" == 1 ]]; then pattern="$pattern|^TestActualAdapterDiscovery$"; fi
+  if [[ "${GRAMSTACK_TEST_PRODUCT:-}" == 1 ]]; then pattern="$pattern|^TestActualSakhiCreditProduct$"; fi
   if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceAnchoringProcess$"; fi
   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   if [[ "${GRAMSTACK_TEST_WORKERS:-}" == 1 ]]; then
+   if [[ "${GRAMSTACK_TEST_PRODUCT:-}" == 1 ]]; then stop_product; fi
    stop_gateway
    if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then stop_binding; start_binding; fi
    start_gateway
+   if [[ "${GRAMSTACK_TEST_PRODUCT:-}" == 1 ]]; then start_product; fi
    pattern='^TestActualConsentWorkersRestart$'
    if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then pattern="$pattern|^TestActualAuthorizationRestart$"; fi
    if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceCustodyRestart$"; fi
    if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then pattern="$pattern|^TestActualProtectedRetrievalRestart$"; fi
+   if [[ "${GRAMSTACK_TEST_PRODUCT:-}" == 1 ]]; then pattern="$pattern|^TestActualSakhiCreditProductRestart$"; fi
    if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceAnchoringProcess$"; fi
    gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
   fi

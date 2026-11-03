@@ -59,14 +59,19 @@ wait_checks
 check_devcerts_tool(){
   GOWORK=off go -C "$root" vet "$root/tools/devcerts/main.go"
 }
+check_product(){
+  check_module apps/sakhicredit
+  check_devcerts_tool
+}
 launch mock-lokos check_module mocks/lokos
-launch devcerts-tool check_devcerts_tool
+launch product check_product
 wait_checks
 launch gateway-build gateway_go build -o "$scratch/gateway" ./cmd/gramstack
 launch lokos-build env GOWORK=off go -C "$root/adapters/lokos" build -modfile="$scratch/lokos.mod" -o "$scratch/lokos-adapter" ./cmd/lokos-adapter
 wait_checks
+GOWORK=off go -C "$root/apps/sakhicredit" build -o "$scratch/sakhicredit" ./cmd/sakhicredit
 
-for executable in gateway lokos-adapter; do
+for executable in gateway lokos-adapter sakhicredit; do
   port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')
   PORT="$port" "$scratch/$executable" > "$scratch/$executable.log" 2>&1 &
   pid=$!

@@ -3,6 +3,7 @@ go 1.26.0
 toolchain go1.26.8
 
 use (
+	./apps/sakhicredit
 	./adapters/auth/oidc
 	./adapters/lokos
 	./mocks/identity

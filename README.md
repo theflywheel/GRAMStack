@@ -11,6 +11,7 @@ Read-only, consent-first interoperability for Indian DPI registries. GRAMStack c
 
 | Path | Contents |
 |---|---|
+| `apps/sakhicredit/` | Independent Go consumer product, browser ownership and encrypted result storage |
 | `infra/railway/` | Project-level Railway configuration and isolated deployment tooling |
 | `services/gateway/` | Independent Go core module, including Consent Manager and enforcement |
 | `sdk/go/adapter/` | Independent adapter Go SDK module |
@@ -61,7 +62,7 @@ The documentation site vendors [Jacky Zhao's Quartz](https://github.com/jackyzha
 
 ## Go implementation
 
-The internal [implementation task ledger](IMPLEMENTATION.md) and [gated demo checklist](DEMO-TODO.md) track the build and recorded-demo deliverables. Independent modules live in `services/gateway/`, `sdk/go/adapter/` and `adapters/lokos/`; the root `go.work` supports local development. There is no root Go module. LokOS imports and exercises the SDK.
+The internal [implementation task ledger](IMPLEMENTATION.md) and [gated demo checklist](DEMO-TODO.md) track the build and recorded-demo deliverables. Independent modules live in `services/gateway/`, `sdk/go/adapter/` and `adapters/lokos/`; the root `go.work` supports local development. There is no root Go module. LokOS imports and exercises the SDK. The independent [SakhiCredit consumer](apps/sakhicredit/README.md) calls the platform HTTP contract and owns its product state and encrypted received-data copy.
 
 ```sh
 ./scripts/check-go.sh
@@ -69,6 +70,6 @@ The internal [implementation task ledger](IMPLEMENTATION.md) and [gated demo che
 go -C services/gateway run ./cmd/gramstack
 ```
 
-Go service checks build modules explicitly with `GOWORK=off`, run race tests and vet, compare the FSM graph to the spec and launch both executables for HTTP/shutdown smoke tests. Before the SDK's first published release, the independent adapter check uses a temporary module-file replacement for the local SDK source.
+Go service checks build modules explicitly with `GOWORK=off`, run race tests and vet, compare the FSM graph to the spec and launch gateway, adapter and product executables for HTTP/shutdown smoke tests. Before the SDK's first published release, the independent adapter check uses a temporary module-file replacement for the local SDK source.
 
 DeDi uses the actual [DeDi-node publication and proof protocol](services/gateway/internal/evidence/dedi/README.md). For an isolated real-node integration test, set `DEDI_SOURCE` and `PG_BIN`, then run `scripts/test-dedi.sh`. It creates and removes a temporary local PostgreSQL cluster and publishes only synthetic commitments.
