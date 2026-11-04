@@ -34,20 +34,28 @@ export function captureDemo(output) {
   exited.catch(() => {});
   let active;
   let stopped = false;
-  const sessions = new Map();
+  let captureError;
   const capture = (async () => {
     while (!stopped) {
       const start = Date.now();
-      const session = active;
-      if (session) {
-        const { data } = await session.send("Page.captureScreenshot", {
-          format: "jpeg",
-          quality: 86,
-          captureBeyondViewport: false,
-        });
-        if (active === session && !stopped) {
+      const page = active;
+      if (page) {
+        let frame;
+        try {
+          frame = await page.screenshot({
+            type: "jpeg",
+            quality: 86,
+            style:
+              ".demo-info p:first-of-type { visibility: hidden !important; }",
+            timeout: 1000,
+          });
+        } catch (error) {
+          if (error.name !== "TimeoutError" && active === page && !stopped)
+            throw error;
+        }
+        if (frame && active === page && !stopped) {
           await new Promise((resolve, reject) => {
-            encoder.stdin.write(Buffer.from(data, "base64"), (error) =>
+            encoder.stdin.write(frame, (error) =>
               error ? reject(error) : resolve(),
             );
           });
@@ -56,26 +64,24 @@ export function captureDemo(output) {
       await delay(Math.max(0, 100 - (Date.now() - start)));
     }
   })();
-  capture.catch(() => {});
+  capture.catch((error) => {
+    if (!stopped) captureError = error;
+  });
   encoder.stdin.on("error", () => {});
   return {
-    async show(page) {
-      if (!sessions.has(page)) {
-        sessions.set(page, await page.context().newCDPSession(page));
-      }
-      active = sessions.get(page);
+    show(page) {
+      active = page;
     },
     pause() {
       active = undefined;
     },
     async stop() {
       stopped = true;
-      try {
-        await capture;
-      } finally {
-        encoder.stdin.end();
-      }
+      // The stop flag prevents an in-flight screenshot from writing after
+      // stdin is closed.
+      encoder.stdin.end();
       const [code] = await exited;
+      if (captureError) throw captureError;
       if (code !== 0) throw new Error("Demo video encoding failed");
     },
   };

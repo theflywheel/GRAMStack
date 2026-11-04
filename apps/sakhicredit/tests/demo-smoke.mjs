@@ -24,7 +24,8 @@ const recording = output ? captureDemo(output) : undefined;
 const hold = async (milliseconds) => {
   if (recording) await delay(milliseconds);
 };
-try {
+async function review() {
+  recording?.pause();
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
   });
@@ -71,6 +72,11 @@ try {
     .getByRole("heading", { name: "The exact notice", exact: true })
     .waitFor();
   await hold(2500);
+  return { page, portal };
+}
+
+try {
+  const { page, portal } = await review();
   await portal.getByRole("checkbox").check();
   await portal
     .getByRole("button", { name: "Approve this request", exact: true })
@@ -79,6 +85,7 @@ try {
     .getByRole("heading", { name: "Your permission record", exact: true })
     .waitFor();
   await hold(1600);
+  recording?.pause();
   await page.bringToFront();
   await recording?.show(page);
   await page.getByRole("button", { name: "Get approved details" }).click();
@@ -101,6 +108,29 @@ try {
   console.log(
     "PASS: standalone launcher completed official eSignet, explicit consent and exact SakhiCredit retrieval",
   );
+  if (recording) {
+    const denied = await review();
+    await denied.portal
+      .getByRole("button", { name: "Reject this request", exact: true })
+      .click();
+    await denied.portal
+      .getByRole("heading", { name: "Your permission record", exact: true })
+      .waitFor();
+    await hold(2000);
+    recording.pause();
+    await denied.page.bringToFront();
+    await recording.show(denied.page);
+    await denied.page
+      .getByRole("heading", { name: "Sharing declined" })
+      .waitFor();
+    assert.equal(await denied.page.locator("#retrieve").isHidden(), true);
+    assert.equal(
+      await denied.page.locator("#approved-result").isHidden(),
+      true,
+    );
+    await hold(3000);
+    console.log("PASS: rejected request did not enable retrieval or show data");
+  }
 } finally {
   try {
     await recording?.stop();

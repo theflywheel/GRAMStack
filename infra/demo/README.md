@@ -47,8 +47,9 @@ command. Use a working FFmpeg executable with the H.264 encoder available.
 `FFMPEG_BIN` can point to that executable. The capture follows the active
 browser tab, pauses during fixture credential entry, and creates an MP4
 without overwriting existing footage. Use `ffprobe` to check the video stream
-and play the file in a browser. This rehearsal covers the approved journey.
-The final demo also needs a denial or replay case and the capability matrix.
+and play the file in a browser. This rehearsal covers approval and refusal in separate browser sessions.
+The final demo also needs the verified platform evidence and capability matrix.
+See the [recording sequence and capability report](../../DEMO-CAPABILITIES.md).
 
 Ctrl-C stops the processes and the launcher's Compose project. The private
 state directory and eSignet volumes remain available for inspection. Use a
