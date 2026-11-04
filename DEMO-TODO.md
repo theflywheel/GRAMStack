@@ -36,7 +36,7 @@ Gate C: D07–D10 pass. Exactly approved fields cross the adapter boundary once 
 
 - [x] D11 SakhiCredit product. Independent consumer backend and presentable web UI: create application, progress, interaction handoff, approved result and graceful rejection/expiry/outage states. No business decision logic in platform core.
 - [ ] D12 Reproducible local and Railway stack. Fresh setup, isolated credentials, migrations, dependency readiness, correct public/private routing and service health. Docs stays an independent service; eSignet is required for the demo.
-- [ ] D13 Published SDK and adapter conformance. Real module-prefixed version, independently buildable LokOS dependency, shared positive/negative contract suite and external consumer smoke check.
+- [x] D13 Published SDK and adapter conformance. Real module-prefixed version, independently buildable LokOS dependency, shared positive/negative contract suite and external consumer smoke check.
 - [x] D14 Design additions exercised by the demo. Checklist below must pass or have an explicit, approved scope decision before this task can close. Unsupported features are visible in the capability report, never silently accepted.
   - [x] Trusted versioned purpose/processing profile bindings, bounded single-use access to the current summary, and recipient/processor responsibility metadata.
   - [x] Channel/language presentation evidence linked to exact notice and explicit confirmation for the English web channel. Assistance confers no authority.
@@ -248,3 +248,5 @@ The [hosted Go/browser CI](https://github.com/theflywheel/GRAMStack/actions/runs
 
 
 - Hosted SakhiCredit acceptance and recording. All six public service checks passed, including the representative management and data route denials. Hosted Chrome exercised approval and exact two-field disclosure, membership-only disclosure, refusal with retrieval disabled, result reload, and no grant or OAuth secret in product API bodies. The recording run also signed in independently to recover both consent records, downloaded the approved receipt, and showed the owner-visible queued correction with the assigned registry. The 72.2-second 1280×800 H.264 capture decoded fully and passed Chrome playback and seeking. Sampled frames were checked for fixture login values. The recording and the public product URL were delivered for stakeholder review. Fault injection, operator queue acknowledgement and offline verification of browser-generated DeDi proofs are covered by the local suite. The production DeDi synthetic commitment and private provisioning are verified separately above. Public SDK availability remains deferred until the repository visibility decision.
+
+- D13 public release. GitHub now reports GRAMStack as public. The existing SDK v0.1.0 tag downloaded anonymously through the public Go proxy with checksum verification and a fresh module cache. The prior independent LokOS and external consumer checks used this same tag.

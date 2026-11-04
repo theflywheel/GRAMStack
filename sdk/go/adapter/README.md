@@ -12,15 +12,15 @@ Verification recomputes the accepted snapshot digest, enforces supported fields 
 
 `ReadSelected` is a projection primitive, not an authorization boundary. The protected grant/redemption/evidence pipeline must admit a disclosure before calling it. The reference runtime enables the protected retrieval handler through explicit configuration; verification-only hosting remains available. SDK release/publication and external conformance are tracked separately in D13.
 
-Use the root Go workspace for local SDK + LokOS development. Independent check scripts use temporary module files before release; no local replace is committed in module files. Published SDK tags use `sdk/go/adapter/vX.Y.Z`. From the repository root, run `./scripts/rehearse-sdk-release.sh HEAD` to build and race-test LokOS against a candidate version from a temporary Go module proxy, then exercise projection from a separate consumer module. The rehearsal uses committed source, disables the workspace, and leaves publication to the release step. Run `./scripts/rehearse-sdk-release.sh --published HEAD` with Git access to the private repository to verify the real tag and its source commit. This mode tests the downloaded SDK, builds LokOS with its committed module pin, and runs the separate consumer against an isolated module cache.
+Use the root Go workspace for local SDK + LokOS development. Independent check scripts use temporary module files before release; no local replace is committed in module files. Published SDK tags use `sdk/go/adapter/vX.Y.Z`. From the repository root, run `./scripts/rehearse-sdk-release.sh HEAD` to build and race-test LokOS against a candidate version from a temporary Go module proxy, then exercise projection from a separate consumer module. The rehearsal uses committed source, disables the workspace, and leaves publication to the release step. Run `./scripts/rehearse-sdk-release.sh --published HEAD` with Git access to the repository to verify the real tag and its source commit. This mode tests the downloaded SDK, builds LokOS with its committed module pin, and runs the separate consumer against an isolated module cache.
 
-For the public release, keep the existing module path and tag if the GRAMStack repository itself becomes public. Review the Git history for sensitive material and confirm the SDK license before changing visibility. After approval and the visibility change, run this in a fresh shell to verify anonymous resolution through the public Go proxy and checksum database:
+The repository is public and the existing module path and tag resolve anonymously through the public Go proxy. Run this in a fresh shell to verify resolution through the public proxy and checksum database:
 
 ```sh
 scratch=$(mktemp -d)
 (
   cd "$scratch" || exit
-  env GOWORK=off GOMODCACHE="$scratch/cache" GOFLAGS= GOPRIVATE= GONOPROXY=none \
+  env GOWORK=off GOMODCACHE="$scratch/cache" GOFLAGS=-modcacherw GOPRIVATE= GONOPROXY=none \
     GONOSUMDB=none GOPROXY=https://proxy.golang.org GOSUMDB=sum.golang.org \
     go mod download github.com/theflywheel/GRAMStack/sdk/go/adapter@v0.1.0
 )
@@ -42,7 +42,7 @@ Processing order is durable local claim → new atomic reservation → durable s
 
 Provider implementations must issue at most one native source request per `Fetch`, disable implicit transport retries that could repeat a read, and respect cancellation/timeouts. The SDK bounds provider invocations; it cannot infer hidden retries inside a custom provider. Hosts supply pinned mTLS clients, source/evidence secrets and release/retention policy. `NewAuthorityClient` supplies strict bounded private redemption/evidence RPCs without redirect following or application retries.
 
-Configured reference-runtime acceptance now exercises the actual gateway → SDK → fictional native source → durable custodian → response path over mTLS, including exact projection, outages and restart. The [combined local acceptance](../../../DEMO-TODO.md#combined-local-acceptance-on-533a7be) also exercises the SakhiCredit browser UI and verifies automatic anchoring with a real DeDi node. SDK v0.1.0 is available to developers with access to this private repository. Distribution to developers without repository access remains open.
+Configured reference-runtime acceptance now exercises the actual gateway → SDK → fictional native source → durable custodian → response path over mTLS, including exact projection, outages and restart. The [combined local acceptance](../../../DEMO-TODO.md#combined-local-acceptance-on-533a7be) also exercises the SakhiCredit browser UI and verifies automatic anchoring with a real DeDi node. SDK v0.1.0 is available through the public Go proxy.
 
 
 ## Public discovery
