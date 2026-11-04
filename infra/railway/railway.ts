@@ -94,7 +94,7 @@ export default defineRailway(() => {
     volumeMounts: { "/data": identityVolume("esignet-redis-data", 512) },
   });
   const esignetMock = service("esignet-mock", {
-    // The official image source is attached after private configuration is set.
+    source: image("mosipid/mock-identity-system:0.14.0@sha256:4c3bbddfd280b5a6411c89db5f3b6ab231fc3a49fc25794e2e210db36f8cbb96", { autoUpdates: { type: "disabled" } }),
     replicas: { [identityRegion]: 1 },
     deploy: { restartPolicyMaxRetries: 3 },
     volumeMounts: { "/keys": identityVolume("esignet-mock-keys", 512) },
