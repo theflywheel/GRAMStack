@@ -14,11 +14,15 @@ assert.ok(
   state && process.env.CHROME_BIN,
   "Pass the demo state directory and set CHROME_BIN",
 );
-const endpoints = JSON.parse(
-  readFileSync(join(state, "endpoints.json"), "utf8"),
-);
+const hosted = process.env.GRAMSTACK_DEMO_HOSTED === "1";
+const endpoints = hosted
+  ? {
+      product: "https://sakhicredit-b9b69819.up.railway.app",
+      gateway: "https://gramstack-gateway-b9b69819.up.railway.app",
+    }
+  : JSON.parse(readFileSync(join(state, "endpoints.json"), "utf8"));
 assert.equal(new URL(endpoints.product).origin, endpoints.product);
-assert.equal(new URL(endpoints.product).hostname, "127.0.0.1");
+if (!hosted) assert.equal(new URL(endpoints.product).hostname, "127.0.0.1");
 const browser = await chromium.launch({
   executablePath: process.env.CHROME_BIN,
   headless: true,
@@ -58,7 +62,7 @@ async function showCapabilities(page) {
       th,td{text-align:left;vertical-align:top;padding:14px 12px;border-bottom:1px solid #dce6de}
       td:first-child{width:22%;font-weight:600}td:nth-child(2){width:20%}
       </style>
-      <main><p>SakhiCredit · Local rehearsal · ${index / rowsPerCard + 1} of ${Math.ceil(rows.length / rowsPerCard)}</p>
+      <main><p>SakhiCredit · ${hosted ? "Hosted demo" : "Local rehearsal"} · ${index / rowsPerCard + 1} of ${Math.ceil(rows.length / rowsPerCard)}</p>
       <h1>What this demo verifies</h1>
       <table><thead><tr><th>Capability</th><th>Status</th><th>Evidence and boundary</th></tr></thead><tbody></tbody></table></main>`);
     await page.locator("tbody").evaluate((body, values) => {
@@ -165,19 +169,21 @@ try {
     fullPage: true,
   });
   console.log(
-    "PASS: standalone launcher completed official eSignet, explicit consent and exact SakhiCredit retrieval",
+    `PASS: ${hosted ? "hosted stack" : "standalone launcher"} completed official eSignet, explicit consent and exact SakhiCredit retrieval`,
   );
-  await page.getByText("View sharing reference", { exact: true }).click();
-  reportDemoLegalHold(
-    endpoints.data, join(state, "certs"),
-    await page.locator("#receipt-reference").textContent(),
-  );
-  recording?.pause();
-  await portal.bringToFront();
-  await showDemoLegalHold(portal);
-  await recording?.show(portal);
-  await hold(4000);
-  console.log("PASS: authenticated consent receipt shows the recipient-reported legal hold");
+  if (!hosted) {
+    await page.getByText("View sharing reference", { exact: true }).click();
+    reportDemoLegalHold(
+      endpoints.data, join(state, "certs"),
+      await page.locator("#receipt-reference").textContent(),
+    );
+    recording?.pause();
+    await portal.bringToFront();
+    await showDemoLegalHold(portal);
+    await recording?.show(portal);
+    await hold(4000);
+    console.log("PASS: authenticated consent receipt shows the recipient-reported legal hold");
+  }
   const denied = await review();
   await denied.portal
     .getByRole("button", { name: "Reject this request", exact: true })
@@ -244,17 +250,21 @@ try {
   assert.match(await caseDetails.textContent(), new RegExp(caseID));
   await caseDetails.scrollIntoViewIfNeeded();
   await hold(2800);
-  acknowledgeDemoCorrection(endpoints.data, join(state, "certs"), caseID);
-  await history.reload();
-  const acknowledged = history.getByText("correction · acknowledged", { exact: true });
-  await acknowledged.waitFor();
-  await acknowledged.locator("../..").scrollIntoViewIfNeeded();
-  await hold(3500);
-  console.log("PASS: owner opened a correction case and saw the registry operator acknowledgement after refresh");
+  if (!hosted) {
+    acknowledgeDemoCorrection(endpoints.data, join(state, "certs"), caseID);
+    await history.reload();
+    const acknowledged = history.getByText("correction · acknowledged", { exact: true });
+    await acknowledged.waitFor();
+    await acknowledged.locator("../..").scrollIntoViewIfNeeded();
+    await hold(3500);
+    console.log("PASS: owner opened a correction case and saw the registry operator acknowledgement after refresh");
+  } else {
+    console.log("PASS: hosted correction shows the assigned registry and queued state");
+  }
   recording?.pause();
   await historyContext.close();
   console.log("PASS: fresh eSignet sign-in recovered approved and rejected history and downloaded the approved receipt");
-  if (recording) {
+  if (recording && !hosted) {
     recording.pause();
     const evidenceScript = fileURLToPath(
       new URL("../../../infra/demo/verify-evidence.py", import.meta.url),
@@ -293,6 +303,11 @@ try {
     );
     await showCapabilities(proof);
     console.log("PASS: filmed the committed capability report");
+  } else if (recording) {
+    const report = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    recording.show(report);
+    await showCapabilities(report);
+    console.log("PASS: filmed the hosted capability report");
   }
 } finally {
   try {

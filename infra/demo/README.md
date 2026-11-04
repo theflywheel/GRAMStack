@@ -52,6 +52,18 @@ the actual aggregate proof verification result and the checked-in capability
 matrix. The final demo still requires the completed acceptance gates.
 See the [recording sequence and capability report](../../DEMO-CAPABILITIES.md).
 
+For the production demo, check the public endpoints first and run the same
+driver with the fixed hosted origins. This creates fictional demo requests
+and a correction case. It records the owner-visible queued state and skips
+private recipient and registry operator actions.
+
+```sh
+python3 infra/railway/check-public.py
+recording=$(mktemp -d)
+GRAMSTACK_DEMO_HOSTED=1 GRAMSTACK_DEMO_RECORDING="$recording/sakhicredit-hosted.mp4" \
+  CHROME_BIN=/path/to/chrome node apps/sakhicredit/tests/demo-smoke.mjs "$recording"
+```
+
 To verify the retained DeDi commitments separately while the stack is running:
 
 ```sh
