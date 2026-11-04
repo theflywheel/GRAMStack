@@ -17,7 +17,7 @@ import (
 // fixtureSubject performs real OIDC verification solely for the fictional local
 // fixture being provisioned. Registry mock bindings are operator-owned config;
 // no production ownership assertion is manufactured by the gateway.
-func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credentials, callback, person string) (string, error) {
+func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credentials, callback, person, ui string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	adapter, err := oidcadapter.New(ctx, profile, credentials, callback, oidcadapter.Options{AllowLoopback: true, AllowDemo: true})
@@ -40,7 +40,7 @@ func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credent
 	}
 	response.Body.Close()
 	start, err := url.Parse(response.Header.Get("Location"))
-	if err != nil || response.StatusCode != 302 || start.Scheme != "http" || start.Host != "127.0.0.1:19300" || start.Path != "/signin" || start.Query().Get("executionId") == "" || start.Query().Get("authId") == "" {
+	if err != nil || response.StatusCode != 302 || start.Scheme+"://"+start.Host != ui || start.User != nil || start.Path != "/signin" || start.Query().Get("executionId") == "" || start.Query().Get("authId") == "" {
 		return "", errors.New("unexpected fixture authorization redirect")
 	}
 	post := func(path string, payload, output any) error {
@@ -48,7 +48,7 @@ func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credent
 		if err != nil {
 			return err
 		}
-		request, err := http.NewRequestWithContext(ctx, "POST", "http://127.0.0.1:19080"+path, bytes.NewReader(raw))
+		request, err := http.NewRequestWithContext(ctx, "POST", profile.Issuer+path, bytes.NewReader(raw))
 		if err != nil {
 			return err
 		}

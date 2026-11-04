@@ -30,3 +30,16 @@ func TestOnboardingCannotTargetProductionOrRemoteServices(t *testing.T) {
 		t.Fatal("key output directory must be explicit")
 	}
 }
+
+func TestConfigurableOriginsStayOnLoopback(t *testing.T) {
+	for _, value := range []string{"127.0.0.1:80", "80/other", "80@remote.example", "+80", "080", "0", "65536"} {
+		t.Setenv("ESIGNET_DEMO_API_PORT", value)
+		if _, err := loopbackOrigin("ESIGNET_DEMO_API_PORT", "19080"); err == nil {
+			t.Fatalf("unsafe port accepted: %q", value)
+		}
+	}
+	t.Setenv("ESIGNET_DEMO_API_PORT", "29080")
+	if origin, err := loopbackOrigin("ESIGNET_DEMO_API_PORT", "19080"); err != nil || origin != "http://127.0.0.1:29080" {
+		t.Fatal(origin, err)
+	}
+}

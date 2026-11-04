@@ -3,10 +3,10 @@ services:
   database:
     image: postgres:17-bookworm@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5
     ports:
-      - 127.0.0.1:19455:5432
+      - 127.0.0.1:${ESIGNET_DEMO_DB_PORT:-19455}:5432
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: "${ESIGNET_DEMO_DB_PASSWORD:-postgres}"
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - database:/var/lib/postgresql/data
@@ -21,16 +21,16 @@ services:
     image: mosipid/mock-identity-system:0.14.0@sha256:4c3bbddfd280b5a6411c89db5f3b6ab231fc3a49fc25794e2e210db36f8cbb96
     user: root
     ports:
-      - 127.0.0.1:19082:8082
+      - 127.0.0.1:${ESIGNET_DEMO_MOCK_PORT:-19082}:8082
     environment:
       container_user: mosip
       active_profile_env: default,local
       MOSIP_KERNEL_KEYMANAGER_HSM_CONFIG_PATH: /keys/mock_local.p12
       MOSIP_KERNEL_KEYMANAGER_HSM_KEYSTORE_TYPE: PKCS12
-      MOSIP_KERNEL_KEYMANAGER_HSM_KEYSTORE_PASS: localtest
+      MOSIP_KERNEL_KEYMANAGER_HSM_KEYSTORE_PASS: "${ESIGNET_DEMO_MOCK_KEY_PASSWORD:-localtest}"
       SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/mosip_mockidentitysystem?currentSchema=mockidentitysystem
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_PASSWORD: "${ESIGNET_DEMO_DB_PASSWORD:-postgres}"
       MOSIP_ESIGNET_HOST: esignet:8080
     depends_on:
       database:
@@ -51,28 +51,28 @@ services:
     image: mosipid/esignet:2.0.0@sha256:e85ff415527b355765b8603c14c738512c185df537e3ad69feffbbbdb45358ee
     user: root
     ports:
-      - 127.0.0.1:19080:8080
+      - 127.0.0.1:${ESIGNET_DEMO_API_PORT:-19080}:8080
     environment:
       container_user: mosip
       PORT: "8080"
       DATABASE_HOST: database
       DATABASE_PORT: "5432"
       DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: postgres
+      DATABASE_PASSWORD: "${ESIGNET_DEMO_DB_PASSWORD:-postgres}"
       KEYMANAGER_KEYSTORE_TYPE: PKCS12
       KEYMANAGER_DB_SCHEMA: esignet
       KEYMANAGER_PKCS12_FILE_PATH: /opt/mosip/keys/demo.pfx
-      KEYMANAGER_PKCS12_PASSWORD: localtest
+      KEYMANAGER_PKCS12_PASSWORD: "${ESIGNET_DEMO_KEY_PASSWORD:-localtest}"
       KEYMANAGER_PKCS12_ALLOW_INSECURE_SOFTWARE_KEYSTORE: "true"
       MOSIP_ESIGNET_CACHE_TYPE: redis
-      MOSIP_ESIGNET_HOST: http://127.0.0.1:19080
+      MOSIP_ESIGNET_HOST: http://127.0.0.1:${ESIGNET_DEMO_API_PORT:-19080}
       MOSIP_ESIGNET_OIDC_UI_HOSTNAME: 127.0.0.1
       MOSIP_ESIGNET_AUTH_FLOW_ID: flow-local-demo-v2
       MOSIP_ESIGNET_CAPTCHA_SITE_PROVIDER: ""
       MOSIP_ESIGNET_CAPTCHA_SITE_KEY: ""
       MOSIP_ESIGNET_AUTHN_PROVIDER: mock
       MOSIP_ESIGNET_MOCK_DOMAIN_URL: http://mock-identity-system:8082
-      MOSIP_ESIGNET_OIDC_UI_PORT: "19300"
+      MOSIP_ESIGNET_OIDC_UI_PORT: "${ESIGNET_DEMO_UI_PORT:-19300}"
       MOSIP_ESIGNET_OIDC_UI_SCHEME: http
       REDIS_URL: redis://redis:6379/0
     depends_on:
@@ -89,7 +89,7 @@ services:
     image: mosipid/oidc-ui:2.0.0@sha256:9d87a526518d63922de6d2d987bdeddd1ef1c215d27656252f7d38e58ffb9708
     user: root
     ports:
-      - 127.0.0.1:19300:3000
+      - 127.0.0.1:${ESIGNET_DEMO_UI_PORT:-19300}:3000
     environment:
       container_user: mosip
       DEFAULT_LANG: en

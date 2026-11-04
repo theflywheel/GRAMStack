@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	jose "github.com/go-jose/go-jose/v4"
@@ -36,6 +37,17 @@ func run() error {
 	flag.Parse()
 	return onboard(*callback, *directory)
 }
+func loopbackOrigin(variable, fallback string) (string, error) {
+	port := os.Getenv(variable)
+	if port == "" {
+		port = fallback
+	}
+	number, err := strconv.Atoi(port)
+	if err != nil || number < 1 || number > 65535 || strconv.Itoa(number) != port {
+		return "", fmt.Errorf("%s must be a canonical TCP port", variable)
+	}
+	return "http://127.0.0.1:" + port, nil
+}
 func onboard(callback, directory string) error {
 	if os.Getenv("GRAMSTACK_ENV") != "development" {
 		return errors.New("explicit development mode required")
@@ -50,6 +62,18 @@ func onboard(callback, directory string) error {
 	}
 	if directory == "" {
 		return errors.New("private output directory required")
+	}
+	issuer, err := loopbackOrigin("ESIGNET_DEMO_API_PORT", "19080")
+	if err != nil {
+		return err
+	}
+	mock, err := loopbackOrigin("ESIGNET_DEMO_MOCK_PORT", "19082")
+	if err != nil {
+		return err
+	}
+	ui, err := loopbackOrigin("ESIGNET_DEMO_UI_PORT", "19300")
+	if err != nil {
+		return err
 	}
 	client := &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	post := func(endpoint string, input any, duplicateFixture bool) error {
@@ -105,19 +129,19 @@ func onboard(callback, directory string) error {
 		return err
 	}
 	clientID := "gst-" + rand.Text()
-	if err = post("http://127.0.0.1:19080/client-mgmt/client", map[string]any{"clientId": clientID, "clientName": "GRAMStack local demo", "clientNameLangMap": map[string]string{"eng": "GRAMStack local demo"}, "relyingPartyId": clientID, "logoUri": "https://example.com/gramstack.svg", "redirectUris": []string{callback}, "userClaims": []string{"name"}, "authContextRefs": []string{"mosip:idp:acr:generated-code"}, "publicKey": jose.JSONWebKey{Key: &key.PublicKey, KeyID: "client-key", Algorithm: "PS256", Use: "sig"}, "grantTypes": []string{"authorization_code"}, "clientAuthMethods": []string{"private_key_jwt"}, "additionalConfig": map[string]any{"require_pkce": true, "require_pushed_authorization_requests": false, "dpop_bound_access_tokens": false}}, false); err != nil {
+	if err = post(issuer+"/client-mgmt/client", map[string]any{"clientId": clientID, "clientName": "GRAMStack local demo", "clientNameLangMap": map[string]string{"eng": "GRAMStack local demo"}, "relyingPartyId": clientID, "logoUri": "https://example.com/gramstack.svg", "redirectUris": []string{callback}, "userClaims": []string{"name"}, "authContextRefs": []string{"mosip:idp:acr:generated-code"}, "publicKey": jose.JSONWebKey{Key: &key.PublicKey, KeyID: "client-key", Algorithm: "PS256", Use: "sig"}, "grantTypes": []string{"authorization_code"}, "clientAuthMethods": []string{"private_key_jwt"}, "additionalConfig": map[string]any{"require_pkce": true, "require_pushed_authorization_requests": false, "dpop_bound_access_tokens": false}}, false); err != nil {
 		return err
 	}
 	for _, person := range []struct{ id, name string }{{"9000000001", "Sunita"}, {"9000000002", "Rani"}} {
 		translated := func(value string) []map[string]string {
 			return []map[string]string{{"language": "eng", "value": value}}
 		}
-		err = post("http://127.0.0.1:19082/v1/mock-identity-system/identity", map[string]any{"individualId": person.id, "pin": "111111", "email": person.name + "@example.invalid", "phone": "+12025550123", "dateOfBirth": "1990/01/01", "postalCode": "110001", "country": translated("Demo Country"), "region": translated("Demo Region"), "locality": translated("Demo Town"), "gender": translated("Female"), "encodedPhoto": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGM4YWQERAwQCgAjNgSxRnwWMwAAAABJRU5ErkJggg==", "fullName": translated(person.name + " Demo"), "givenName": translated(person.name), "familyName": translated("Demo"), "preferredLang": "eng", "locale": "en"}, true)
+		err = post(mock+"/v1/mock-identity-system/identity", map[string]any{"individualId": person.id, "pin": "111111", "email": person.name + "@example.invalid", "phone": "+12025550123", "dateOfBirth": "1990/01/01", "postalCode": "110001", "country": translated("Demo Country"), "region": translated("Demo Region"), "locality": translated("Demo Town"), "gender": translated("Female"), "encodedPhoto": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGM4YWQERAwQCgAjNgSxRnwWMwAAAABJRU5ErkJggg==", "fullName": translated(person.name + " Demo"), "givenName": translated(person.name), "familyName": translated("Demo"), "preferredLang": "eng", "locale": "en"}, true)
 		if err != nil {
 			return err
 		}
 	}
-	profile, err := json.Marshal(map[string]any{"schema_version": "gramstack.auth.oidc/v1", "issuer": "http://127.0.0.1:19080", "client_id": clientID, "token_endpoint_auth_method": "private_key_jwt", "assertion_key_id": "client-key", "assertion_audience": "issuer", "id_token_algorithms": []string{"PS256"}, "jwks_certificate_metadata": "ignore"})
+	profile, err := json.Marshal(map[string]any{"schema_version": "gramstack.auth.oidc/v1", "issuer": issuer, "client_id": clientID, "token_endpoint_auth_method": "private_key_jwt", "assertion_key_id": "client-key", "assertion_audience": "issuer", "id_token_algorithms": []string{"PS256"}, "jwks_certificate_metadata": "ignore"})
 	if err != nil {
 		return err
 	}
@@ -130,7 +154,7 @@ func onboard(callback, directory string) error {
 	}
 	bindings := map[string]string{}
 	for _, fixture := range []struct{ person, member string }{{"9000000001", "member-12345"}, {"9000000002", "member-67890"}} {
-		subject, err := fixtureSubject(provider, oidcadapter.Credentials{PrivateKeyPEM: pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})}, callback, fixture.person)
+		subject, err := fixtureSubject(provider, oidcadapter.Credentials{PrivateKeyPEM: pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})}, callback, fixture.person, ui)
 		if err != nil {
 			return err
 		}

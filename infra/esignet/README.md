@@ -14,6 +14,32 @@ Postgres, Redis and **both** service keystores use named volumes. Recreate conta
 
 If Docker Desktop's credential helper waits on a locked macOS keychain, public image pulls can use an isolated Docker config with empty `auths`. Do not change the user's existing Docker credentials. Use that same config for all commands in the session.
 
+## Fresh isolated identity instance
+
+For a demo alongside an existing eSignet project, generate a new project name,
+four loopback ports and distinct database and software keystore passwords.
+Keep this private state directory with its Compose volumes for restarts.
+
+```sh
+state=$(mktemp -d)
+python3 infra/esignet/init-demo.py "$state/esignet"
+set -a
+. "$state/esignet/.env"
+set +a
+docker compose -f infra/esignet/compose.yaml up -d --wait --wait-timeout 240
+python3 infra/esignet/check.py
+```
+
+Use the same exported variables when running the federation or browser checks
+below. The project name isolates volumes and the published ports stay on
+127.0.0.1. Start Compose promptly after generating ports. If another process
+takes a port, Compose reports the conflict and a new state directory can be
+generated. Use the same configuration for a restart. Password changes require
+an explicit database and keystore rotation.
+
+`docker compose -f infra/esignet/compose.yaml down` stops this project and
+keeps its volumes. Run it with the same exported project configuration.
+
 ## Provenance
 
 SQL and nginx configuration originate from [MOSIP eSignet v2.0.0](https://github.com/mosip/esignet/tree/db528423dac7898ad546cb7b2f5f867a949676a7/docker-compose), commit `db528423dac7898ad546cb7b2f5f867a949676a7`, under MPL-2.0 (included). The upstream personal-looking example identity was omitted from SQL. Compose adds Redis, persistent key files, dependency health checks, loopback ports and immutable image references. Upstream documentation: https://docs.esignet.io/.

@@ -31,7 +31,7 @@ func beginESignet(t *testing.T, browser *http.Client, base, id string) *url.URL 
 	request, _ := http.NewRequest("GET", base+"/interactions/"+id, nil)
 	response, _ := liveResponse(t, browser, request)
 	u := response.Request.URL
-	if response.StatusCode != 200 || u.Scheme != "http" || u.Host != "127.0.0.1:19300" || u.Path != "/signin" || u.Query().Get("executionId") == "" || u.Query().Get("authId") == "" {
+	if response.StatusCode != 200 || u.Scheme+"://"+u.Host != os.Getenv("GRAMSTACK_TEST_ESIGNET_UI") || u.Path != "/signin" || u.Query().Get("executionId") == "" || u.Query().Get("authId") == "" {
 		t.Fatalf("federation did not reach official eSignet UI: status %d path %s", response.StatusCode, u.Path)
 	}
 	return u
@@ -47,7 +47,7 @@ func esignetCallback(t *testing.T, browser *http.Client, base string, start *url
 		if err != nil {
 			t.Fatal(err)
 		}
-		request, _ := http.NewRequest("POST", "http://127.0.0.1:19080"+path, bytes.NewReader(raw))
+		request, _ := http.NewRequest("POST", os.Getenv("GRAMSTACK_TEST_IDP_URL")+path, bytes.NewReader(raw))
 		request.Header.Set("Content-Type", "application/json")
 		response, body := liveResponse(t, browser, request)
 		if response.StatusCode != 200 || json.Unmarshal([]byte(body), output) != nil {
@@ -153,7 +153,7 @@ func TestActualESignetFederation(t *testing.T) {
 		t.Fatal("real OAuth authentication implicitly granted disclosure consent")
 	}
 	var principal Principal
-	if err = store.Peek(request.Context(), "auth.principal", id, "server", &principal); err != nil || principal.Issuer != "http://127.0.0.1:19080" || principal.Subject == "" || principal.Assurance == "" || principal.Subject == "9000000001" || !principal.ExpiresAt.After(time.Now()) || principal.ExpiresAt.After(time.Now().Add(3*time.Minute)) {
+	if err = store.Peek(request.Context(), "auth.principal", id, "server", &principal); err != nil || principal.Issuer != os.Getenv("GRAMSTACK_TEST_IDP_URL") || principal.Subject == "" || principal.Assurance == "" || principal.Subject == "9000000001" || !principal.ExpiresAt.After(time.Now()) || principal.ExpiresAt.After(time.Now().Add(3*time.Minute)) {
 		t.Fatal("verified eSignet principal/lifetime not retained", err)
 	}
 	service := &Service{store: store}
