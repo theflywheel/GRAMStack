@@ -67,6 +67,21 @@ Reproduce the listener split locally with
 fresh PostgreSQL state and verifies private TLS, shared OAuth client and token
 state, and a 404 for the admin route on the public listener.
 
+Prepare the two client secrets in private operator state. Run registration
+from an operator host with private-network access to Hydra admin:
+
+```sh
+state=$(mktemp -d /tmp/gramstack-hydra-clients.XXXXXX)
+python3 infra/railway/provision-hydra.py prepare "$state/clients.json"
+python3 infra/railway/provision-hydra.py register "$state/clients.json" --ca /private/hydra-ca.pem
+```
+
+The registration command uses the fixed private TLS endpoint and refuses
+redirects and existing client IDs. Keep the file if a request fails or
+only one client is created. Inspect the admin state before retrying so
+an existing client is not replaced or assigned a new secret. The gateway
+uses the portal secret and SakhiCredit uses the consumer secret.
+
 ## eSignet deployment artifacts
 
 The `esignet-db`, `esignet` and `esignet-ui` build contexts are prepared under

@@ -7,6 +7,7 @@ cd "$root"
 scratch=$(mktemp -d /tmp/gramstack-hydra-split.XXXXXX)
 pids=()
 cleanup(){
+ rm -f "$scratch/clients.json"
  for pid in "${pids[@]}"; do kill -TERM "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; done
  "$pg/pg_ctl" -D "$scratch/pg" -m fast -w stop >/dev/null 2>&1 || true
 }
@@ -26,9 +27,9 @@ SERVE_TLS_ENABLED=true SERVE_TLS_CERT_BASE64="$(openssl base64 -A -in "$scratch/
 pids+=("$!")
 SERVE_TLS_ENABLED=false "$hydra" serve public --sqa-opt-out > "$scratch/public.log" 2>&1 &
 pids+=("$!")
-export PROBE_PUB="$pub" PROBE_ADMIN="$admin" PROBE_CA="$scratch/certs/ca.pem"
+export PROBE_PUB="$pub" PROBE_ADMIN="$admin" PROBE_CA="$scratch/certs/ca.pem" PROBE_SECRETS="$scratch/clients.json"
 python3 - <<'PY'
-import base64,json,os,secrets,ssl,time
+import base64,json,os,ssl,subprocess,sys,time
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError
 pub='http://127.0.0.1:'+os.environ['PROBE_PUB']
@@ -45,14 +46,22 @@ for _ in range(80):
   time.sleep(.15)
 else: raise RuntimeError('split listener readiness failed')
 with urlopen(pub+'/health/ready',timeout=4) as response: assert response.status==200
-secret=secrets.token_hex(32)
-body=dict(client_id='probe',client_secret=secret,grant_types=['client_credentials'],scope='gramstack.access',audience=['gramstack'],token_endpoint_auth_method='client_secret_basic')
-with urlopen(Request(admin+'/admin/clients',json.dumps(body).encode(),{'Content-Type':'application/json'}),context=context,timeout=4) as response: assert response.status==201
-header=dict(proxy,Authorization='Basic '+base64.b64encode(('probe:'+secret).encode()).decode(),**{'Content-Type':'application/x-www-form-urlencoded'})
+tool=[sys.executable,'infra/railway/provision-hydra.py']
+secret_file=os.environ['PROBE_SECRETS']
+subprocess.run(tool+['prepare',secret_file],check=True)
+register=tool+['register',secret_file,'--ca',os.environ['PROBE_CA'],'--local-admin-port',os.environ['PROBE_ADMIN']]
+subprocess.run(register,check=True)
+duplicate=subprocess.run(register,capture_output=True)
+assert duplicate.returncode==1 and not duplicate.stdout
+with open(secret_file) as file: secret=json.load(file)['consumer-one']
+with urlopen(admin+'/admin/clients/gramstack-portal',context=context,timeout=4) as response:
+ portal=json.load(response)
+ assert portal['redirect_uris']==['https://gramstack-gateway-b9b69819.up.railway.app/auth/callback']
+header=dict(proxy,Authorization='Basic '+base64.b64encode(('consumer-one:'+secret).encode()).decode(),**{'Content-Type':'application/x-www-form-urlencoded'})
 with urlopen(Request(pub+'/oauth2/token',b'grant_type=client_credentials&scope=gramstack.access&audience=gramstack',header),timeout=4) as response: token=json.load(response)['access_token']
 from urllib.parse import urlencode
 with urlopen(Request(admin+'/admin/oauth2/introspect',urlencode(dict(token=token)).encode(),{'Content-Type':'application/x-www-form-urlencoded'}),context=context,timeout=4) as response:
- result=json.load(response); assert result['active'] and result['client_id']=='probe'
+ result=json.load(response); assert result['active'] and result['client_id']=='consumer-one'
 try:
  urlopen(Request(pub+'/admin/clients',headers=proxy),timeout=4)
 except HTTPError as error:
