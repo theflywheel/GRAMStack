@@ -1,5 +1,5 @@
 // Package migrations applies embedded, checksummed schema migrations while
-// holding a database advisory lock across concurrent application starts.
+// holding a database advisory lock across concurrent operator calls.
 package migrations
 
 import (
@@ -74,6 +74,42 @@ func Apply(ctx context.Context, pool *pgxpool.Pool) error {
 		}
 		if err = tx.Commit(ctx); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+// Check verifies every embedded migration without executing DDL. Readiness must
+// never make an unmigrated database appear usable by applying migrations itself.
+func Check(ctx context.Context, pool *pgxpool.Pool) error {
+	names, err := fs.Glob(files, "*.sql")
+	if err != nil {
+		return err
+	}
+	rows, err := pool.Query(ctx, "SELECT name, checksum FROM schema_migrations")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	applied := make(map[string]string)
+	for rows.Next() {
+		var name, checksum string
+		if err := rows.Scan(&name, &checksum); err != nil {
+			return err
+		}
+		applied[name] = checksum
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, name := range names {
+		raw, err := files.ReadFile(name)
+		if err != nil {
+			return err
+		}
+		hash := sha256.Sum256(raw)
+		if applied[name] != hex.EncodeToString(hash[:]) {
+			return fmt.Errorf("migration missing or changed: %s", name)
 		}
 	}
 	return nil

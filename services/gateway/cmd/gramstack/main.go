@@ -41,9 +41,6 @@ func main() {
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte("ok\n"))
 	})
-	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "application dependencies not configured", http.StatusServiceUnavailable)
-	})
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	closeConsumers, err := configureConsumers(ctx, mux)

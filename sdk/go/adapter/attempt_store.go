@@ -59,6 +59,10 @@ func NewSQLAttemptStore(db *sql.DB, adapter string, key []byte) (*SQLAttemptStor
 
 const attemptSchema = `CREATE TABLE adapter_attempts(adapter_id text NOT NULL,attempt_id text NOT NULL,request_id text NOT NULL,request_digest text NOT NULL,grant_jti text NOT NULL,grant_digest text NOT NULL,consumer_id text NOT NULL,presenter_thumbprint text NOT NULL,state text NOT NULL,version bigint NOT NULL,redemption_id text NOT NULL DEFAULT '',receipt_id text NOT NULL DEFAULT '',evidence_digest text NOT NULL DEFAULT '',protected_evidence bytea,updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),PRIMARY KEY(adapter_id,attempt_id),UNIQUE(adapter_id,request_id),UNIQUE(adapter_id,grant_jti))`
 
+// Ready checks the installed retrieval schema without applying migrations.
+func (s *SQLAttemptStore) Ready(ctx context.Context) error {
+	return checkSchema(ctx, s.db, 2, attemptSchema)
+}
 func (s *SQLAttemptStore) Migrate(ctx context.Context) error {
 	return migrateSchema(ctx, s.db, 2, attemptSchema)
 }

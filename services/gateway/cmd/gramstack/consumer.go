@@ -17,6 +17,7 @@ import (
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/authn"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/consumer"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/subjectbinding"
+	"github.com/theflywheel/GRAMStack/services/gateway/migrations"
 )
 
 // Consumer APIs are explicitly configured; the default shell exposes no protected
@@ -24,6 +25,7 @@ import (
 func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error) {
 	path := os.Getenv("GRAMSTACK_CONFIG_FILE")
 	if path == "" {
+		registerReadiness(mux, nil)
 		return func() {}, nil
 	}
 	f, err := os.Open(path)
@@ -96,6 +98,10 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 	if err = pool.Ping(probe); err != nil {
 		pool.Close()
 		return nil, errors.New("database unavailable")
+	}
+	if err = migrations.Check(probe, pool); err != nil {
+		pool.Close()
+		return nil, errors.New("gateway migrations required or changed")
 	}
 	service, err := consumer.New(consumer.Config{Pool: pool, Auth: auth, PublicOrigin: config.PublicOrigin, AllowLoopback: config.AllowLoopbackHTTP, Consumers: config.Consumers})
 	if err != nil {
@@ -170,5 +176,20 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 		mux.Handle("/auth/", authHandler)
 		mux.Handle("/interactions/", authHandler)
 	}
+	registerReadiness(mux, func(ctx context.Context) error { return migrations.Check(ctx, pool) })
 	return func() { closeWorkers(); pool.Close() }, nil
+}
+
+func registerReadiness(mux *http.ServeMux, check func(context.Context) error) {
+	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if check == nil || check(ctx) != nil {
+			http.Error(w, "application dependencies unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("ready\n"))
+	})
 }

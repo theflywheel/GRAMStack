@@ -157,6 +157,9 @@ func TestContextTamperExpiryRenewalAndMigrations(t *testing.T) {
 	if err = store.Migrate(ctx); err != nil {
 		t.Fatal("repeat migration failed", err)
 	}
+	if err = store.Ready(ctx); err != nil {
+		t.Fatal("migrated store not ready", err)
+	}
 	var checksum string
 	if err = db.QueryRowContext(ctx, `SELECT digest FROM adapter_schema_migrations WHERE version=1`).Scan(&checksum); err != nil {
 		t.Fatal(err)
@@ -167,5 +170,8 @@ func TestContextTamperExpiryRenewalAndMigrations(t *testing.T) {
 	defer db.ExecContext(ctx, `UPDATE adapter_schema_migrations SET digest=$1 WHERE version=1`, checksum)
 	if err = store.Migrate(ctx); err == nil {
 		t.Fatal("migration checksum mismatch accepted")
+	}
+	if err = store.Ready(ctx); err == nil {
+		t.Fatal("readiness accepted changed schema")
 	}
 }

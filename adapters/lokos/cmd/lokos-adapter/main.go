@@ -46,7 +46,15 @@ func main() {
 		w.Write([]byte("ok\n"))
 	})
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "application dependencies not configured", http.StatusServiceUnavailable)
+		w.Header().Set("Cache-Control", "no-store")
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if runtime == nil || runtime.ready(ctx) != nil {
+			http.Error(w, "application dependencies unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("ready\n"))
 	})
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

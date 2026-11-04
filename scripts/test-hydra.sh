@@ -109,7 +109,7 @@ start_gateway(){
 gateway_pid=$!
 ready=false
 for _ in $(seq 1 100); do
- if curl -fsS "http://127.0.0.1:$gateway_port/healthz" >/dev/null 2>&1; then ready=true; break; fi
+ if curl -fsS "http://127.0.0.1:$gateway_port/readyz" >/dev/null 2>&1; then ready=true; break; fi
  sleep 0.1
 done
 if [[ "$ready" != true ]]; then echo 'Configured gateway failed startup' >&2; cat "$scratch/gateway.log" >&2; exit 1; fi
@@ -129,7 +129,7 @@ start_binding(){
  adapter_pid=$!
  local ready=false
  for _ in $(seq 1 100); do
-  if curl -fsS --cacert "$SERVICE_CA_FILE" --cert "$scratch/certs/lokos-adapter.pem" --key "$scratch/certs/lokos-adapter.key" "https://127.0.0.1:$source_port/healthz" >/dev/null 2>&1 && \
+  if curl -fsS "http://127.0.0.1:$adapter_health_port/readyz" >/dev/null 2>&1 && curl -fsS --cacert "$SERVICE_CA_FILE" --cert "$scratch/certs/lokos-adapter.pem" --key "$scratch/certs/lokos-adapter.key" "https://127.0.0.1:$source_port/healthz" >/dev/null 2>&1 && \
     [[ $(curl -s --cacert "$SERVICE_CA_FILE" --cert "$SERVICE_CERT_FILE" --key "$SERVICE_KEY_FILE" -o /dev/null -w '%{http_code}' "$GRAMSTACK_TEST_ADAPTER_URL/internal/v1/subject-verifications") == 404 ]]; then ready=true; break; fi
   sleep 0.1
  done

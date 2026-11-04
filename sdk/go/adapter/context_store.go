@@ -40,6 +40,21 @@ const contextSchema = `CREATE TABLE adapter_subject_contexts(context_id text PRI
 func (s *SQLContextStore) Migrate(ctx context.Context) error {
 	return migrateSchema(ctx, s.db, 1, contextSchema)
 }
+
+// Ready checks the installed schema without applying migrations.
+func (s *SQLContextStore) Ready(ctx context.Context) error {
+	return checkSchema(ctx, s.db, 1, contextSchema)
+}
+func checkSchema(ctx context.Context, db *sql.DB, version int, schema string) error {
+	var digest string
+	if err := db.QueryRowContext(ctx, `SELECT digest FROM adapter_schema_migrations WHERE version=$1`, version).Scan(&digest); err != nil {
+		return err
+	}
+	if digest != Digest([]byte(schema)) {
+		return errors.New("adapter schema checksum mismatch")
+	}
+	return nil
+}
 func migrateSchema(ctx context.Context, db *sql.DB, version int, schema string) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {

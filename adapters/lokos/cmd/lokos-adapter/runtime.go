@@ -17,6 +17,7 @@ import (
 
 type adapterRuntime struct {
 	db        *sql.DB
+	ready     func(context.Context) error
 	server    *http.Server
 	metadata  http.Handler
 	cert, key string
@@ -90,6 +91,16 @@ func configureAdapter(ctx context.Context, migrate bool) (*adapterRuntime, error
 		db.Close()
 		return nil, err
 	}
+	ready := func(ctx context.Context) error {
+		if err := store.Ready(ctx); err != nil {
+			return err
+		}
+		return attempts.Ready(ctx)
+	}
+	if err = ready(ctx); err != nil {
+		db.Close()
+		return nil, errors.New("adapter migrations required or changed")
+	}
 	sourceOrigin := os.Getenv("LOKOS_SOURCE_URL")
 	sourceURL, parseErr := url.Parse(sourceOrigin)
 	if parseErr != nil || sourceURL.Scheme != "https" || sourceURL.Host == "" || sourceURL.User != nil || sourceURL.RawQuery != "" || sourceURL.Fragment != "" || (sourceURL.Path != "" && sourceURL.Path != "/") {
@@ -122,5 +133,5 @@ func configureAdapter(ctx context.Context, migrate bool) (*adapterRuntime, error
 	if port == "" {
 		port = "8443"
 	}
-	return &adapterRuntime{db: db, metadata: metadata, server: &http.Server{Addr: ":" + port, Handler: mux, TLSConfig: tlsConfig, ReadHeaderTimeout: 5e9, ReadTimeout: 30e9, WriteTimeout: 30e9, IdleTimeout: 60e9}, cert: certPath, key: keyPath}, nil
+	return &adapterRuntime{db: db, ready: ready, metadata: metadata, server: &http.Server{Addr: ":" + port, Handler: mux, TLSConfig: tlsConfig, ReadHeaderTimeout: 5e9, ReadTimeout: 30e9, WriteTimeout: 30e9, IdleTimeout: 60e9}, cert: certPath, key: keyPath}, nil
 }

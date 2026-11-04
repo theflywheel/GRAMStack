@@ -2,7 +2,7 @@
 
 Independent Go module using `github.com/theflywheel/GRAMStack/sdk/go/adapter`. It implements registry-native extension points; subject verification and strict field projection execute through the SDK. Native registry mechanics and credentials remain here, without a LokOS switch in the gateway.
 
-The runtime has public liveness/unavailable-readiness endpoints and an optional private mTLS subject-verification listener. No protected business-data route is exposed until the grant/redemption/evidence pipeline is configured. This is not a claim that a real LokOS API has been integrated.
+The runtime has public liveness/readiness endpoints and an optional private mTLS subject-verification listener. No protected business-data route is exposed until the grant/redemption/evidence pipeline is configured. This is not a claim that a real LokOS API has been integrated.
 
 ## Verification configuration
 
@@ -15,7 +15,7 @@ The runtime has public liveness/unavailable-readiness endpoints and an optional 
 | `ADAPTER_TLS_PORT` | Private listener port, default 8443 |
 | `ADAPTER_DEMO_VERIFIER=true` | Explicit fictional source integration; allowed only in development/demo |
 
-Run `lokos-adapter migrate` explicitly before startup. `lokos-adapter` then serves the SDK verification profile 0.1.0 and requires the configured gateway identity. Its database pool is bounded. Startup does not perform migrations. Source responses marked demo are rejected unless demo permission is explicit; production configuration rejects the demo verifier before contacting dependencies.
+Run `lokos-adapter migrate` explicitly before startup. `lokos-adapter` then serves the SDK verification profile 0.1.0 and requires the configured gateway identity. Its database pool is bounded. Startup does not perform migrations. Startup verifies both installed schema checksums. `GET /readyz` is a read-only two-second database/schema probe: 200 for a configured adapter with both migrations intact, 503 when unconfigured, unavailable or mismatched. It performs no source fetch, grant admission or evidence publication; readiness does not imply optional retrieval is configured or upstream dependencies are available. Source responses marked demo are rejected unless demo permission is explicit; production configuration rejects the demo verifier before contacting dependencies.
 
 `HTTPSource` implements the fictional native interface under `mocks/lokos`, not an assumed government LokOS endpoint. A real integration supplies approved source/verifier implementations and credentials within this adapter. The separate native mock owns identity-to-record fixtures, returns opaque mapping handles and remains inaccessible to the gateway's service certificate.
 

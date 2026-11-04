@@ -184,4 +184,18 @@ func TestDurableAttemptClaimFencingEncryptionAndRestart(t *testing.T) {
 	if err = restarted.Migrate(ctx); err != nil {
 		t.Fatal("migration retry changed schema", err)
 	}
+	if err = restarted.Ready(ctx); err != nil {
+		t.Fatal("migrated attempts not ready", err)
+	}
+	var checksum string
+	if err = db.QueryRowContext(ctx, `SELECT digest FROM adapter_schema_migrations WHERE version=2`).Scan(&checksum); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.ExecContext(ctx, `UPDATE adapter_schema_migrations SET digest='tampered' WHERE version=2`); err != nil {
+		t.Fatal(err)
+	}
+	defer db.ExecContext(ctx, `UPDATE adapter_schema_migrations SET digest=$1 WHERE version=2`, checksum)
+	if err = restarted.Ready(ctx); err == nil {
+		t.Fatal("readiness accepted changed attempt schema")
+	}
 }

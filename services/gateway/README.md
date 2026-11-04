@@ -2,7 +2,7 @@
 
 Independent Go module for the core application, including the explicit Consent Manager subsystem. Request and consent transition decisions use `github.com/looplab/fsm`; persisted state must still be changed with SQL expected-version checks. The request transition graph is checked against `specs/0.3.0/lifecycle.json` in CI.
 
-Run `go run ./cmd/gramstack`. PORT defaults to 8080. `/healthz` reports process liveness; `/readyz` returns 503 until application dependencies are implemented and configured. Without explicit consumer configuration, the bootstrap executable exposes no protected application routes.
+Run `go run ./cmd/gramstack`. PORT defaults to 8080. `/healthz` reports process liveness; `/readyz` returns 200 when consumer APIs are configured and every embedded database migration is installed with its expected checksum; unconfigured, unavailable or mismatched databases return 503. The probe is read-only, has a two-second deadline and exposes no dependency details. Without explicit consumer configuration, the bootstrap executable exposes no protected application routes.
 
 ## Durable state
 
@@ -14,7 +14,7 @@ Run `PG_BIN=... scripts/test-postgres.sh` from repository root for real database
 
 ## Consumer request API increment
 
-Set `GRAMSTACK_CONFIG_FILE` to a reviewed configuration based on `config.example.json` and supply `DATABASE_URL`. Run the explicit `migrate` command first. This enables authenticated POST `/v1/access-requests`, owner-only GET `/v1/access-requests/{id}` and POST `/v1/access-requests/{id}/cancel`. Optional authorization configuration enables grant issuance and private admission; protected data transport is configured separately below. Person/registry/consent routes are described below. `/readyz` still returns 503 because the complete disclosure pipeline is not configured.
+Set `GRAMSTACK_CONFIG_FILE` to a reviewed configuration based on `config.example.json` and supply `DATABASE_URL`. Run the explicit `migrate` command first. This enables authenticated POST `/v1/access-requests`, owner-only GET `/v1/access-requests/{id}` and POST `/v1/access-requests/{id}/cancel`. Optional authorization configuration enables grant issuance and private admission; protected data transport is configured separately below. Person/registry/consent routes are described below. Startup verifies all migrations without applying DDL. `/readyz` checks the database schema for the configured service; it does not claim every upstream is available or enable optional routes.
 
 Hydra v26.2.0 introspection is pinned to a configured private/admin endpoint, issuer, audience and scope. The gateway requires an active, unexpired access token, checks token use/type and resolves the consumer from the issuer response rather than browser JSON. Keep the admin endpoint private and protected by deployment transport controls. No token or introspection result is logged or stored. Outages fail closed; redirects are rejected. HTTP is allowed only for explicit literal-loopback development endpoints with `GRAMSTACK_ENV=development`; production configuration rejects that switch.
 
@@ -26,7 +26,7 @@ Run `PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` from the repository root 
 
 ## Optional citizen authentication increment
 
-The optional `authentication` configuration enables `/auth/*` federation handlers and `/interactions/{id}`. See [AuthN](internal/authn/README.md) for protocol boundaries, secrets, cookies and tests. A completed login advances to BINDING_PENDING and does not create registry ownership, disclosure consent or a grant. Configured registry descriptors enable SDK-backed subject verification; optional consent configuration enables the first-party portal. `/readyz` continues to report unavailable for the full service.
+The optional `authentication` configuration enables `/auth/*` federation handlers and `/interactions/{id}`. See [AuthN](internal/authn/README.md) for protocol boundaries, secrets, cookies and tests. A completed login advances to BINDING_PENDING and does not create registry ownership, disclosure consent or a grant. Configured registry descriptors enable SDK-backed subject verification; optional consent configuration enables the first-party portal. Authentication, registry, consent and retrieval capabilities remain explicitly configured; a readiness response does not imply unconfigured capabilities exist.
 
 ## Consent portal
 
