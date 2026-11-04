@@ -47,9 +47,22 @@ command. Use a working FFmpeg executable with the H.264 encoder available.
 `FFMPEG_BIN` can point to that executable. The capture follows the active
 browser tab, pauses during fixture credential entry, and creates an MP4
 without overwriting existing footage. Use `ffprobe` to check the video stream
-and play the file in a browser. This rehearsal covers approval and refusal in separate browser sessions.
-The final demo also needs the verified platform evidence and capability matrix.
+and play the file in a browser. This rehearsal covers approval and refusal in separate browser sessions and
+ends with the actual aggregate proof verification result. The final demo
+also needs the capability matrix and the completed acceptance gates.
 See the [recording sequence and capability report](../../DEMO-CAPABILITIES.md).
+
+To verify the retained DeDi commitments separately while the stack is running:
+
+```sh
+python3 infra/demo/verify-evidence.py "$state/demo"
+```
+
+The command reads the private database socket in a read-only transaction.
+It checks the retained inclusion proofs against the pinned public checkpoint
+key and emits an aggregate count. It requires no DeDi signing key or admin
+password. It fails if any commitment is pending, invalid or missing its
+single projection.
 
 Ctrl-C stops the processes and the launcher's Compose project. The private
 state directory and eSignet volumes remain available for inspection. Use a

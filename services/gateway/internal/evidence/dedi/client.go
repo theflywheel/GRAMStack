@@ -39,11 +39,39 @@ type Config struct {
 	AllowInsecureLoopback                bool // Test/development only; never permits remote plaintext HTTP.
 }
 type Client struct {
-	config   Config
-	origin   *url.URL
-	verifier note.Verifier
-	http     *http.Client
+	proofVerifier *Verifier
+	config        Config
+	origin        *url.URL
+	http          *http.Client
 }
+
+// VerificationConfig contains public trust configuration only.
+type VerificationConfig struct {
+	Namespace, Registry, PublisherKeyID, CheckpointOrigin, CheckpointVerifier string
+}
+
+// Verifier checks retained commitments offline without publication credentials.
+type Verifier struct {
+	config   VerificationConfig
+	verifier note.Verifier
+}
+
+func NewVerifier(config VerificationConfig) (*Verifier, error) {
+	for _, part := range []string{config.Namespace, config.Registry, config.PublisherKeyID} {
+		if !component.MatchString(part) {
+			return nil, errors.New("invalid DeDi namespace, registry or publisher key ID")
+		}
+	}
+	if config.CheckpointOrigin == "" {
+		return nil, errors.New("DeDi checkpoint origin required")
+	}
+	verifier, err := note.NewVerifier(config.CheckpointVerifier)
+	if err != nil {
+		return nil, fmt.Errorf("DeDi checkpoint verifier: %w", err)
+	}
+	return &Verifier{config: config, verifier: verifier}, nil
+}
+
 type Anchor struct {
 	RecordID   string          `json:"record_id"`
 	TreeSize   int64           `json:"tree_size"`
@@ -63,20 +91,18 @@ func New(config Config) (*Client, error) {
 			return nil, errors.New("DeDi requires HTTPS; explicit loopback HTTP is development-only")
 		}
 	}
-	for _, part := range []string{config.Namespace, config.Registry, config.PublisherKeyID} {
-		if !component.MatchString(part) {
-			return nil, errors.New("invalid DeDi namespace, registry or publisher key ID")
-		}
+	if len(config.PublisherKey) != ed25519.PrivateKeySize || config.AdminUser == "" || config.AdminPassword == "" {
+		return nil, errors.New("DeDi publisher and admin configuration required")
 	}
-	if len(config.PublisherKey) != ed25519.PrivateKeySize || config.AdminUser == "" || config.AdminPassword == "" || config.CheckpointOrigin == "" {
-		return nil, errors.New("DeDi publisher, admin and checkpoint trust configuration required")
-	}
-	verifier, err := note.NewVerifier(config.CheckpointVerifier)
+	verifier, err := NewVerifier(VerificationConfig{
+		Namespace: config.Namespace, Registry: config.Registry, PublisherKeyID: config.PublisherKeyID,
+		CheckpointOrigin: config.CheckpointOrigin, CheckpointVerifier: config.CheckpointVerifier,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("DeDi checkpoint verifier: %w", err)
+		return nil, err
 	}
 	config.PublisherKey = bytes.Clone(config.PublisherKey)
-	return &Client{config: config, origin: base, verifier: verifier, http: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("DeDi redirects are forbidden") }}}, nil
+	return &Client{proofVerifier: verifier, config: config, origin: base, http: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("DeDi redirects are forbidden") }}}, nil
 }
 
 // Provision is an explicit operator operation, never run implicitly on a read.
@@ -124,7 +150,7 @@ func (c *Client) Publish(ctx context.Context, eventID, digest string) (Anchor, e
 	if status != http.StatusOK {
 		return Anchor{}, fmt.Errorf("DeDi proof lookup returned HTTP %d", status)
 	}
-	return c.verify(body, record, payload)
+	return c.proofVerifier.verify(body, record, payload)
 }
 
 func (c *Client) write(ctx context.Context, method, path string, payload []byte) (int, []byte, error) {
@@ -188,7 +214,7 @@ type proof struct {
 	} `json:"leaf"`
 }
 
-func (c *Client) verify(body []byte, record string, payload []byte) (Anchor, error) {
+func (c *Verifier) verify(body []byte, record string, payload []byte) (Anchor, error) {
 	var envelope struct {
 		Data struct {
 			Details json.RawMessage `json:"details"`
@@ -253,9 +279,14 @@ func (c *Client) verify(body []byte, record string, payload []byte) (Anchor, err
 	return Anchor{RecordID: record, TreeSize: size, LeafIndex: p.LeafIndex, Checkpoint: p.Checkpoint, Inclusion: rawProof}, nil
 }
 
+// VerifyAnchor checks retained evidence against the client's pinned trust.
+func (c *Client) VerifyAnchor(eventID, digest string, anchor Anchor) error {
+	return c.proofVerifier.VerifyAnchor(eventID, digest, anchor)
+}
+
 // VerifyAnchor revalidates retained inclusion evidence offline against the same
 // pinned node, publisher and exact protected commitment used for publication.
-func (c *Client) VerifyAnchor(eventID, digest string, a Anchor) error {
+func (c *Verifier) VerifyAnchor(eventID, digest string, a Anchor) error {
 	if eventID == "" || len(eventID) > 256 || !commitment.MatchString(digest) || len(a.Inclusion) == 0 || len(a.Inclusion) > responseLimit {
 		return errors.New("invalid retained DeDi anchor")
 	}

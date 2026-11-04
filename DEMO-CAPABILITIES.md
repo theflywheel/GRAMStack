@@ -29,7 +29,6 @@ the acceptance gates.
    in SakhiCredit.
 3. Create a separate application and reject its notice. Show the rejected
    receipt and SakhiCredit's declined state with retrieval unavailable.
-4. For the final recording, show the verified evidence custody and DeDi
-   inclusion result using redacted operator output, then present this matrix
-   updated against the final acceptance evidence. Verify playback before
-   sharing the file.
+4. The rehearsal shows the live read-only verifier's aggregate DeDi result.
+   For the final recording, present this matrix updated against the final
+   acceptance evidence. Verify playback before sharing the file.

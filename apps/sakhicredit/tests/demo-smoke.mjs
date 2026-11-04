@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
@@ -130,6 +132,42 @@ try {
     );
     await hold(3000);
     console.log("PASS: rejected request did not enable retrieval or show data");
+    recording.pause();
+    const evidenceScript = fileURLToPath(
+      new URL("../../../infra/demo/verify-evidence.py", import.meta.url),
+    );
+    const evidence = JSON.parse(
+      execFileSync("python3", [evidenceScript, state], {
+        encoding: "utf8",
+        timeout: 50000,
+      }),
+    );
+    assert.equal(evidence.mode, "offline");
+    assert.ok(
+      Number.isSafeInteger(evidence.verified_commitments) &&
+        evidence.verified_commitments > 0,
+    );
+    const proof = await browser.newPage({
+      viewport: { width: 1280, height: 800 },
+    });
+    await proof.setContent(`<!doctype html><meta charset="utf-8">
+      <title>GRAMStack operator evidence</title>
+      <style>
+      body{margin:0;background:#f5f7f3;color:#19382e;font:24px system-ui}
+      main{margin:90px auto;max-width:900px;padding:48px;background:white;border-radius:22px}
+      h1{font-size:56px;line-height:1.05;margin:18px 0}
+      pre{background:#e9f2e8;padding:22px;border-radius:12px;font-size:25px}
+      </style>
+      <main><p>GRAMStack · Local operator verification</p>
+      <h1>DeDi inclusion verified offline</h1>
+      <p>The read-only verifier checked the retained commitments against the pinned checkpoint key.</p>
+      <pre>{ "verified_commitments": ${evidence.verified_commitments}, "mode": "offline" }</pre>
+      <p>Aggregate result from this rehearsal stack. Evidence and source payloads remain private.</p></main>`);
+    recording.show(proof);
+    await hold(4200);
+    console.log(
+      `PASS: filmed aggregate verification for ${evidence.verified_commitments} retained commitments`,
+    );
   }
 } finally {
   try {
