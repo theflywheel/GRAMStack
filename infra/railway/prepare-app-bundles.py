@@ -81,10 +81,10 @@ def settings(args):
                 GRAMSTACK_UPSTREAM_PRIVATE_KEY_FILE=RUNTIME+"esignet-client.pem",
                 GRAMSTACK_AUTH_KEY=encoded(auth_key),
                 DEDI_NODE_URL="https://dedi.railway.internal:8446",
-                DEDI_NAMESPACE="gramstack-demo", DEDI_REGISTRY="commitments",
-                DEDI_PUBLISHER_KEY_ID="gramstack-demo", DEDI_ADMIN_USER="admin",
+                DEDI_NAMESPACE="gramstack", DEDI_REGISTRY="commitments",
+                DEDI_PUBLISHER_KEY_ID="gramstack-gateway", DEDI_ADMIN_USER="admin",
                 DEDI_PUBLISHER_KEY_FILE=RUNTIME+"publisher.key",
-                DEDI_CHECKPOINT_ORIGIN="gramstack-demo/log",
+                DEDI_CHECKPOINT_ORIGIN="gramstack/log",
             ),
         ),
         "lokos-adapter": (
