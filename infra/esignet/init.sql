@@ -1,19 +1,30 @@
 -- Adapted from MOSIP eSignet v2.0.0 (MPL-2.0); upstream personal-looking example identity omitted.
+\if :{?esignet_owner}
+\else
+\set esignet_owner postgres
+\endif
+\if :{?mock_owner}
+\else
+\set mock_owner postgres
+\endif
+
 CREATE DATABASE mosip_esignet
   ENCODING = 'UTF8'
   LC_COLLATE = 'en_US.UTF-8'
   LC_CTYPE = 'en_US.UTF-8'
   TABLESPACE = pg_default
-  OWNER = postgres
+  OWNER = :"esignet_owner"
   TEMPLATE  = template0;
 
 COMMENT ON DATABASE mosip_esignet IS 'e-Signet related data is stored in this database';
 
-\c mosip_esignet postgres
+REVOKE CONNECT ON DATABASE mosip_esignet FROM PUBLIC;
+\c mosip_esignet
+SET ROLE :"esignet_owner";
 
 DROP SCHEMA IF EXISTS esignet CASCADE;
 CREATE SCHEMA esignet;
-ALTER SCHEMA esignet OWNER TO postgres;
+ALTER SCHEMA esignet OWNER TO :"esignet_owner";
 ALTER DATABASE mosip_esignet SET search_path TO esignet,pg_catalog,public;
 
 CREATE TABLE esignet.client_detail(
@@ -165,21 +176,25 @@ INSERT INTO esignet.KEY_POLICY_DEF(APP_ID,KEY_VALIDITY_DURATION,PRE_EXPIRE_DAYS,
 INSERT INTO esignet.KEY_POLICY_DEF(APP_ID,KEY_VALIDITY_DURATION,PRE_EXPIRE_DAYS,ACCESS_ALLOWED,IS_ACTIVE,CR_BY,CR_DTIMES) VALUES('OIDC_PARTNER', 1095, 50, 'NA', true, 'mosipadmin', now());
 INSERT INTO esignet.KEY_POLICY_DEF(APP_ID,KEY_VALIDITY_DURATION,PRE_EXPIRE_DAYS,ACCESS_ALLOWED,IS_ACTIVE,CR_BY,CR_DTIMES) VALUES('BASE', 1095, 50, 'NA', true, 'mosipadmin', now());
 
+RESET ROLE;
+
 CREATE DATABASE mosip_mockidentitysystem
   ENCODING = 'UTF8'
   LC_COLLATE = 'en_US.UTF-8'
   LC_CTYPE = 'en_US.UTF-8'
   TABLESPACE = pg_default
-  OWNER = postgres
+  OWNER = :"mock_owner"
   TEMPLATE  = template0;
 
 COMMENT ON DATABASE mosip_mockidentitysystem IS 'Mock identity related data is stored in this database';
 
-\c mosip_mockidentitysystem postgres
+REVOKE CONNECT ON DATABASE mosip_mockidentitysystem FROM PUBLIC;
+\c mosip_mockidentitysystem
+SET ROLE :"mock_owner";
 
 DROP SCHEMA IF EXISTS mockidentitysystem CASCADE;
 CREATE SCHEMA mockidentitysystem;
-ALTER SCHEMA mockidentitysystem OWNER TO postgres;
+ALTER SCHEMA mockidentitysystem OWNER TO :"mock_owner";
 ALTER DATABASE mosip_mockidentitysystem SET search_path TO mockidentitysystem,pg_catalog,public;
 
 CREATE TABLE mockidentitysystem.key_alias(

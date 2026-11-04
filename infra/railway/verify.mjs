@@ -30,6 +30,7 @@ const platformDatabase = graph.resources.find(r => r.address === 'service.platfo
 assert.ok(platformDatabase, 'Keep the platform database in the project graph')
 assert.equal(platformDatabase.build.dockerfilePath, 'infra/railway/database/Dockerfile')
 assert.equal(platformDatabase.name, 'platform-db')
+assert.ok(!graph.resources.some(r => r.address === 'service.esignet-db'), 'Use one PostgreSQL service')
 for (const key of ['serviceDomains', 'customDomains', 'tcpProxies'])
   assert.deepEqual(Object.keys(platformDatabase.networking?.[key] ?? {}), [], 'Database stays private')
 assert.equal(platformDatabase.volumeAttachments['platform-data']?.mountPath,
@@ -54,7 +55,6 @@ for (const key of ['serviceDomains', 'customDomains', 'tcpProxies'])
   assert.deepEqual(Object.keys(dedi.networking?.[key] ?? {}), [], 'DeDi stays private')
 
 const identityMounts = {
-  'esignet-db': ['esignet-db-data', '/var/lib/postgresql/data'],
   'esignet-redis': ['esignet-redis-data', '/data'],
   'esignet-mock': ['esignet-mock-keys', '/keys'],
   esignet: ['esignet-keys', '/opt/mosip/keys'],

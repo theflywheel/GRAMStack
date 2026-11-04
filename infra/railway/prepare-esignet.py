@@ -18,10 +18,9 @@ def main():
     database_password = secrets.token_hex(32)
     redis_password = secrets.token_hex(32)
     settings = {
-        "esignet-db": {
-            "POSTGRES_USER": "postgres",
-            "POSTGRES_DB": "postgres",
-            "POSTGRES_PASSWORD": database_password,
+        "platform-db": {
+            "GRAMSTACK_DB_ESIGNET_PASSWORD": database_password,
+            "GRAMSTACK_DB_ESIGNET_MOCK_PASSWORD": secrets.token_hex(32),
         },
         "esignet-redis": {"REDIS_PASSWORD": redis_password},
         "esignet-mock": {
@@ -31,20 +30,20 @@ def main():
             "MOSIP_KERNEL_KEYMANAGER_HSM_KEYSTORE_TYPE": "PKCS12",
             "MOSIP_KERNEL_KEYMANAGER_HSM_KEYSTORE_PASS": secrets.token_hex(32),
             "SPRING_DATASOURCE_URL": (
-                "jdbc:postgresql://esignet-db.railway.internal:5432/"
+                "jdbc:postgresql://platform-db.railway.internal:5432/"
                 "mosip_mockidentitysystem?currentSchema=mockidentitysystem"
             ),
-            "SPRING_DATASOURCE_USERNAME": "postgres",
-            "SPRING_DATASOURCE_PASSWORD": database_password,
+            "SPRING_DATASOURCE_USERNAME": "esignet_mock",
+            "SPRING_DATASOURCE_PASSWORD": "${{platform-db.GRAMSTACK_DB_ESIGNET_MOCK_PASSWORD}}",
             "MOSIP_ESIGNET_HOST": "esignet.railway.internal:8080",
         },
         "esignet": {
             "container_user": "mosip",
             "PORT": "8080",
-            "DATABASE_HOST": "esignet-db.railway.internal",
+            "DATABASE_HOST": "platform-db.railway.internal",
             "DATABASE_PORT": "5432",
-            "DATABASE_USERNAME": "postgres",
-            "DATABASE_PASSWORD": database_password,
+            "DATABASE_USERNAME": "esignet",
+            "DATABASE_PASSWORD": "${{platform-db.GRAMSTACK_DB_ESIGNET_PASSWORD}}",
             "KEYMANAGER_KEYSTORE_TYPE": "PKCS12",
             "KEYMANAGER_DB_SCHEMA": "esignet",
             "KEYMANAGER_PKCS12_FILE_PATH": "/opt/mosip/keys/demo.pfx",

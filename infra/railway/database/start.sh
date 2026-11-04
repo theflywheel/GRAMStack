@@ -11,7 +11,7 @@ if [[ "${1:-}" == postgres && ! -s "$PGDATA/PG_VERSION" ]]; then
         ;;
     esac
   done
-  for role in CORE ADAPTER PRODUCT HYDRA DEDI; do
+  for role in CORE ADAPTER PRODUCT HYDRA DEDI ESIGNET ESIGNET_MOCK; do
     key="GRAMSTACK_DB_${role}_PASSWORD"
     if [[ -z "${!key:-}" ]]; then
       echo "Required database role password is missing: $key" >&2

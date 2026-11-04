@@ -31,7 +31,7 @@ export default defineRailway(() => {
       builder: "DOCKERFILE",
       buildEnvironment: "V3",
       dockerfilePath: "infra/railway/database/Dockerfile",
-      watchPatterns: ["/infra/railway/database/**"],
+      watchPatterns: ["/infra/railway/database/**", "/infra/esignet/init.sql"],
     },
     replicas: { "asia-southeast1-eqsg3a": 1 },
     deploy: { restartPolicyMaxRetries: 3 },
@@ -87,9 +87,6 @@ export default defineRailway(() => {
     deploy: { restartPolicyMaxRetries: 3 },
     ...settings,
   });
-  const esignetDB = identityArtifact("esignet-db", {
-    volumeMounts: { "/var/lib/postgresql/data": identityVolume("esignet-db-data", 2048) },
-  });
   const esignetRedis = identityArtifact("esignet-redis", {
     volumeMounts: { "/data": identityVolume("esignet-redis-data", 512) },
   });
@@ -138,6 +135,6 @@ export default defineRailway(() => {
   return project("gramstack-design", {
     // Secrets and environment variables stay managed in Railway.
     variables: { managed: false },
-    resources: [docs, platformDatabase, hydraAdmin, hydraPublic, dedi, esignetDB, esignetRedis, esignetMock, esignet, esignetUI, gateway, adapter, source, product],
+    resources: [docs, platformDatabase, hydraAdmin, hydraPublic, dedi, esignetRedis, esignetMock, esignet, esignetUI, gateway, adapter, source, product],
   });
 });

@@ -1,10 +1,18 @@
 # Local verification of the Railway images. Use a freshly generated project.
 services:
   database:
-    image: gramstack-esignet-db:deployment-check
+    image: gramstack-platform-db:deployment-check
     build:
       context: ../..
-      dockerfile: infra/railway/esignet-db/Dockerfile
+      dockerfile: infra/railway/database/Dockerfile
+    environment:
+      GRAMSTACK_DB_CORE_PASSWORD: ${ESIGNET_DEMO_DB_PASSWORD:?Generate a fresh demo environment}
+      GRAMSTACK_DB_ADAPTER_PASSWORD: ${ESIGNET_DEMO_DB_PASSWORD}
+      GRAMSTACK_DB_PRODUCT_PASSWORD: ${ESIGNET_DEMO_DB_PASSWORD}
+      GRAMSTACK_DB_HYDRA_PASSWORD: ${ESIGNET_DEMO_DB_PASSWORD}
+      GRAMSTACK_DB_DEDI_PASSWORD: ${ESIGNET_DEMO_DB_PASSWORD}
+      GRAMSTACK_DB_ESIGNET_PASSWORD: ${ESIGNET_DEMO_DB_PASSWORD}
+      GRAMSTACK_DB_ESIGNET_MOCK_PASSWORD: ${ESIGNET_DEMO_DB_PASSWORD}
     # Replace the base Compose bind-mounted initialization SQL with the image copy.
     configs: !reset []
   mock-identity-system:
@@ -12,12 +20,15 @@ services:
     build:
       context: ../..
       dockerfile: infra/railway/esignet-mock/Dockerfile
+    environment:
+      SPRING_DATASOURCE_USERNAME: esignet_mock
   esignet:
     image: gramstack-esignet:deployment-check
     build:
       context: ../..
       dockerfile: infra/railway/esignet/Dockerfile
     environment:
+      DATABASE_USERNAME: esignet
       REDIS_URL: redis://:${ESIGNET_DEMO_REDIS_PASSWORD:?Generate a fresh demo environment}@redis:6379/0
     networks:
       default:

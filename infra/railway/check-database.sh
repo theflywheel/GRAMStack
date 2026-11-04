@@ -35,7 +35,7 @@ import secrets
 import sys
 
 root = Path(sys.argv[1])
-roles = {role: secrets.token_hex(24) for role in ("core", "adapter", "product", "hydra", "dedi")}
+roles = {role: secrets.token_hex(24) for role in ("core", "adapter", "product", "hydra", "dedi", "esignet", "esignet_mock")}
 (root / "db.env").write_text("POSTGRES_PASSWORD=" + secrets.token_hex(24) + "\n" + "".join(
     f"GRAMSTACK_DB_{role.upper()}_PASSWORD={password}\n" for role, password in roles.items()
 ))
@@ -94,12 +94,16 @@ wait_ready() {
 wait_ready
 
 docker exec "$name" bash -ec '
-  for role in core adapter product hydra dedi; do
+  roles=(core adapter product hydra dedi esignet esignet_mock)
+  databases=(core adapter product hydra dedi mosip_esignet mosip_mockidentitysystem)
+  for i in "${!roles[@]}"; do
+    role=${roles[i]}
+    database=${databases[i]}
     key="GRAMSTACK_DB_${role^^}_PASSWORD"
     export PGPASSWORD="${!key}"
-    psql -X -h 127.0.0.1 -U "$role" -d "$role" -Atqc "SELECT 1" | grep -qx 1
-    for other in core adapter product hydra dedi; do
-      if [[ "$role" != "$other" ]] && psql -X -h 127.0.0.1 -U "$role" -d "$other" -Atqc "SELECT 1" >/dev/null 2>&1; then
+    psql -X -h 127.0.0.1 -U "$role" -d "$database" -Atqc "SELECT 1" | grep -qx 1
+    for other in "${databases[@]}"; do
+      if [[ "$database" != "$other" ]] && psql -X -h 127.0.0.1 -U "$role" -d "$other" -Atqc "SELECT 1" >/dev/null 2>&1; then
         echo "A database role could connect to another role database." >&2
         exit 1
       fi
@@ -118,6 +122,6 @@ for pass in 1 2; do
   docker run --rm --network "$name" --env-file "$state/hydra.env" \
     oryd/hydra:v26.2.0@sha256:ff67c7fb5f95074fa53374d41151713554960504b340cd3f95b09e65deaea2a9 migrate sql up -e -y >/dev/null
 done
-echo "PASS: retry-safe PostgreSQL 17 bootstrap, five isolated roles, and migrations before and after restart"
+echo "PASS: retry-safe PostgreSQL 17 bootstrap, seven isolated roles, and migrations before and after restart"
 
 "$root/infra/railway/check-dedi-image.sh" "$state" "$name" "$revision"

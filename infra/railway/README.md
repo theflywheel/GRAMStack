@@ -13,7 +13,6 @@ The Go backend remains Go. This small, isolated Node toolchain authors Railway i
 | `hydra-admin` | Pinned official Hydra image | — | `serve admin` | Private TLS on 4445 |
 | `hydra-public` | Same pinned Hydra image | — | `serve public` | `https://gramstack-hydra-b9b69819.up.railway.app/` |
 | `dedi` | Targeted local CLI upload | Repository root | `infra/railway/dedi/Dockerfile` | Private TLS on 8446 |
-| `esignet-db` | Targeted local CLI upload | Repository root | `infra/railway/esignet-db/Dockerfile` | Private |
 | `esignet-redis` | Targeted local CLI upload | Repository root | `infra/railway/esignet-redis/Dockerfile` | Private |
 | `esignet-mock` | Targeted local CLI upload | Repository root | `infra/railway/esignet-mock/Dockerfile` | Private |
 | `esignet` | Targeted local CLI upload | Repository root | `infra/railway/esignet/Dockerfile` | Private |
@@ -93,8 +92,8 @@ uses the portal secret and SakhiCredit uses the consumer secret.
 
 ## eSignet deployment artifacts
 
-The `esignet-db`, `esignet` and `esignet-ui` build contexts are prepared under
-`infra/railway/`. Start the dedicated PostgreSQL and Redis dependencies, then
+The `platform-db`, `esignet` and `esignet-ui` build contexts are prepared under
+`infra/railway/`. Start the shared private PostgreSQL service and eSignet Redis, then
 the official mock identity service and the private API. The API carries the
 same demo-only flow used in the local eSignet test. Preserve the SQL and
 software keystore volumes across redeploys.
@@ -104,7 +103,7 @@ The public UI image forwards its allowlisted login and OIDC routes to
 issuer and the UI redirect origin. Keep the API, client onboarding, mock
 identity management, PostgreSQL and Redis on the private network. See the
 [local single-origin check](../esignet/README.md#single-origin-ingress-verification)
-for the exact baked-image verification. The Railway service graph reserves the four private volumes and a single
+for the exact baked-image verification. The Railway service graph reserves the three eSignet private volumes and a single
 public ingress. The services are created before image activation so their
 runtime variables can be set first. Prepare private operator settings with:
 
@@ -113,7 +112,18 @@ state=$(mktemp -d /tmp/gramstack-esignet-railway.XXXXXX)
 python3 infra/railway/prepare-esignet.py "$state/settings"
 ```
 
-Keep the generated files outside the repository. Deploy database and Redis
+Keep the generated files outside the repository. Merge the two generated
+`GRAMSTACK_DB_ESIGNET*_PASSWORD` variables into `platform-db` before first boot.
+The API connects to `mosip_esignet` as `esignet`; the mock connects to
+`mosip_mockidentitysystem` as `esignet_mock`. Each role can connect to its own
+application database. Both services reference their role passwords from Railway.
+For an existing volume, provision or restore those databases explicitly before
+switching clients. The image runs initialization only on an empty volume.
+When replacing the eSignet API container, redeploy the UI from its image to
+refresh the private upstream address. Restarting the existing UI container
+can fail because its upstream entrypoint removes temporary plugin files.
+
+Deploy database and Redis
 first, then the staged mock identity image, the private eSignet API, and the UI.
 The mock and API images initialize the mounted keystore as root and run
 the upstream process as the MOSIP user. Use the same credentials with the
@@ -246,6 +256,11 @@ railway link --project gramstack-design --environment production
 
 `plan` is read-only. Review its changes, then `apply` updates the selected environment. Keep all active resources in the `resources` list: removing a resource declares its removal. Never use a docs-only partial file to apply over an environment that already contains other services.
 
+The former production `esignet-db` deployment is retired separately from
+the active service graph. Review any proposed removal of its stopped service
+or volume before applying a plan so the rollback copy is preserved until its
+retention window is agreed.
+
 An infrastructure apply configures services; source deployment is a separate operation. Stage docs from a committed revision and upload its dedicated build context:
 
 ```sh
@@ -367,7 +382,7 @@ After building the three application images for a revision, run
 `./infra/railway/check-database.sh HEAD` to verify their actual pre-deploy
 commands against the staged PostgreSQL 17 image. The test creates an
 isolated Docker network and volume with a `lost+found` directory, generates
-fixture credentials, verifies all five role databases are isolated, and
+fixture credentials, verifies all seven role databases are isolated, and
 first rejects an incomplete bootstrap without creating a PostgreSQL cluster,
 then starts the same volume with complete fixture settings. It applies gateway,
 LokOS adapter, SakhiCredit and pinned Hydra migrations before and after restart.
