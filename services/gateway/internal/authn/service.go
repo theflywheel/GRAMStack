@@ -127,6 +127,7 @@ func (s *Service) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /interactions/{id}", s.interaction)
 	mux.HandleFunc("GET /auth/login", s.login)
+	mux.HandleFunc("GET /auth/history/{registry}", s.startHistory)
 	mux.HandleFunc("GET /auth/provider/callback", s.upstreamCallback)
 	mux.HandleFunc("GET /auth/oauth-consent", s.oauthConsent)
 	mux.HandleFunc("GET /auth/callback", s.callback)
@@ -286,6 +287,9 @@ func (s *Service) upstreamCallback(w http.ResponseWriter, r *http.Request) {
 	state, code, parseErr := callbackParameters(r)
 	if parseErr != nil {
 		fail(w)
+		return
+	}
+	if s.completeHistory(w, r, state, code) {
 		return
 	}
 	binding, err := s.binding(r)

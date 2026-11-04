@@ -84,7 +84,7 @@ func configureConsentPortal(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 		return nil, err
 	}
 	handler := portal.Handler()
-	for _, pattern := range []string{"GET /interactions/{id}/consent", "POST /interactions/{id}/decision", "GET /interactions/{id}/receipt", "POST /consents/{id}/withdrawal", "GET /assets/consent.css"} {
+	for _, pattern := range []string{"GET /consent-history/{registry}", "GET /consent-history/{registry}/{id}/receipt", "GET /interactions/{id}/consent", "POST /interactions/{id}/decision", "GET /interactions/{id}/receipt", "POST /consents/{id}/withdrawal", "GET /assets/consent.css"} {
 		mux.Handle(pattern, handler)
 	}
 	closeAuthorization := func() {}

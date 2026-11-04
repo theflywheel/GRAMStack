@@ -209,6 +209,43 @@ func TestActualConsentPortal(t *testing.T) {
 	if response.StatusCode != 303 || strings.Contains(leak, rejected.Notice.NoticeDigest) {
 		t.Fatal("receipt crossed request/session boundary")
 	}
+	if os.Getenv("GRAMSTACK_TEST_ESIGNET") != "1" {
+		t.Run("independent history authentication", func(t *testing.T) {
+			listURL := base + "/consent-history/lokos"
+			owner := historyBrowser(t, base, "sunita")
+			get := func(browser *http.Client, path string) (int, string) {
+				t.Helper()
+				req, _ := http.NewRequest("GET", path, nil)
+				res, body := liveResponse(t, browser, req)
+				return res.StatusCode, body
+			}
+			if status, page := get(owner, listURL); status != 200 ||
+				!strings.Contains(page, id+"/receipt") || !strings.Contains(page, rejectedID+"/receipt") ||
+				strings.Contains(page, "member-12345") || strings.Contains(page, firstOwner) {
+				t.Fatal("history did not list the same person's records with minimal metadata", status)
+			}
+			exportURL := listURL + "/" + rejectedID + "/receipt"
+			status, raw := get(owner, exportURL)
+			var record cm.Record
+			if status != 200 || json.Unmarshal([]byte(raw), &record) != nil || record.RequestID != rejectedID ||
+				record.Decision == nil || record.Decision.Action != "reject" {
+				t.Fatal("authenticated history export failed", status)
+			}
+			if status, page := get(owner, base+"/consent-history/other"); status != 200 || !strings.Contains(page, "Sign in to view history") {
+				t.Fatal("history session crossed its registry scope", status)
+			}
+			another := historyBrowser(t, base, "rani")
+			if status, page := get(another, listURL); status != 200 || strings.Contains(page, rejectedID) {
+				t.Fatal("history list crossed verified identity", status)
+			}
+			if status, _ := get(another, exportURL); status != 404 {
+				t.Fatal("history export crossed verified identity", status)
+			}
+			if status, page := get(browserClient(t), exportURL); status != 200 || !strings.Contains(page, "Sign in to view history") {
+				t.Fatal("unauthenticated history export did not require sign-in", status)
+			}
+		})
+	}
 	// Safe markup is rendered; private data is not cached or put in the URL.
 	css, _ := http.NewRequest("GET", base+"/assets/consent.css", nil)
 	response, styles := liveResponse(t, &http.Client{Timeout: 10 * time.Second}, css)
@@ -236,4 +273,44 @@ func TestActualConsentPortal(t *testing.T) {
 		}
 	}
 	t.Log("PASS: exact notice and session-bound presentation, explicit approve/reject, replay/substitution denial, pending-approval withdrawal and protected receipt export; no implicit activation")
+}
+
+func historyBrowser(t *testing.T, base, identity string) *http.Client {
+	t.Helper()
+	browser := browserClient(t)
+	start, _ := http.NewRequest("GET", base+"/auth/history/lokos", nil)
+	response, body := liveResponse(t, browser, start)
+	ticket, csrf := ticketPattern.FindStringSubmatch(body), csrfPattern.FindStringSubmatch(body)
+	if response.StatusCode != 200 || len(ticket) != 2 || len(csrf) != 2 {
+		t.Fatal("independent history sign-in did not reach the identity provider")
+	}
+	values := url.Values{"ticket": {ticket[1]}, "csrf": {csrf[1]}, "identity": {identity}}
+	origin := response.Request.URL.Scheme + "://" + response.Request.URL.Host
+	choose, _ := http.NewRequest("POST", origin+"/authorize", strings.NewReader(values.Encode()))
+	choose.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	browser.CheckRedirect = func(next *http.Request, _ []*http.Request) error {
+		if next.URL.Path == "/auth/provider/callback" {
+			return http.ErrUseLastResponse
+		}
+		return nil
+	}
+	pending, _ := liveResponse(t, browser, choose)
+	target := pending.Header.Get("Location")
+	if !strings.Contains(target, "/auth/provider/callback") {
+		t.Fatal("history sign-in did not reach provider callback")
+	}
+	foreign, _ := http.NewRequest("GET", target, nil)
+	if res, _ := liveResponse(t, browserClient(t), foreign); res.StatusCode != 403 {
+		t.Fatal("foreign browser consumed history sign-in")
+	}
+	browser.CheckRedirect = nil
+	callback, _ := http.NewRequest("GET", target, nil)
+	if res, _ := liveResponse(t, browser, callback); res.StatusCode != 200 || res.Request.URL.Path != "/consent-history/lokos" {
+		t.Fatal("history sign-in did not establish an independent session", res.StatusCode)
+	}
+	replay, _ := http.NewRequest("GET", target, nil)
+	if res, _ := liveResponse(t, browser, replay); res.StatusCode != 403 {
+		t.Fatal("history callback was replayable", res.StatusCode)
+	}
+	return browser
 }

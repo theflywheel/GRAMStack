@@ -42,6 +42,8 @@ func New(c Config) (*Service, error) {
 }
 func (s *Service) Handler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /consent-history/{registry}", s.history)
+	mux.HandleFunc("GET /consent-history/{registry}/{id}/receipt", s.historyReceipt)
 	mux.HandleFunc("GET /interactions/{id}/consent", s.notice)
 	mux.HandleFunc("POST /interactions/{id}/decision", s.decide)
 	mux.HandleFunc("GET /interactions/{id}/receipt", s.receipt)

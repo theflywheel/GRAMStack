@@ -59,3 +59,12 @@ Changing the key or provider client changes the derived owner scope. Existing
 records without a binding require verified reauthentication to establish a
 link. The binding is internal groundwork for a separately authenticated
 history reader.
+
+Open `/consent-history/{registry}` to start a separate sign-in. The history
+flow reuses the configured provider callback and the adapter's forced login,
+with its own browser-bound one-use state, nonce, PKCE and cookie. The callback
+requires authentication at or after the start of this flow. The history session
+is registry-scoped and lasts at most five minutes, bounded by token expiry.
+It authorizes only the consent history list and receipt download. The list
+paginates in batches of 25 and only includes rows linked to the verified owner
+and original request principal.
