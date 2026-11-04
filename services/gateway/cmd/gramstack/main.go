@@ -20,6 +20,8 @@ func main() {
 		switch os.Args[1] {
 		case "anchor":
 			err = anchor(ctx, os.Args[2:], os.Stdout)
+		case "verify-admission":
+			err = verifyAdmission(ctx, os.Args[2:], os.Stdout)
 		case "verify-anchors":
 			err = verifyAnchors(ctx, os.Args[2:], os.Stdout)
 		case "sign-policy":
@@ -27,7 +29,7 @@ func main() {
 		case "migrate":
 			err = migrate(ctx, os.Args[2:], os.Stdout)
 		default:
-			err = errors.New("usage: gramstack [anchor flags | verify-anchors | migrate | sign-policy flags]")
+			err = errors.New("usage: gramstack [anchor flags | verify-anchors | verify-admission request-id | migrate | sign-policy flags]")
 		}
 		if err != nil {
 			log.Fatal(err)

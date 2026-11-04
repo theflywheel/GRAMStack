@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/evidence/admission"
 )
 
 type retrievalCheckpoint struct {
@@ -240,7 +241,12 @@ func TestActualProtectedRetrieval(t *testing.T) {
 					if err := pool.QueryRow(ctx, `SELECT updated_at FROM gateway_retrieval_attempts WHERE request_id=$1`, id).Scan(&deliveredAt); err != nil {
 						t.Fatal(err)
 					}
-					for _, expected := range []string{"Access audit", "consumer-one", "<code>membership_status</code>", "Response written by GRAMStack",
+					verified, err := admission.Verify(ctx, pool, id)
+					if err != nil || verified.ReceiptID != approved.ReceiptID || verified.Used != 1 {
+						t.Fatal("platform admission verification failed", err)
+					}
+					for _, expected := range []string{"Approval used to authorize retrieval", "Authorization event reference", verified.EventID,
+						verified.UsedAt.Format("2 Jan 2006, 15:04:05 UTC"), "Access audit", "consumer-one", "<code>membership_status</code>", "Response written by GRAMStack",
 						deliveredAt.UTC().Format("2 Jan 2006, 15:04:05 UTC"), "Signed access receipt", "1 of 1 authorized retrievals used"} {
 						if !strings.Contains(card, expected) {
 							t.Errorf("history audit is missing %q", expected)

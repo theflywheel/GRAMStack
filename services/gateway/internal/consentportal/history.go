@@ -16,17 +16,19 @@ import (
 var historyRequestID = regexp.MustCompile(`^[A-Z2-7]{26}$`)
 
 type historyRow struct {
-	RequestID    string
-	Consumer     string
-	Consent      string
-	Use          string
-	Request      string
-	CreatedAt    time.Time
-	Delivery     string
-	DeliveredAt  *time.Time
-	Fields       []string
-	ReceiptID    string
-	AnchorStatus string
+	RequestID        string
+	Consumer         string
+	Consent          string
+	Use              string
+	Request          string
+	CreatedAt        time.Time
+	Delivery         string
+	DeliveredAt      *time.Time
+	Fields           []string
+	ReceiptID        string
+	AnchorStatus     string
+	UsedAt           *time.Time
+	AdmissionEventID string
 }
 
 var historyPage = template.Must(template.New("history").Funcs(template.FuncMap{"consentLabel": func(status, use string) string {
@@ -46,8 +48,15 @@ var historyPage = template.Must(template.New("history").Funcs(template.FuncMap{"
 {{else}}
 {{range .Rows}}<section class="card"><h2>{{.Consumer}}</h2>
 <p>{{consentLabel .Consent .Use}} · Request {{.Request}}</p>
+<p class="muted">Request reference <code>{{.RequestID}}</code></p>
 <p class="muted">Request created {{.CreatedAt.UTC.Format "2 Jan 2006, 15:04 UTC"}}</p>
 <h3>Access audit</h3>
+{{if .UsedAt}}
+<dl>
+<div><dt>Approval used to authorize retrieval</dt><dd>{{.UsedAt.UTC.Format "2 Jan 2006, 15:04:05 UTC"}}</dd></div>
+<div><dt>Authorization event reference</dt><dd><code>{{.AdmissionEventID}}</code></dd></div>
+</dl>
+{{end}}
 {{if .DeliveredAt}}
 <dl>
 <div><dt>Recipient application</dt><dd>{{.Consumer}}</dd></div>
@@ -88,12 +97,21 @@ func (s *Service) history(w http.ResponseWriter, r *http.Request) {
 				COALESCE(g.state,''),CASE WHEN g.state='COMPLETED' AND e.receipt_id IS NOT NULL THEN g.updated_at END,
 				CASE WHEN e.receipt_id IS NOT NULL THEN ARRAY(SELECT jsonb_array_elements_text(
 					convert_from(ar.snapshot_bytes,'UTF8')::jsonb #> '{request,fields}')) END,
-				COALESCE(e.receipt_id,''),COALESCE(anchor.status,'')
+				COALESCE(e.receipt_id,''),COALESCE(anchor.status,''),
+				CASE WHEN admitted.event_id IS NOT NULL THEN r.reserved_at END,COALESCE(admitted.event_id,'')
 			FROM consent_history_owners h JOIN access_requests a USING(request_id)
 			JOIN consent_state c USING(request_id) JOIN consent_requests cr USING(consent_id)
 			LEFT JOIN gateway_retrieval_attempts g ON g.request_id=a.request_id AND g.consumer_id=a.consumer_id
 			LEFT JOIN evidence_receipts e ON e.receipt_id=g.receipt_id AND e.request_id=a.request_id
 				AND e.consent_id=c.consent_id AND e.attempt_id=g.attempt_id AND e.outcome='release_ready'
+			LEFT JOIN disclosure_reservations r ON r.consent_id=c.consent_id AND r.attempt_id=g.attempt_id
+				AND r.grant_digest=g.grant_digest AND r.presenter_thumbprint=g.presenter_thumbprint
+			LEFT JOIN LATERAL (SELECT min(o.event_id) AS event_id FROM outbox o
+				WHERE r.consent_id IS NOT NULL AND o.aggregate_type='request' AND o.aggregate_id=a.request_id
+				AND o.event_type='request.transitioned' AND o.payload->>'status'='REDEEMING'
+				HAVING count(*)=1 AND bool_and(o.payload->>'request_id'=a.request_id
+					AND o.payload->>'request_digest'=a.request_digest AND o.payload->>'event_id'=o.event_id
+					AND o.created_at>=r.reserved_at)) admitted ON true
 			LEFT JOIN accepted_requests ar ON ar.request_id=e.request_id
 			LEFT JOIN evidence_anchor_state anchor ON anchor.receipt_id=e.receipt_id
 			WHERE h.owner_digest=$1 AND h.principal_ref=cr.principal_context_ref AND h.request_id>$2
