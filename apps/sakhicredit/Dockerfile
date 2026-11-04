@@ -10,8 +10,7 @@ COPY mocks/identity/ mocks/identity/
 COPY mocks/lokos/ mocks/lokos/
 COPY apps/sakhicredit/ apps/sakhicredit/
 COPY tools/runtimefiles/main.go tools/runtimefiles/main.go
-RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 go build -mod=readonly -trimpath -o /out/service ./apps/sakhicredit/cmd/sakhicredit && \
+RUN CGO_ENABLED=0 go build -mod=readonly -trimpath -o /out/service ./apps/sakhicredit/cmd/sakhicredit && \
     GOWORK=off CGO_ENABLED=0 go build -trimpath -o /out/runtimefiles ./tools/runtimefiles/main.go
 
 FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3

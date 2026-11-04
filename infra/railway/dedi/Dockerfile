@@ -6,8 +6,7 @@ RUN curl --fail --silent --show-error --location --max-time 60 \
 WORKDIR /src
 COPY infra/railway/dedi/main.go /tmp/dedi-tls.go
 COPY tools/runtimefiles/main.go /tmp/runtimefiles.go
-RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 go build -mod=readonly -trimpath -o /out/dedid ./cmd/dedid && \
+RUN CGO_ENABLED=0 go build -mod=readonly -trimpath -o /out/dedid ./cmd/dedid && \
     CGO_ENABLED=0 go build -trimpath -o /out/dedi-tls /tmp/dedi-tls.go && \
     CGO_ENABLED=0 go build -trimpath -o /out/runtimefiles /tmp/runtimefiles.go
 FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
