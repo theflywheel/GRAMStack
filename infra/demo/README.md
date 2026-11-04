@@ -47,9 +47,9 @@ command. Use a working FFmpeg executable with the H.264 encoder available.
 `FFMPEG_BIN` can point to that executable. The capture follows the active
 browser tab, pauses during fixture credential entry, and creates an MP4
 without overwriting existing footage. Use `ffprobe` to check the video stream
-and play the file in a browser. This rehearsal covers approval and refusal in separate browser sessions and
-ends with the actual aggregate proof verification result. The final demo
-also needs the capability matrix and the completed acceptance gates.
+and play the file in a browser. This rehearsal covers approval and refusal in separate browser sessions,
+the actual aggregate proof verification result and the checked-in capability
+matrix. The final demo still requires the completed acceptance gates.
 See the [recording sequence and capability report](../../DEMO-CAPABILITIES.md).
 
 To verify the retained DeDi commitments separately while the stack is running:

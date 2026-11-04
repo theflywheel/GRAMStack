@@ -26,6 +26,54 @@ const recording = output ? captureDemo(output) : undefined;
 const hold = async (milliseconds) => {
   if (recording) await delay(milliseconds);
 };
+async function showCapabilities(page) {
+  const report = readFileSync(
+    new URL("../../../DEMO-CAPABILITIES.md", import.meta.url),
+    "utf8",
+  );
+  const rows = report
+    .split("\n")
+    .filter((line) => line.startsWith("| "))
+    .slice(1)
+    .map((line) =>
+      line
+        .slice(1, -1)
+        .split("|")
+        .map((cell) => cell.trim().replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")),
+    );
+  assert.ok(rows.length > 0 && rows.every((row) => row.length === 3));
+  for (let index = 0; index < rows.length; index += 4) {
+    const segment = rows.slice(index, index + 4);
+    await page.setContent(`<!doctype html><meta charset="utf-8">
+      <title>SakhiCredit capability report</title>
+      <style>
+      body{margin:0;background:#f5f7f3;color:#19382e;font:19px system-ui}
+      main{margin:36px auto;max-width:1120px;padding:30px;background:white;border-radius:20px}
+      h1{font-size:42px;margin:10px 0 22px}
+      table{width:100%;border-collapse:collapse}
+      th,td{text-align:left;vertical-align:top;padding:14px 12px;border-bottom:1px solid #dce6de}
+      td:first-child{width:22%;font-weight:600}td:nth-child(2){width:20%}
+      </style>
+      <main><p>SakhiCredit · Local rehearsal · ${index / 4 + 1} of ${Math.ceil(rows.length / 4)}</p>
+      <h1>What this demo verifies</h1>
+      <table><thead><tr><th>Capability</th><th>Status</th><th>Evidence and boundary</th></tr></thead><tbody></tbody></table></main>`);
+    await page.locator("tbody").evaluate((body, values) => {
+      for (const row of values) {
+        const tr = body.insertRow();
+        for (const cell of row) tr.insertCell().textContent = cell;
+      }
+    }, segment);
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollHeight <= innerHeight,
+      ),
+      true,
+      "Capability card must fit the recorded viewport",
+    );
+    await hold(7000);
+  }
+}
+
 async function review() {
   recording?.pause();
   const context = await browser.newContext({
@@ -168,6 +216,8 @@ try {
     console.log(
       `PASS: filmed aggregate verification for ${evidence.verified_commitments} retained commitments`,
     );
+    await showCapabilities(proof);
+    console.log("PASS: filmed the committed capability report");
   }
 } finally {
   try {
