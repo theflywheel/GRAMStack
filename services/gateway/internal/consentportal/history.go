@@ -16,12 +16,17 @@ import (
 var historyRequestID = regexp.MustCompile(`^[A-Z2-7]{26}$`)
 
 type historyRow struct {
-	RequestID string
-	Consumer  string
-	Consent   string
-	Use       string
-	Request   string
-	CreatedAt time.Time
+	RequestID    string
+	Consumer     string
+	Consent      string
+	Use          string
+	Request      string
+	CreatedAt    time.Time
+	Delivery     string
+	DeliveredAt  *time.Time
+	Fields       []string
+	ReceiptID    string
+	AnchorStatus string
 }
 
 var historyPage = template.Must(template.New("history").Funcs(template.FuncMap{"consentLabel": func(status, use string) string {
@@ -41,7 +46,19 @@ var historyPage = template.Must(template.New("history").Funcs(template.FuncMap{"
 {{else}}
 {{range .Rows}}<section class="card"><h2>{{.Consumer}}</h2>
 <p>{{consentLabel .Consent .Use}} · Request {{.Request}}</p>
-<p>{{.CreatedAt.UTC.Format "2 Jan 2006, 15:04 UTC"}}</p>
+<p class="muted">Request created {{.CreatedAt.UTC.Format "2 Jan 2006, 15:04 UTC"}}</p>
+<h3>Access audit</h3>
+{{if .DeliveredAt}}
+<dl>
+<div><dt>Recipient application</dt><dd>{{.Consumer}}</dd></div>
+<div><dt>Fields shared</dt><dd>{{range $i, $field := .Fields}}{{if $i}}, {{end}}<code>{{$field}}</code>{{end}}</dd></div>
+<div><dt>Response written by GRAMStack</dt><dd>{{.DeliveredAt.UTC.Format "2 Jan 2006, 15:04:05 UTC"}}</dd></div>
+<div><dt>Signed access receipt</dt><dd><code>{{.ReceiptID}}</code>{{if eq .AnchorStatus "anchored"}} · DeDi commitment verified{{else if eq .AnchorStatus "pending"}} · DeDi anchoring pending{{end}}</dd></div>
+</dl>
+<p><strong>1 of 1 authorized retrievals used.</strong> This consent cannot authorize another retrieval through GRAMStack.</p>
+{{else if or (eq .Delivery "DELIVERY_UNKNOWN") (eq .Delivery "RELEASE_ATTEMPTED")}}
+<p>Delivery is unconfirmed. GRAMStack will not retry this retrieval automatically.</p>
+{{else}}<p>No completed disclosure is recorded for this request.</p>{{end}}
 <a href="/consent-history/{{$.Registry}}/{{.RequestID}}/receipt">Download consent record</a>
 <p><a href="/consent-history/{{$.Registry}}/{{.RequestID}}/rights">Rights and grievances</a></p></section>
 {{else}}<p>No consent records are available for this identity.</p>{{end}}
@@ -67,9 +84,18 @@ func (s *Service) history(w http.ResponseWriter, r *http.Request) {
 		Next     string
 	}{Registry: registry, SignIn: err != nil}
 	if err == nil {
-		rows, err := s.config.Pool.Query(r.Context(), `SELECT a.request_id,a.consumer_id,c.status,c.use_state,a.status,a.created_at
+		rows, err := s.config.Pool.Query(r.Context(), `SELECT a.request_id,a.consumer_id,c.status,c.use_state,a.status,a.created_at,
+				COALESCE(g.state,''),CASE WHEN g.state='COMPLETED' AND e.receipt_id IS NOT NULL THEN g.updated_at END,
+				CASE WHEN e.receipt_id IS NOT NULL THEN ARRAY(SELECT jsonb_array_elements_text(
+					convert_from(ar.snapshot_bytes,'UTF8')::jsonb #> '{request,fields}')) END,
+				COALESCE(e.receipt_id,''),COALESCE(anchor.status,'')
 			FROM consent_history_owners h JOIN access_requests a USING(request_id)
 			JOIN consent_state c USING(request_id) JOIN consent_requests cr USING(consent_id)
+			LEFT JOIN gateway_retrieval_attempts g ON g.request_id=a.request_id AND g.consumer_id=a.consumer_id
+			LEFT JOIN evidence_receipts e ON e.receipt_id=g.receipt_id AND e.request_id=a.request_id
+				AND e.consent_id=c.consent_id AND e.attempt_id=g.attempt_id AND e.outcome='release_ready'
+			LEFT JOIN accepted_requests ar ON ar.request_id=e.request_id
+			LEFT JOIN evidence_anchor_state anchor ON anchor.receipt_id=e.receipt_id
 			WHERE h.owner_digest=$1 AND h.principal_ref=cr.principal_context_ref AND h.request_id>$2
 			ORDER BY h.request_id LIMIT 26`, session.OwnerDigest, after)
 		if err == nil {

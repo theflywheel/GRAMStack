@@ -227,7 +227,7 @@ func TestActualProtectedRetrieval(t *testing.T) {
 		}
 	})
 	if os.Getenv("GRAMSTACK_TEST_ESIGNET") != "1" {
-		t.Run("spent consent history label", func(t *testing.T) {
+		t.Run("owner access audit", func(t *testing.T) {
 			browser := historyBrowser(t, base, "sunita")
 			history, _ := http.NewRequest("GET", base+"/consent-history/lokos", nil)
 			response, body := liveResponse(t, browser, history)
@@ -235,6 +235,16 @@ func TestActualProtectedRetrieval(t *testing.T) {
 				if strings.Contains(card, "/"+id+"/receipt") {
 					if response.StatusCode != 200 || !strings.Contains(card, "Single use spent · Request COMPLETED") {
 						t.Fatal("history presented completed single-use consent as reusable")
+					}
+					var deliveredAt time.Time
+					if err := pool.QueryRow(ctx, `SELECT updated_at FROM gateway_retrieval_attempts WHERE request_id=$1`, id).Scan(&deliveredAt); err != nil {
+						t.Fatal(err)
+					}
+					for _, expected := range []string{"Access audit", "consumer-one", "<code>membership_status</code>", "Response written by GRAMStack",
+						deliveredAt.UTC().Format("2 Jan 2006, 15:04:05 UTC"), "Signed access receipt", "1 of 1 authorized retrievals used"} {
+						if !strings.Contains(card, expected) {
+							t.Errorf("history audit is missing %q", expected)
+						}
 					}
 					return
 				}

@@ -37,7 +37,7 @@ function notice(message = "") {
   $("connection-text").textContent = message;
   show("connection-message", !!message);
 }
-function link(id, value) {
+function link(id, value, path) {
   if (!value) {
     $(id).removeAttribute("href");
     return false;
@@ -50,7 +50,7 @@ function link(id, value) {
       url.password
     )
       throw new Error();
-    $(id).href = url.href;
+    $(id).href = path ? new URL(path, url).href : url.href;
     return true;
   } catch {
     $(id).removeAttribute("href");
@@ -243,6 +243,10 @@ function render() {
   );
   const result = state === "COMPLETE" && app.result;
   show("approved-result", !!result);
+  show(
+    "access-audit",
+    !!result && link("access-audit", app.interaction_url, "/consent-history/lokos"),
+  );
   show("receipt-reference-row", !!result);
   show(
     "consent-receipt",
