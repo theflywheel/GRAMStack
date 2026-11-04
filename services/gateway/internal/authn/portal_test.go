@@ -190,6 +190,19 @@ func TestActualConsentPortal(t *testing.T) {
 	// A valid session for another request still cannot inspect this request's record.
 	otherID := liveRequestMember(t, base, token, "member-67890")
 	other, _ := bindingBrowser(t, base, otherID, "rani")
+	historyOwner := func(requestID string) (owner, principal string) {
+		t.Helper()
+		if err := pool.QueryRow(ctx, `SELECT owner_digest,principal_ref FROM consent_history_owners WHERE request_id=$1`, requestID).Scan(&owner, &principal); err != nil {
+			t.Fatal("history ownership was not persisted", err)
+		}
+		return
+	}
+	firstOwner, firstPrincipal := historyOwner(id)
+	secondOwner, secondPrincipal := historyOwner(rejectedID)
+	otherOwner, _ := historyOwner(otherID)
+	if firstOwner != secondOwner || firstPrincipal == secondPrincipal || firstOwner == otherOwner {
+		t.Fatal("history must join only the same person across distinct request principals")
+	}
 	other.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	stolen, _ := http.NewRequest("GET", base+"/interactions/"+rejectedID+"/receipt?format=json", nil)
 	response, leak := liveResponse(t, other, stolen)

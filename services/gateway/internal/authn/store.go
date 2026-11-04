@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"strconv"
@@ -22,8 +24,9 @@ var ErrAuthentication = errors.New("authentication transaction unavailable or in
 // encrypted; lookup/binding values are digested. Every read enforces DB expiry.
 // The cleanup worker also physically removes expired rows (D06).
 type Store struct {
-	pool *pgxpool.Pool
-	aead cipher.AEAD
+	pool       *pgxpool.Pool
+	aead       cipher.AEAD
+	historyKey []byte
 }
 
 func NewStore(pool *pgxpool.Pool, key []byte) (*Store, error) {
@@ -38,7 +41,9 @@ func NewStore(pool *pgxpool.Pool, key []byte) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Store{pool, aead}, nil
+	historyKey := hmac.New(sha256.New, key)
+	historyKey.Write([]byte("gramstack.consent-history.key.v1"))
+	return &Store{pool: pool, aead: aead, historyKey: historyKey.Sum(nil)}, nil
 }
 func aad(kind, key, binding string, until time.Time) []byte {
 	return []byte(kind + "\x00" + key + "\x00" + binding + "\x00" + strconv.FormatInt(until.UnixMicro(), 10))

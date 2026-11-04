@@ -43,3 +43,19 @@ The upstream adapter supports explicitly pinned RS256/ES256/PS256 ID tokens; Hyd
 `GRAMSTACK_TEST_ESIGNET=1 PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` runs the real eSignet alternative against the loopback stack in `infra/esignet`. The development-only `tools/esignet-demo` onboards an ephemeral client/key and fictional Sunita/Rani identities. The test reaches the official UI URL, executes its mock OTP flow API, completes both code exchanges, and checks state/browser binding, callback replay, capped session lifetime, same-person renewal, different-person denial and late callbacks after cancellation/expiry. It checks no disclosure consent was created. This is full HTTP federation integration; rendered UI interaction and recording remain separate browser acceptance work.
 
 Before module releases, root `go.work` resolves the auth adapter locally. Standalone CI/integration runners use `scripts/gateway-module.sh` to create temporary module files; no local replace is committed in `go.mod`, and public checksum verification is not disabled. D13 tracks release versions/private-module distribution. The current repository is private and cannot be fetched through the public Go checksum service without appropriate distribution configuration.
+
+## Consent history ownership
+
+For consent-enabled interactions, final authentication commits an opaque
+history owner binding together with the encrypted browser session. The
+binding is derived from the verified upstream issuer and subject, scoped to
+the configured provider client and registry, using a domain-separated key.
+The request keeps its original independent principal reference. The
+history table stores neither the upstream subject nor an identity-provider
+token.
+
+Keep the authentication key stable while these records must be recoverable.
+Changing the key or provider client changes the derived owner scope. Existing
+records without a binding require verified reauthentication to establish a
+link. The binding is internal groundwork for a separately authenticated
+history reader.

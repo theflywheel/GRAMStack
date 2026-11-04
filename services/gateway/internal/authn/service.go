@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	oidcadapter "github.com/theflywheel/GRAMStack/adapters/auth/oidc"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/access"
@@ -45,6 +46,7 @@ type Service struct {
 	secure               bool
 	verificationEnabled  bool
 	consentPortalEnabled bool
+	historyClientID      string
 }
 type flow struct {
 	RequestID, Digest, State, Nonce, Verifier, PrincipalRef string
@@ -80,7 +82,7 @@ func New(ctx context.Context, c Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{c.Pool, c.Store, origin, strings.TrimSuffix(c.HydraAdmin, "/"), hydra, upstream, &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, strings.HasPrefix(origin, "https://"), c.VerificationEnabled, c.ConsentPortalEnabled}, nil
+	return &Service{c.Pool, c.Store, origin, strings.TrimSuffix(c.HydraAdmin, "/"), hydra, upstream, &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, strings.HasPrefix(origin, "https://"), c.VerificationEnabled, c.ConsentPortalEnabled, c.UpstreamProfile.ClientID}, nil
 }
 func (s *Service) loadRequest(ctx context.Context, id string) (request, error) {
 	var result request
@@ -430,7 +432,15 @@ func (s *Service) callback(w http.ResponseWriter, r *http.Request) {
 	}
 	sessionID := rand.Text()
 	session := Session{outer.RequestID, principal.Reference, rand.Text(), principal.AuthenticatedAt, until}
-	if s.store.Put(r.Context(), "auth.session", sessionID, sessionID, session, until) != nil {
+	err = pgx.BeginFunc(r.Context(), s.pool, func(tx pgx.Tx) error {
+		if s.consentPortalEnabled {
+			if err := s.bindHistory(r.Context(), tx, outer.RequestID, value.Snapshot.Request.Registry, principal); err != nil {
+				return err
+			}
+		}
+		return s.store.PutTx(r.Context(), tx, "auth.session", sessionID, sessionID, session, until)
+	})
+	if err != nil {
 		fail(w)
 		return
 	}
