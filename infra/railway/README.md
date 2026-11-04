@@ -320,3 +320,15 @@ isolation. The command uses fixed origins and does not follow redirects.
 
 This check covers the public ingress. Complete the private-network and
 browser journey checks separately before calling the hosted demo ready.
+
+From a trusted operator host on the private Railway network, run
+`python3 infra/railway/check-private.py --certs /private/demo-certs`. Use the
+deployment's existing demo CA and operator-held fixture certificates. This
+checks mTLS reachability, recipient and registry queue scoping, gateway-only
+adapter verification, and adapter-only access to the native source. It
+reports status codes only and sends no valid verification or business
+request. The gateway, adapter and source enforce TLS 1.3.
+
+The same probe accepts `--local-state "$state/demo"` for a running isolated
+standalone environment. That mode only accepts HTTPS literal-loopback
+endpoints. This is an operator check, separate from the product journey.
