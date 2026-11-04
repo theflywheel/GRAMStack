@@ -1,23 +1,29 @@
 #!/usr/bin/env bash
-# Build real deployment artifacts and probe only containers owned by this run.
+# Build staged Railway source and probe only containers owned by this run.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 scratch=$(mktemp -d)
 container=''
+stage=''
+revision=$(git -C "$root" rev-parse --verify "${1:-HEAD}^{commit}")
 cleanup(){
   if [[ -n "$container" ]]; then docker rm -f "$container" >/dev/null 2>&1 || true; fi
+  if [[ -n "$stage" ]]; then rm -rf "$stage"; fi
   rm -rf "$scratch"
 }
 trap cleanup EXIT
 for role in gateway adapter source product; do
   case "$role" in
-    gateway) directory=services/gateway ;;
-    adapter) directory=adapters/lokos ;;
-    source) directory=mocks/lokos ;;
-    product) directory=apps/sakhicredit ;;
+    gateway) directory=services/gateway; railway_service=gateway ;;
+    adapter) directory=adapters/lokos; railway_service=lokos-adapter ;;
+    source) directory=mocks/lokos; railway_service=mock-lokos ;;
+    product) directory=apps/sakhicredit; railway_service=sakhicredit ;;
   esac
   image="gramstack-$role:deployment-check"
-  docker build --progress=plain -f "$root/$directory/Dockerfile" -t "$image" "$root"
+  stage=$("$root/infra/railway/stage.sh" "$railway_service" "$revision")
+  docker build --progress=plain -f "$stage/$directory/Dockerfile" -t "$image" "$stage"
+  rm -rf "$stage"
+  stage=''
   docker run --rm -e 'GRAMSTACK_FILES_JSON={"probe.txt":"cHJvYmU="}' "$image" /bin/sh -ec '
     test "$(id -u)" = 10001
     test -z "${GRAMSTACK_FILES_JSON+x}"

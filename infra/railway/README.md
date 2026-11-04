@@ -332,3 +332,9 @@ request. The gateway, adapter and source enforce TLS 1.3.
 The same probe accepts `--local-state "$state/demo"` for a running isolated
 standalone environment. That mode only accepts HTTPS literal-loopback
 endpoints. This is an operator check, separate from the product journey.
+
+Use `./scripts/test-images.sh HEAD` to build and smoke-test the four Go
+deployment images from the same committed source contexts used by Railway
+uploads. The command requires Docker and runs the resulting images locally.
+It checks non-root execution, runtime file permissions, fail-closed startup
+and graceful shutdown.
