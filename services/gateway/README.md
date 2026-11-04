@@ -79,3 +79,5 @@ record, and reusing the same report ID for different content returns 409.
 Every acknowledgement is labelled `reported`. This endpoint records the
 recipient's assertion. Independently verified deletion and processor
 delegation require their own trust profiles.
+
+The request-bound consent receipt shows up to ten recent reports for the authenticated person, with the recipient and reported action time. The consent-record v1 JSON download retains its original schema.

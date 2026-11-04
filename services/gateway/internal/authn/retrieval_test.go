@@ -203,6 +203,25 @@ func TestActualProtectedRetrieval(t *testing.T) {
 		if status, _ := send(private, consumerClient, strings.Replace(payload, "legal_hold", "statutory_retention", 1)); status != 409 {
 			t.Fatal("report ID reuse changed recorded assertion", status)
 		}
+		receiptURL := base + "/interactions/" + id + "/receipt"
+		view, _ := http.NewRequest("GET", receiptURL, nil)
+		response, page := liveResponse(t, cases["happy"].browser, view)
+		if response.StatusCode != 200 || !strings.Contains(page, "Recipient handling reports") ||
+			!strings.Contains(page, "Reported by consumer-one") || !strings.Contains(page, "Legal hold") ||
+			!strings.Contains(page, "has not independently verified") || strings.Contains(page, approved.ReceiptID) {
+			t.Fatal("protected receipt did not render the limited handling assertion", response.StatusCode)
+		}
+		anonymous := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+		unauthenticatedView, _ := http.NewRequest("GET", receiptURL, nil)
+		response, page = liveResponse(t, anonymous, unauthenticatedView)
+		if response.StatusCode != 303 || strings.Contains(page, "Legal hold") {
+			t.Fatal("handling assertion escaped the authenticated receipt", response.StatusCode)
+		}
+		export, _ := http.NewRequest("GET", receiptURL+"?format=json", nil)
+		response, raw := liveResponse(t, cases["happy"].browser, export)
+		if response.StatusCode != 200 || strings.Contains(raw, "legal_hold") || strings.Contains(raw, "HandlingReports") {
+			t.Fatal("the v1 consent export changed", response.StatusCode)
+		}
 		if sourceReads(t) != before+1 {
 			t.Fatal("handling report triggered another native read")
 		}

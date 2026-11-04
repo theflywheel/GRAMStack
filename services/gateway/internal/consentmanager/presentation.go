@@ -60,16 +60,25 @@ type DecisionRecord struct {
 	ExplicitConfirmation bool          `json:"explicit_confirmation"`
 	Presentation         *Presentation `json:"presentation,omitempty"`
 }
+type HandlingReport struct {
+	Action        string
+	ExceptionCode string
+	Producer      string
+	OccurredAt    time.Time
+}
+
 type Record struct {
-	RequestStatus         string          `json:"request_status"`
-	GeneratedAt           time.Time       `json:"generated_at"`
-	SchemaVersion         string          `json:"schema_version"`
-	RequestID             string          `json:"request_id"`
-	Notice                Notice          `json:"notice"`
-	Consent               Status          `json:"consent"`
-	Decision              *DecisionRecord `json:"decision,omitempty"`
-	SignedArtefact        string          `json:"signed_artefact,omitempty"`
-	AdmissionCutoffPassed bool            `json:"admission_cutoff_passed"`
+	HandlingReports       []HandlingReport `json:"-"`
+	MoreHandlingReports   bool             `json:"-"`
+	RequestStatus         string           `json:"request_status"`
+	GeneratedAt           time.Time        `json:"generated_at"`
+	SchemaVersion         string           `json:"schema_version"`
+	RequestID             string           `json:"request_id"`
+	Notice                Notice           `json:"notice"`
+	Consent               Status           `json:"consent"`
+	Decision              *DecisionRecord  `json:"decision,omitempty"`
+	SignedArtefact        string           `json:"signed_artefact,omitempty"`
+	AdmissionCutoffPassed bool             `json:"admission_cutoff_passed"`
 }
 
 // Record returns read-only provenance. It never signs, activates or renews consent.
@@ -108,6 +117,23 @@ func (s *Service) Record(ctx context.Context, id, principal string) (Record, err
 	err = tx.QueryRow(ctx, `SELECT jws FROM consent_artefacts WHERE consent_id=$1`, id).Scan(&result.SignedArtefact)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return Record{}, err
+	}
+	if result.RequestStatus == "COMPLETED" || result.RequestStatus == "DELIVERY_UNKNOWN" {
+		rows, err := tx.Query(ctx, `SELECT h.action,h.exception_code,h.producer_id,h.occurred_at
+			FROM gateway_retrieval_attempts g JOIN disclosure_handling_reports h ON h.receipt_id=g.receipt_id
+			WHERE g.request_id=$1 ORDER BY h.recorded_at DESC,h.report_id DESC LIMIT 11`, value.requestID)
+		if err != nil {
+			return Record{}, err
+		}
+		reports, err := pgx.CollectRows(rows, pgx.RowToStructByPos[HandlingReport])
+		if err != nil {
+			return Record{}, err
+		}
+		if len(reports) > 10 {
+			result.MoreHandlingReports = true
+			reports = reports[:10]
+		}
+		result.HandlingReports = reports
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return Record{}, err
