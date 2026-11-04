@@ -81,3 +81,20 @@ recipient's assertion. Independently verified deletion and processor
 delegation require their own trust profiles.
 
 The request-bound consent receipt shows up to ten recent reports for the authenticated person, with the recipient and reported action time. The consent-record v1 JSON download retains its original schema.
+
+
+### Rights and grievances
+
+From a protected history record, its owner can open an access, correction,
+erasure, or grievance case. The portal uses the existing verified history
+identity, exact-origin form submission and a session-bound CSRF token. The
+gateway binds the case to the consent and any completed or uncertain
+disclosure receipt available at submission. A source correction goes to the
+registry. Access, erasure and grievances go to the configured recipient
+identity from the original request.
+
+The gateway stores the routing and case reference before returning the
+owner to the status page. An exact submission retry retains one case.
+New cases appear as queued with a seven-day demo follow-up target. Queued
+cases await action by the responsible organisation. The demo target is an
+operational fixture.

@@ -44,6 +44,8 @@ func (s *Service) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /consent-history/{registry}", s.history)
 	mux.HandleFunc("GET /consent-history/{registry}/{id}/receipt", s.historyReceipt)
+	mux.HandleFunc("GET /consent-history/{registry}/{id}/rights", s.rights)
+	mux.HandleFunc("POST /consent-history/{registry}/{id}/rights", s.createRightsCase)
 	mux.HandleFunc("GET /interactions/{id}/consent", s.notice)
 	mux.HandleFunc("POST /interactions/{id}/decision", s.decide)
 	mux.HandleFunc("GET /interactions/{id}/receipt", s.receipt)

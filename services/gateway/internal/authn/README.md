@@ -65,6 +65,6 @@ flow reuses the configured provider callback and the adapter's forced login,
 with its own browser-bound one-use state, nonce, PKCE and cookie. The callback
 requires authentication at or after the start of this flow. The history session
 is registry-scoped and lasts at most five minutes, bounded by token expiry.
-It authorizes only the consent history list and receipt download. The list
+It authorizes the consent history list, receipt download, and rights case operations. Case submission also checks the history session’s CSRF token and the exact portal origin. The list
 paginates in batches of 25 and only includes rows linked to the verified owner
 and original request principal.

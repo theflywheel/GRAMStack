@@ -2,6 +2,7 @@ package authn
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"html"
 	"net/http"
@@ -243,6 +244,54 @@ func TestActualConsentPortal(t *testing.T) {
 			}
 			if status, page := get(browserClient(t), exportURL); status != 200 || !strings.Contains(page, "Sign in to view history") {
 				t.Fatal("unauthenticated history export did not require sign-in", status)
+			}
+			rightsURL := listURL + "/" + rejectedID + "/rights"
+			if status, _ := get(another, rightsURL); status != 404 {
+				t.Fatal("case status crossed owner scope", status)
+			}
+			status, casePage := get(owner, rightsURL)
+			if status != 200 {
+				t.Fatal("owner could not open rights case form", status)
+			}
+			form := url.Values{"case_type": {"correction"}}
+			for _, match := range hiddenInput.FindAllStringSubmatch(casePage, -1) {
+				form.Set(match[1], match[2])
+			}
+			post := func(browser *http.Client, origin string) int {
+				t.Helper()
+				req, _ := http.NewRequest("POST", rightsURL, strings.NewReader(form.Encode()))
+				req.Header.Set("Origin", origin)
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				res, _ := liveResponse(t, browser, req)
+				return res.StatusCode
+			}
+			if form.Get("csrf") == "" || form.Get("case_id") == "" ||
+				post(owner, "https://other.example") != 403 || post(another, base) != 403 {
+				t.Fatal("rights form accepted a foreign origin or session")
+			}
+			for range 2 {
+				if status := post(owner, base); status != 200 {
+					t.Fatal("rights case submission/retry failed", status)
+				}
+			}
+			status, casePage = get(owner, rightsURL)
+			if status != 200 || !strings.Contains(casePage, "correction · queued") ||
+				!strings.Contains(casePage, "Responsible registry") ||
+				strings.Count(casePage, "Case "+form.Get("case_id")) != 1 {
+				t.Fatal("rights case did not retain its pending registry route", status)
+			}
+			form.Set("case_type", "grievance")
+			if status := post(owner, base); status != 409 {
+				t.Fatal("changed retry did not conflict", status)
+			}
+			form.Set("case_id", rand.Text())
+			if status := post(owner, base); status != 200 {
+				t.Fatal("grievance submission failed", status)
+			}
+			var role, responsible, state string
+			if err := pool.QueryRow(ctx, `SELECT responsible_role,responsible_id,status FROM rights_cases WHERE case_id=$1`, form.Get("case_id")).
+				Scan(&role, &responsible, &state); err != nil || role != "recipient" || responsible != "consumer-one" || state != "queued" {
+				t.Fatal("grievance did not retain its pending recipient route", err)
 			}
 		})
 	}

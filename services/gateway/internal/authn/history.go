@@ -49,9 +49,10 @@ type historyFlow struct {
 	StartedAt   time.Time
 }
 
-type historySession struct {
+type HistorySession struct {
 	OwnerDigest string
 	Registry    string
+	CSRF        string
 }
 
 var historyRegistry = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
@@ -100,16 +101,17 @@ func (s *Service) completeHistory(w http.ResponseWriter, r *http.Request, state,
 		until = token.ExpiresAt
 	}
 	sessionID := rand.Text()
-	session := historySession{
+	session := HistorySession{
 		OwnerDigest: s.store.historyDigest(s.historyClientID, flow.Registry, Principal{Issuer: token.Issuer, Subject: token.Subject}),
 		Registry:    flow.Registry,
+		CSRF:        rand.Text(),
 	}
 	if s.store.Put(r.Context(), "history.session", sessionID, sessionID, session, until) != nil {
 		fail(w)
 		return true
 	}
 	if prior := s.historyCookie(r, "history"); prior != "" {
-		var previous historySession
+		var previous HistorySession
 		_ = s.store.Take(r.Context(), "history.session", prior, prior, &previous)
 	}
 	s.setCookie(w, "history", sessionID, until)
@@ -126,14 +128,14 @@ func (s *Service) historyCookie(r *http.Request, kind string) string {
 	return cookies[0].Value
 }
 
-// HistoryOwner authorizes read-only history for exactly one registry.
-func (s *Service) HistoryOwner(r *http.Request, registry string) (string, error) {
+// HistoryAccess authorizes owner operations for exactly one registry.
+func (s *Service) HistoryAccess(r *http.Request, registry string) (HistorySession, error) {
 	id := s.historyCookie(r, "history")
-	var session historySession
+	var session HistorySession
 	if !s.consentPortalEnabled || id == "" ||
 		s.store.Peek(r.Context(), "history.session", id, id, &session) != nil ||
 		session.Registry != registry || session.OwnerDigest == "" {
-		return "", ErrAuthentication
+		return HistorySession{}, ErrAuthentication
 	}
-	return session.OwnerDigest, nil
+	return session, nil
 }

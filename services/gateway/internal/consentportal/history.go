@@ -42,7 +42,8 @@ var historyPage = template.Must(template.New("history").Funcs(template.FuncMap{"
 {{range .Rows}}<section class="card"><h2>{{.Consumer}}</h2>
 <p>{{consentLabel .Consent .Use}} · Request {{.Request}}</p>
 <p>{{.CreatedAt.UTC.Format "2 Jan 2006, 15:04 UTC"}}</p>
-<a href="/consent-history/{{$.Registry}}/{{.RequestID}}/receipt">Download consent record</a></section>
+<a href="/consent-history/{{$.Registry}}/{{.RequestID}}/receipt">Download consent record</a>
+<p><a href="/consent-history/{{$.Registry}}/{{.RequestID}}/rights">Rights and grievances</a></p></section>
 {{else}}<p>No consent records are available for this identity.</p>{{end}}
 {{if .Next}}<a href="/consent-history/{{.Registry}}?after={{.Next}}">Next page</a>{{end}}
 {{end}}</main></body></html>`))
@@ -58,7 +59,7 @@ func (s *Service) history(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid history cursor.", http.StatusBadRequest)
 		return
 	}
-	owner, err := s.config.Auth.HistoryOwner(r, registry)
+	session, err := s.config.Auth.HistoryAccess(r, registry)
 	view := struct {
 		Registry string
 		SignIn   bool
@@ -70,7 +71,7 @@ func (s *Service) history(w http.ResponseWriter, r *http.Request) {
 			FROM consent_history_owners h JOIN access_requests a USING(request_id)
 			JOIN consent_state c USING(request_id) JOIN consent_requests cr USING(consent_id)
 			WHERE h.owner_digest=$1 AND h.principal_ref=cr.principal_context_ref AND h.request_id>$2
-			ORDER BY h.request_id LIMIT 26`, owner, after)
+			ORDER BY h.request_id LIMIT 26`, session.OwnerDigest, after)
 		if err == nil {
 			view.Rows, err = pgx.CollectRows(rows, pgx.RowToStructByPos[historyRow])
 		}
@@ -95,7 +96,7 @@ func (s *Service) historyReceipt(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	owner, err := s.config.Auth.HistoryOwner(r, registry)
+	session, err := s.config.Auth.HistoryAccess(r, registry)
 	if err != nil {
 		http.Redirect(w, r, s.config.Origin+"/consent-history/"+url.PathEscape(registry), http.StatusSeeOther)
 		return
@@ -104,7 +105,7 @@ func (s *Service) historyReceipt(w http.ResponseWriter, r *http.Request) {
 	err = s.config.Pool.QueryRow(r.Context(), `SELECT h.principal_ref
 		FROM consent_history_owners h JOIN consent_state c USING(request_id)
 		JOIN consent_requests cr USING(consent_id)
-		WHERE h.request_id=$1 AND h.owner_digest=$2 AND h.principal_ref=cr.principal_context_ref`, id, owner).Scan(&principal)
+		WHERE h.request_id=$1 AND h.owner_digest=$2 AND h.principal_ref=cr.principal_context_ref`, id, session.OwnerDigest).Scan(&principal)
 	if errors.Is(err, pgx.ErrNoRows) {
 		http.NotFound(w, r)
 		return
