@@ -84,6 +84,27 @@ async function joinScripts(scripts: string[]): Promise<string> {
 function addGlobalPageResources(ctx: BuildCtx, componentResources: ComponentResources) {
   const cfg = ctx.cfg.configuration
 
+  // Load the walkthrough only when a Quartz page contains its inline mount.
+  componentResources.afterDOMLoaded.push(`
+    function mountWalkthrough() {
+      const root = document.getElementById("architecture-walkthrough");
+      if (!root) return;
+      if (!document.getElementById("architecture-walkthrough-styles")) {
+        const styles = document.createElement("link");
+        styles.id = "architecture-walkthrough-styles";
+        styles.rel = "stylesheet";
+        styles.href = "/static/architecture-walkthrough.css";
+        styles.dataset.persist = "";
+        document.head.appendChild(styles);
+      }
+      import("/static/architecture-walkthrough.js")
+        .then(({ mountArchitectureWalkthrough }) => mountArchitectureWalkthrough(root));
+    }
+    document.addEventListener("nav", mountWalkthrough);
+    mountWalkthrough();
+  `)
+
+
   // popovers
   if (cfg.enablePopovers) {
     componentResources.afterDOMLoaded.push(popoverScript)

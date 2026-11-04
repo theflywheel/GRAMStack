@@ -9,7 +9,7 @@ date: 2026-11-04
 
 Follow a SakhiCredit request from sign-in to the access audit. Select a step to see the components, call, and request state behind it.
 
-<iframe src="/static/architecture-walkthrough.html" title="Interactive GRAMStack architecture walkthrough" width="100%" height="750" loading="lazy"></iframe>
+<div data-architecture-walkthrough></div>
 
 [Open the walkthrough in a full window](static/architecture-walkthrough.html)
 

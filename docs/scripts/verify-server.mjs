@@ -15,8 +15,12 @@ try {
  r=await fetch(base+'/%2e%2e%2fpackage.json');assert.equal(r.status,403)
  r=await fetch(base+'/static/gramstack-design.txt');assert.equal(r.status,200);assert.match(r.headers.get('content-disposition'),/GRAMStack-Design.md/);assert.ok((await r.text()).length>45000)
  r=await fetch(base+'/sakhicredit-demo');assert.equal(r.status,200);const demo=await r.text();assert.match(demo,/<video[^>]+controls/);assert.ok(demo.includes('href="https://docs.gramstack.try-dough.com/media/sakhicredit-hosted.mp4?download=1"'), 'rendered download link')
- r=await fetch(base+'/02-architecture');const frame=/<iframe src="([^"]*architecture-walkthrough(?:\.html)?)"/.exec(await r.text());assert.ok(frame,'rendered architecture iframe')
- r=await fetch(new URL(frame[1],base+'/02-architecture'));assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/html/);assert.ok((await r.text()).includes('GRAMStack architecture and data flow'))
+ for (const path of ['/02-architecture','/complete-design']) {
+   r=await fetch(base+path);const article=await r.text()
+   assert.ok(article.includes('id="architecture-walkthrough"'),'inline architecture walkthrough')
+   assert.doesNotMatch(article,/<iframe[^>]*architecture-walkthrough/)
+ }
+ r=await fetch(base+'/static/architecture-walkthrough.html');assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/html/);assert.ok((await r.text()).includes('GRAMStack architecture and data flow'))
  const movie=base+'/media/sakhicredit-hosted.mp4'
  r=await fetch(movie,{method:'HEAD'});assert.equal(r.status,200);assert.equal(r.headers.get('content-type'),'video/mp4');assert.equal(r.headers.get('accept-ranges'),'bytes')
  const size=Number(r.headers.get('content-length'));assert.ok(size>100000)
