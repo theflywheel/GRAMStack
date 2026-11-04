@@ -8,6 +8,10 @@ date: 2026-11-04
 <p class="hero-summary">GRAMStack connects applications to authoritative Indian DPI registries through common read APIs, federated authentication, registry-specific subject verification, human consent and narrowly scoped retrieval grants.</p>
 <div class="design-meta"><span>Architecture and protocols</span><span>4 November 2026</span><span>Read-only interoperability</span></div>
 
+## Watch the demo
+
+[Watch or download the SakhiCredit walkthrough](sakhicredit-demo) to see consent and scoped disclosure on the live stack.
+
 ## Explore the architecture
 
 Start with the [purpose and scenario](01-purpose), then the [architecture](02-architecture). For a continuous read, open the [complete document](complete-design), or [download the Markdown document](static/gramstack-design.txt).

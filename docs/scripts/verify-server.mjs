@@ -14,5 +14,13 @@ try {
  r=await fetch(base+'/',{method:'HEAD'});assert.equal(r.status,200);assert.equal(await r.text(),'')
  r=await fetch(base+'/%2e%2e%2fpackage.json');assert.equal(r.status,403)
  r=await fetch(base+'/static/gramstack-design.txt');assert.equal(r.status,200);assert.match(r.headers.get('content-disposition'),/GRAMStack-Design.md/);assert.ok((await r.text()).length>45000)
+ r=await fetch(base+'/sakhicredit-demo');assert.equal(r.status,200);const demo=await r.text();assert.match(demo,/<video[^>]+controls/);assert.ok(demo.includes('href="https://docs.gramstack.try-dough.com/media/sakhicredit-hosted.mp4?download=1"'), 'rendered download link')
+ const movie=base+'/media/sakhicredit-hosted.mp4'
+ r=await fetch(movie,{method:'HEAD'});assert.equal(r.status,200);assert.equal(r.headers.get('content-type'),'video/mp4');assert.equal(r.headers.get('accept-ranges'),'bytes')
+ const size=Number(r.headers.get('content-length'));assert.ok(size>100000)
+ r=await fetch(movie,{headers:{Range:'bytes=0-1'}});assert.equal(r.status,206);assert.equal(r.headers.get('content-range'),`bytes 0-1/${size}`);assert.equal((await r.arrayBuffer()).byteLength,2)
+ r=await fetch(movie,{headers:{Range:'bytes=-2'}});assert.equal(r.status,206);assert.equal((await r.arrayBuffer()).byteLength,2)
+ r=await fetch(movie,{headers:{Range:`bytes=${size}-`}});assert.equal(r.status,416);assert.equal(r.headers.get('content-range'),`bytes */${size}`)
+ r=await fetch(movie+'?download=1');assert.equal(r.status,200);assert.match(r.headers.get('content-disposition'),/^attachment;.*sakhicredit-hosted\.mp4/);assert.equal((await r.arrayBuffer()).byteLength,size)
  console.log('Verified static server: pages, clean URLs, health, search index, 404, HEAD, method rejection, traversal rejection and download.')
 } finally { child.kill('SIGTERM') }

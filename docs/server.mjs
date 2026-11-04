@@ -3,7 +3,7 @@ import { readFile, stat } from "node:fs/promises"
 import { resolve, extname, sep } from "node:path"
 
 const root = resolve("public")
-const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".woff2": "font/woff2", ".xml": "application/xml", ".md": "text/markdown; charset=utf-8", ".txt": "text/plain; charset=utf-8" }
+const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".mp4": "video/mp4", ".ico": "image/x-icon", ".woff2": "font/woff2", ".xml": "application/xml", ".md": "text/markdown; charset=utf-8", ".txt": "text/plain; charset=utf-8" }
 const server = http.createServer(async (req, res) => {
   if (!["GET", "HEAD"].includes(req.method)) { res.writeHead(405, { Allow: "GET, HEAD" }); res.end(); return }
   try {
@@ -17,10 +17,29 @@ const server = http.createServer(async (req, res) => {
     for (const candidate of [base, base + ".html", resolve(base, "index.html")]) {
       try { if ((await stat(candidate)).isFile()) { file = candidate; break } } catch {}
     }
-    const status = file ? 200 : 404
-    const data = await readFile(file ?? resolve(root, "404.html"))
+    let status = file ? 200 : 404
+    let data = await readFile(file ?? resolve(root, "404.html"))
     const headers = { "Content-Type": types[extname(file ?? "404.html")] ?? "application/octet-stream", "Content-Length": data.length, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", "X-Robots-Tag": "noindex, nofollow", "Cache-Control": "public, max-age=0, must-revalidate" }
     if (["/static/GRAMStack-Design.md", "/static/gramstack-design.txt"].includes(pathname)) headers["Content-Disposition"] = 'attachment; filename="GRAMStack-Design.md"'
+    if (file && extname(file) === ".mp4") {
+      headers["Accept-Ranges"] = "bytes"
+      if (url.searchParams.get("download") === "1") headers["Content-Disposition"] = 'attachment; filename="sakhicredit-hosted.mp4"'
+      if (req.method === "GET" && req.headers.range) {
+        const size = data.length
+        const match = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range)
+        const start = match?.[1] ? Number(match[1]) : Math.max(0, size - Number(match?.[2]))
+        const end = match?.[1] && match[2] ? Math.min(size - 1, Number(match[2])) : size - 1
+        if (!match || !Number.isSafeInteger(start) || start < 0 || start > end || start >= size) {
+          res.writeHead(416, { "Accept-Ranges": "bytes", "Content-Range": `bytes */${size}` })
+          res.end()
+          return
+        }
+        data = data.subarray(start, end + 1)
+        status = 206
+        headers["Content-Range"] = `bytes ${start}-${end}/${size}`
+        headers["Content-Length"] = data.length
+      }
+    }
     res.writeHead(status, headers)
     res.end(req.method === "HEAD" ? undefined : data)
   } catch { res.writeHead(400); res.end("Bad request") }
