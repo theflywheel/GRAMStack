@@ -15,7 +15,6 @@ export function mountArchitectureWalkthrough(root) {
     data:     { label: "Protected data", v: "--data" },
     evidence: { label: "Evidence (metadata only)", v: "--evidence" },
   };
-  const css = v => getComputedStyle(root).getPropertyValue(v).trim();
 
   const ZONES = [
     { id: "person",   label: "Member",                  x: 10,  y: 110, w: 150, h: 560 },
@@ -186,15 +185,15 @@ export function mountArchitectureWalkthrough(root) {
   nums.append("circle").attr("r", 9);
   nums.append("text").text(d => d.i + 1);
 
-  const dot = svg.append("circle").attr("r", 6).style("fill", "var(--hl)").style("stroke", "#1f1f1d").style("display", "none");
+  const dot = svg.append("circle").attr("r", 6).style("fill", "var(--hl)").style("stroke", "var(--text)").style("display", "none");
 
   function paint() {
     Object.keys(TYPES).forEach(k => {
-      const c = css(TYPES[k].v);
+      const c = `var(${TYPES[k].v})`;
       svg.selectAll(".e-" + k).style("stroke", c);
       svg.selectAll(".mk-" + k).style("fill", c);
     });
-    nums.select("circle").style("fill", d => css(TYPES[d.k].v));
+    nums.select("circle").style("fill", d => `var(${TYPES[d.k].v})`);
   }
 
   // Legend with type filters
@@ -293,11 +292,8 @@ export function mountArchitectureWalkthrough(root) {
     .on("mouseleave", () => tip.style("display", "none"));
 
   paint(); go(0);
-  const theme = matchMedia("(prefers-color-scheme: dark)");
-  theme.addEventListener("change", paint);
   window.addCleanup?.(() => {
     stop();
     dot.interrupt();
-    theme.removeEventListener("change", paint);
   });
 }
