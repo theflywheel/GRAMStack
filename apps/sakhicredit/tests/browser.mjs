@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { chromium } from "playwright-core";
 import {
   existsSync,
@@ -204,6 +205,11 @@ async function notice(page, context) {
 }
 async function approve(page, context) {
   const portal = await notice(page, context);
+  const shown = {
+    text: await portal.locator(".notice-text").textContent(),
+    presentationID: await portal.locator('input[name="presentation_id"]').first().inputValue(),
+    version: await portal.locator('input[name="notice_version"]').first().inputValue(),
+  };
   await portal.getByRole("checkbox").check();
   await portal
     .getByRole("button", { name: "Approve this request", exact: true })
@@ -215,6 +221,7 @@ async function approve(page, context) {
   // popup during a navigation can stall Chromium's target-close command.
   await page.bringToFront();
   await page.getByRole("button", { name: "Get approved details" }).waitFor();
+  return shown;
 }
 async function run() {
   {
@@ -222,7 +229,7 @@ async function run() {
     await shot(page, "desktop-start");
     const started = await create(page);
     await shot(page, "desktop-waiting");
-    await approve(page, context);
+    const shown = await approve(page, context);
     await shot(page, "desktop-ready");
     const before = reads();
     for (const file of ["block", "entered", "release"])
@@ -302,7 +309,22 @@ async function run() {
       await downloaded.saveAs(recordPath);
       const record = JSON.parse(readFileSync(recordPath, "utf8"));
       assert.equal(record.request_id, started.request_id);
-      assert.ok(record.notice.notice_digest);
+      const digest = "sha256:" + createHash("sha256").update(shown.text).digest("hex");
+      assert.equal(record.notice.text, shown.text);
+      assert.equal(record.notice.notice_digest, digest);
+      assert.equal(record.notice.notice_version, shown.version);
+      assert.equal(record.notice.language, "en");
+      assert.equal(record.decision.decision, "approve");
+      assert.equal(record.decision.explicit_confirmation, true);
+      const presentation = record.decision.presentation;
+      assert.equal(presentation.presentation_id, shown.presentationID);
+      assert.equal(presentation.notice_digest, digest);
+      assert.equal(presentation.notice_version, shown.version);
+      assert.equal(presentation.language, "en");
+      assert.equal(presentation.channel, "WEB");
+      const rendered = Date.parse(presentation.rendered_at);
+      const decided = Date.parse(record.decision.decided_at);
+      assert.ok(rendered <= decided && decided < Date.parse(presentation.expires_at));
     } finally {
       rmSync(recordPath, { force: true });
     }
@@ -315,7 +337,7 @@ async function run() {
     await page.locator("#start:not([disabled])").waitFor();
     assert.equal(await page.locator("#approved-result").isHidden(), true);
     evidence.cases.push(
-      "approved result, one native read, encrypted reload recovery, protected receipt and browser secret isolation",
+      "approved result, one native read, encrypted reload recovery, protected receipt with exact rendered notice provenance and browser secret isolation",
     );
     await context.close();
   }

@@ -39,7 +39,7 @@ Gate C: D07–D10 pass. Exactly approved fields cross the adapter boundary once 
 - [ ] D13 Published SDK and adapter conformance. Real module-prefixed version, independently buildable LokOS dependency, shared positive/negative contract suite and external consumer smoke check.
 - [ ] D14 Design additions exercised by the demo. Checklist below must pass or have an explicit, approved scope decision before this task can close. Unsupported features are visible in the capability report, never silently accepted.
   - [ ] Trusted versioned purpose/processing profile bindings, supported time bounds and recipient/processor responsibility metadata.
-  - [ ] Channel/language presentation evidence linked to exact notice and explicit confirmation; assistance confers no authority.
+  - [x] Channel/language presentation evidence linked to exact notice and explicit confirmation for the English web channel. Assistance confers no authority.
   - [ ] Protected consent/disclosure history and machine-readable receipt export.
   - [ ] Authenticated downstream handling receipts with reported/verified distinction and retention exceptions.
   - [ ] Rights/grievance case creation, responsible-organisation routing and safe asynchronous status. No claim of registry mutation or guaranteed recipient deletion.
@@ -173,3 +173,5 @@ CI speed is part of each phase gate. Measure critical-path and total job time, r
 - D13 shared protected retrieval conformance. The SDK handler passed the reusable checker for unverified transport, wrong-audience grant, exact authorized projection with one source read and one custody acknowledgement, and replay denial with original and alternate attempt IDs. SDK and LokOS race tests passed. Public SDK publication and version adoption remain open.
 
 - D13 private release. The existing GitHub repository is private. Its `sdk/go/adapter/v0.1.0` tag resolves to `bb7e259` from a clean module cache with authenticated Git. LokOS pins the tag and its checksums. With the workspace disabled and no replacement, LokOS built and passed race tests against the tag, and a separate consumer passed the provider and authority suites against the same version. Public availability to developers without repository access remains open.
+
+- D14 English web presentation acceptance. All seven local headless Chrome scenarios passed. The approval journey independently hashed the exact text rendered before confirmation and matched the downloaded record to that text, fingerprint, template version, presentation ID, English language, web channel and the explicit decision within the presentation window. The same run passed portal rejection, unsupported language and substitution checks. Voice, assistance and translated templates remain outside the demonstrated channel.
