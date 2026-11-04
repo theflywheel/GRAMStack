@@ -287,7 +287,10 @@ PYW
   if [[ "${GRAMSTACK_TEST_AUTHZ:-}" == 1 ]]; then pattern="$pattern|^TestActualAuthorization$"; fi
   if [[ "${GRAMSTACK_TEST_CUSTODY:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceCustody$"; fi
   if [[ "${GRAMSTACK_TEST_RETRIEVAL:-}" == 1 ]]; then pattern="$pattern|^TestActualProtectedRetrieval$"; fi
-  if [[ "${GRAMSTACK_TEST_DISCOVERY:-}" == 1 ]]; then pattern="$pattern|^TestActualAdapterDiscovery$"; fi
+  if [[ "${GRAMSTACK_TEST_DISCOVERY:-}" == 1 ]]; then
+   pattern="$pattern|^TestActualAdapterDiscovery$"
+   GOWORK=off go -C "$root/adapters/lokos" test -modfile="$scratch/lokos.mod" -race -count=1 -v -run '^TestLiveDiscoveryConformance$' .
+  fi
   if [[ "${GRAMSTACK_TEST_PRODUCT:-}" == 1 ]]; then pattern="$pattern|^TestActualSakhiCreditProduct$"; fi
   if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then pattern="$pattern|^TestActualEvidenceAnchoringProcess$"; fi
   gateway_go test -race -count=1 -v -run "$pattern" ./internal/authn
