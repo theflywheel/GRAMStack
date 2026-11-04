@@ -233,6 +233,9 @@ async function run() {
     assert.match(shown.text, /Processing profile: sakhi-credit-assessment \(version 1\)/);
     assert.match(shown.text, /Responsible organisation: sakhi-credit/);
     assert.match(shown.text, /Declared processors: None declared/);
+    assert.match(shown.text, /Purpose manifest: credit_eligibility \(version 1\)/);
+    assert.match(shown.text, /Purpose owner: sakhi-credit/);
+    assert.match(shown.text, /membership_status: Check eligible SHG membership/);
     await shot(page, "desktop-ready");
     const before = reads();
     for (const file of ["block", "entered", "release"])

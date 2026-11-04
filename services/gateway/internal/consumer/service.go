@@ -35,6 +35,7 @@ type Policy struct {
 	TermsText        string             `json:"terms_text"`
 	MaxAccessSeconds *int64             `json:"max_access_seconds,omitempty"`
 	Processing       *ProcessingProfile `json:"processing_profile,omitempty"`
+	PurposeManifest  *PurposeManifest   `json:"purpose_manifest,omitempty"`
 }
 type Config struct {
 	Pool          *pgxpool.Pool
@@ -95,6 +96,12 @@ func New(c Config) (*Service, error) {
 			}
 			if p.TermsText == "" {
 				return nil, ErrInput
+			}
+			if p.PurposeManifest != nil {
+				p.TermsText, err = p.PurposeManifest.terms(*p)
+				if err != nil {
+					return nil, err
+				}
 			}
 			if p.Processing != nil {
 				p.TermsText, err = p.Processing.terms(p.TermsText)

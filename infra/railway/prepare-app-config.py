@@ -49,7 +49,10 @@ def configs(provider):
         consumers={"consumer-one": [dict(registry="lokos", resource="shg.membership", fields=FIELDS,
                     purposes=["credit_eligibility"], hint_types=["member_reference"],
                     terms_version="terms-v1", max_access_seconds=300,
-                       processing_profile=dict(id="sakhi-credit-assessment", version="1", responsible_organisation="sakhi-credit",
+                       purpose_manifest=dict(version="1", owner="sakhi-credit", field_justifications={
+                        "membership_status": "Check eligible SHG membership.",
+                        "savings_summary": "Review the available savings summary."}),
+                    processing_profile=dict(id="sakhi-credit-assessment", version="1", responsible_organisation="sakhi-credit",
                                                processors=[], derived_data_handling="The demo creates no lending decision or derived score."), terms_text=TERMS)]},
         authentication=dict(client_id="gramstack-portal", hydra_admin_url=HYDRA_ADMIN,
                             provider=provider, demo_upstream=True),

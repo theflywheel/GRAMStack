@@ -190,6 +190,9 @@ def run(state, pg, hydra, dedi_source):
             hydra_issuer=urls["hydra"]+"/", audience="gramstack", scope="gramstack.access", allow_loopback_http=True,
             consumers={"consumer-one": [dict(registry="lokos", resource="shg.membership", fields=fields,
                        purposes=["credit_eligibility"], hint_types=["member_reference"], terms_version="terms-v1", max_access_seconds=300,
+                       purpose_manifest=dict(version="1", owner="sakhi-credit", field_justifications={
+                           "membership_status": "Check eligible SHG membership.",
+                           "savings_summary": "Review the available savings summary."}),
                        processing_profile=dict(id="sakhi-credit-assessment", version="1", responsible_organisation="sakhi-credit",
                                                processors=[], derived_data_handling="The demo creates no lending decision or derived score."),
                        terms_text="Use only for this credit eligibility assessment. Retain approved data for up to 30 days, then delete it unless a documented legal retention requirement applies. No onward sharing.")]},
