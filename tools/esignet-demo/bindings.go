@@ -41,7 +41,7 @@ func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credent
 	}
 	response.Body.Close()
 	start, err := url.Parse(response.Header.Get("Location"))
-	if err != nil || response.StatusCode != 302 || start.Scheme+"://"+start.Host != target.ui || start.User != nil || start.Path != "/signin" || start.Query().Get("executionId") == "" || start.Query().Get("authId") == "" {
+	if err != nil || response.StatusCode != 302 || !sameFixtureOrigin(start, target.ui) || start.User != nil || start.Path != "/signin" || start.Query().Get("executionId") == "" || start.Query().Get("authId") == "" {
 		return "", errors.New("unexpected fixture authorization redirect")
 	}
 	post := func(path string, payload, output any) error {
@@ -131,4 +131,13 @@ func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credent
 		return "", err
 	}
 	return principal.Subject, nil
+}
+
+// eSignet can include the default HTTPS port in its hosted sign-in redirect.
+func sameFixtureOrigin(location *url.URL, origin string) bool {
+	host := location.Host
+	if location.Scheme == "https" && location.Port() == "443" {
+		host = location.Hostname()
+	}
+	return location.Scheme+"://"+host == origin
 }

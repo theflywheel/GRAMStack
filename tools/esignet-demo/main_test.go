@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -68,5 +69,24 @@ func TestRailwayOnboardingPinsPrivateTargetsAndCallback(t *testing.T) {
 		target.issuer != "https://gramstack-esignet-b9b69819.up.railway.app" ||
 		target.callback != "https://gramstack-gateway-b9b69819.up.railway.app/auth/provider/callback" {
 		t.Fatal("Railway destination boundary changed")
+	}
+}
+
+func TestHostedFixtureOriginWithExplicitHTTPSPort(t *testing.T) {
+	const origin = "https://identity.example"
+	for _, tc := range []struct {
+		location string
+		want     bool
+	}{
+		{origin + "/signin", true},
+		{origin + ":443/signin", true},
+		{origin + ":8443/signin", false},
+		{"http://identity.example:443/signin", false},
+		{"https://other.example:443/signin", false},
+	} {
+		location, err := url.Parse(tc.location)
+		if err != nil || sameFixtureOrigin(location, origin) != tc.want {
+			t.Errorf("origin validation for %q did not match %t", tc.location, tc.want)
+		}
 	}
 }
