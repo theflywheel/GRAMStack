@@ -14,14 +14,15 @@ trap cleanup EXIT
 source "$root/scripts/gateway-module.sh"
 prepare_gateway_module "$root" "$scratch"
 cmp "$root/specs/0.3.0/lifecycle.json" "$root/services/gateway/internal/access/testdata/lifecycle.json"
-# Before the first SDK release, resolve its source in a temporary module file.
+# Check this commit’s SDK source alongside LokOS without the workspace.
 cp "$root/adapters/lokos/go.mod" "$scratch/lokos.mod"
 if [[ -f "$root/adapters/lokos/go.sum" ]]; then cp "$root/adapters/lokos/go.sum" "$scratch/lokos.sum"; fi
 GOWORK=off go -C "$root/adapters/lokos" mod edit -modfile="$scratch/lokos.mod" -replace="github.com/theflywheel/GRAMStack/sdk/go/adapter=$root/sdk/go/adapter"
+# The explicit full vet commands cover these targets after their race tests.
 check_module(){
   local module=$1
   shift
-  GOWORK=off go -C "$root/$module" test -race "$@" ./...
+  GOWORK=off go -C "$root/$module" test -race -vet=off "$@" ./...
   GOWORK=off go -C "$root/$module" vet "$@" ./...
 }
 launch(){
@@ -50,7 +51,7 @@ launch identity check_module mocks/identity
 wait_checks
 check_esignet_tool(){
   local tool_files=("$root"/tools/esignet-demo/*.go)
-  GOWORK=off go -C "$root/adapters/auth/oidc" test -race "${tool_files[@]}"
+  GOWORK=off go -C "$root/adapters/auth/oidc" test -race -vet=off "${tool_files[@]}"
   GOWORK=off go -C "$root/adapters/auth/oidc" vet "${tool_files[@]}"
 }
 launch oidc check_module adapters/auth/oidc
@@ -63,7 +64,7 @@ check_product(){
   check_module apps/sakhicredit
   check_devcerts_tool
   local runtime_files=("$root"/tools/runtimefiles/*.go)
-  GOWORK=off go test -race "${runtime_files[@]}"
+  GOWORK=off go test -race -vet=off "${runtime_files[@]}"
   GOWORK=off go vet "${runtime_files[@]}"
 }
 launch mock-lokos check_module mocks/lokos

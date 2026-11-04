@@ -187,3 +187,15 @@ took 2.06 seconds in the combined official-eSignet run.
 
 These are observed job timestamps from separate runs. They do not isolate
 the capacity test's CI cost from runner and parallel job variation.
+
+### Avoid duplicate vet passes
+
+The verifier runs an explicit full `go vet` for each module and tool. The
+race-test commands now skip Go's built-in curated vet pass over the same
+targets. No checked package uses a race-specific build constraint. The
+integration commands retain their previous flags.
+
+On the same warm local cache, a back-to-back run measured 8.96 seconds for
+the prior verifier and 7.29 seconds with one vet pass, about 19% less elapsed
+time. A separate warm candidate run took 7.24 seconds. Both the full verifier
+and the injected test/vet failure checks passed. These are local timings.
