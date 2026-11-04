@@ -61,9 +61,22 @@ export default defineRailway(() => {
     },
   });
 
+  const dedi = service("dedi", {
+    build: {
+      builder: "DOCKERFILE",
+      buildEnvironment: "V3",
+      dockerfilePath: "infra/railway/dedi/Dockerfile",
+      watchPatterns: ["/infra/railway/dedi/**", "/tools/runtimefiles/**"],
+    },
+    healthcheck: "/healthz",
+    healthcheckTimeout: 60,
+    replicas: { "asia-southeast1-eqsg3a": 1 },
+    deploy: { restartPolicyMaxRetries: 3 },
+  });
+
   return project("gramstack-design", {
     // Secrets and environment variables stay managed in Railway.
     variables: { managed: false },
-    resources: [docs, platformDatabase, hydraAdmin, hydraPublic],
+    resources: [docs, platformDatabase, hydraAdmin, hydraPublic, dedi],
   });
 });

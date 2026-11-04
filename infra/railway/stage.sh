@@ -8,6 +8,7 @@ revision=$(git rev-parse --verify "${2:-HEAD}^{commit}")
 case "$service" in
   docs) paths=(docs specs .dockerignore .railwayignore) ;;
   platform-db) paths=(infra/railway/database) ;;
+  dedi) paths=(infra/railway/dedi tools/runtimefiles/main.go) ;;
   gateway|lokos-adapter|mock-lokos|sakhicredit)
     paths=(go.work services/gateway sdk/go/adapter adapters/auth/oidc adapters/lokos
       mocks/identity mocks/lokos apps/sakhicredit tools/runtimefiles/main.go

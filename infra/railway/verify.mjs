@@ -54,3 +54,9 @@ assert.equal(hydraPublic.deploy.startCommand, 'hydra serve public --sqa-opt-out'
 for (const key of ['serviceDomains', 'customDomains', 'tcpProxies'])
   assert.deepEqual(Object.keys(hydraAdmin.networking?.[key] ?? {}), [], 'Hydra admin stays private')
 assert.equal(hydraPublic.networking.serviceDomains['gramstack-hydra-b9b69819.up.railway.app'].port, 4444)
+
+const dedi = graph.resources.find(r => r.address === 'service.dedi')
+assert.equal(dedi.build.dockerfilePath, 'infra/railway/dedi/Dockerfile')
+assert.equal(dedi.deploy.healthcheckPath, '/healthz')
+for (const key of ['serviceDomains', 'customDomains', 'tcpProxies'])
+  assert.deepEqual(Object.keys(dedi.networking?.[key] ?? {}), [], 'DeDi stays private')

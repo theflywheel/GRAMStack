@@ -13,6 +13,7 @@ The Go backend remains Go. This small, isolated Node toolchain authors Railway i
 
 | `hydra-admin` | Pinned official Hydra image | — | `serve admin` | Private TLS on 4445 |
 | `hydra-public` | Same pinned Hydra image | — | `serve public` | `https://gramstack-hydra-b9b69819.up.railway.app/` |
+| `dedi` | Targeted local CLI upload | Repository root | `infra/railway/dedi/Dockerfile` | Private TLS on 8446 |
 
 The platform database uses a pinned PostgreSQL 17 image with a persistent
 `platform-data` volume at `/var/lib/postgresql/data`. PostgreSQL initializes
@@ -26,6 +27,24 @@ volume. Rotate credentials in the database and corresponding applications
 together.
 
 Docs needs both `docs/` and `specs/`, so its context stays at the repository root. Other services choose their own context. The existing generated Railway URL and private hostname are preserved during import. GitHub autodeploy is not enabled by this change.
+
+## DeDi evidence node
+
+The private `dedi` service builds the pinned upstream node from its verified
+source archive. Set `DEDI_DB_URL` to the dedicated `dedi` database, with
+`DEDI_ADMIN_PASSWORD`, `DEDI_PUBLISHER_KEYS` and `DEDI_ORIGIN` set in Railway.
+Generate a stable node signing key with `dedid keygen` and put it in the
+runtime bundle as `node.key`. Set `DEDI_KEY_FILE=/run/gramstack/node.key`.
+The bundle also contains `dedi.pem` and `dedi.key`, the TLS identity for
+`dedi.railway.internal`.
+
+The TLS listener on 8446 forwards to the node's loopback listener. The HTTP
+probe exposes only `GET /healthz`. Neither listener has a public domain or TCP
+proxy. The gateway uses `https://dedi.railway.internal:8446` and a trust bundle
+that includes the DeDi CA. Provision the commitment registry explicitly
+with `gramstack anchor -provision` before starting the gateway worker. The
+gateway also needs its publisher signing key and the node's checkpoint
+verifier. Keep both the node identity and database stable across redeploys.
 
 ## Hydra deployment
 
