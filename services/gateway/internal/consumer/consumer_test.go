@@ -68,6 +68,51 @@ func invoke(h http.Handler, method, path, token, key, body string) *httptest.Res
 	h.ServeHTTP(result, req)
 	return result
 }
+func TestProcessingProfileBindsResolvedTerms(t *testing.T) {
+	s, pool := setup(t)
+	policy := s.policies["consumer-one"][0]
+	profile := &ProcessingProfile{ID: "assessment", Version: "1", ResponsibleOrganisation: "sakhi-credit", Processors: []string{"example-processor"}, DerivedDataHandling: "Retain no derived score."}
+	policy.Processing = profile
+	config := Config{Pool: pool, Auth: fixtureAuth{}, PublicOrigin: "https://gateway.example", Consumers: map[string][]Policy{"consumer-one": {policy}}}
+	service, err := New(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	accepted, err := service.Create(ctx, "consumer-one", rand.Text(), decodeInput(t, requestJSON))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var raw []byte
+	if err := pool.QueryRow(ctx, `SELECT snapshot_bytes FROM accepted_requests WHERE request_id=$1`, accepted.RequestID).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	var snapshot cm.Snapshot
+	if err := json.Unmarshal(raw, &snapshot); err != nil {
+		t.Fatal(err)
+	}
+	profile.Processors[0] = "substituted-processor"
+	terms, err := service.Resolve(ctx, "consumer-one", policy.TermsVersion)
+	if err != nil || !strings.Contains(terms.Text, "Declared processors: example-processor") ||
+		!strings.Contains(terms.Text, "Processing profile: assessment (version 1)") ||
+		!strings.Contains(terms.Text, "Responsible organisation: sakhi-credit") ||
+		snapshot.RecipientTermsDigest != cm.Digest([]byte(terms.Text)) {
+		t.Fatal("accepted fingerprint did not bind the approved processing profile", err)
+	}
+
+	other := policy
+	other.Processing = &ProcessingProfile{ID: "assessment", Version: "2", ResponsibleOrganisation: "sakhi-credit", Processors: []string{}, DerivedDataHandling: "Retain no derived score."}
+	config.Consumers["consumer-one"] = []Policy{policy, other}
+	if _, err := New(config); err == nil {
+		t.Fatal("same terms version resolved two different profiles")
+	}
+	other.Processing.Processors = nil
+	config.Consumers["consumer-one"] = []Policy{other}
+	if _, err := New(config); err == nil {
+		t.Fatal("missing processor inventory accepted")
+	}
+}
+
 func TestRequestRespectsApprovedAccessWindow(t *testing.T) {
 	s, pool := setup(t)
 	policy := s.policies["consumer-one"][0]

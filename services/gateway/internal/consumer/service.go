@@ -26,14 +26,15 @@ var (
 )
 
 type Policy struct {
-	Registry         string   `json:"registry"`
-	Resource         string   `json:"resource"`
-	Fields           []string `json:"fields"`
-	Purposes         []string `json:"purposes"`
-	HintTypes        []string `json:"hint_types"`
-	TermsVersion     string   `json:"terms_version"`
-	TermsText        string   `json:"terms_text"`
-	MaxAccessSeconds *int64   `json:"max_access_seconds,omitempty"`
+	Registry         string             `json:"registry"`
+	Resource         string             `json:"resource"`
+	Fields           []string           `json:"fields"`
+	Purposes         []string           `json:"purposes"`
+	HintTypes        []string           `json:"hint_types"`
+	TermsVersion     string             `json:"terms_version"`
+	TermsText        string             `json:"terms_text"`
+	MaxAccessSeconds *int64             `json:"max_access_seconds,omitempty"`
+	Processing       *ProcessingProfile `json:"processing_profile,omitempty"`
 }
 type Config struct {
 	Pool          *pgxpool.Pool
@@ -87,15 +88,25 @@ func New(c Config) (*Service, error) {
 			return nil, ErrInput
 		}
 		terms := map[string]string{}
-		for _, p := range entries {
+		for i := range entries {
+			p := &entries[i]
 			if p.MaxAccessSeconds != nil && (*p.MaxAccessSeconds < 1 || *p.MaxAccessSeconds > cm.MaxAccessSeconds) {
 				return nil, ErrInput
+			}
+			if p.TermsText == "" {
+				return nil, ErrInput
+			}
+			if p.Processing != nil {
+				p.TermsText, err = p.Processing.terms(p.TermsText)
+				if err != nil {
+					return nil, err
+				}
 			}
 			if old, ok := terms[p.TermsVersion]; ok && old != p.TermsText {
 				return nil, ErrInput
 			}
 			terms[p.TermsVersion] = p.TermsText
-			if !idPattern.MatchString(p.Registry) || !idPattern.MatchString(p.Resource) || !idPattern.MatchString(p.TermsVersion) || p.TermsText == "" || len(p.TermsText) > 65536 || len(p.Fields) == 0 || len(p.Purposes) == 0 || len(p.HintTypes) == 0 {
+			if !idPattern.MatchString(p.Registry) || !idPattern.MatchString(p.Resource) || !idPattern.MatchString(p.TermsVersion) || len(p.TermsText) > 65536 || len(p.Fields) == 0 || len(p.Purposes) == 0 || len(p.HintTypes) == 0 {
 				return nil, ErrInput
 			}
 		}

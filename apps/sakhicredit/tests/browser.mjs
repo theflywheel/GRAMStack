@@ -230,6 +230,9 @@ async function run() {
     const started = await create(page);
     await shot(page, "desktop-waiting");
     const shown = await approve(page, context);
+    assert.match(shown.text, /Processing profile: sakhi-credit-assessment \(version 1\)/);
+    assert.match(shown.text, /Responsible organisation: sakhi-credit/);
+    assert.match(shown.text, /Declared processors: None declared/);
     await shot(page, "desktop-ready");
     const before = reads();
     for (const file of ["block", "entered", "release"])
