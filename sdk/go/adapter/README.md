@@ -27,7 +27,7 @@ Processing order is durable local claim → new atomic reservation → durable s
 
 Provider implementations must issue at most one native source request per `Fetch`, disable implicit transport retries that could repeat a read, and respect cancellation/timeouts. The SDK bounds provider invocations; it cannot infer hidden retries inside a custom provider. Hosts supply pinned mTLS clients, source/evidence secrets and release/retention policy. `NewAuthorityClient` supplies strict bounded private redemption/evidence RPCs without redirect following or application retries.
 
-Configured reference-runtime acceptance now exercises the actual gateway → SDK → fictional native source → durable custodian → response path over mTLS, including exact projection, outages and restart. This does not claim a complete product UI, published SDK or verified automatic anchoring. Independently published SDK versions and external conformance remain D13.
+Configured reference-runtime acceptance now exercises the actual gateway → SDK → fictional native source → durable custodian → response path over mTLS, including exact projection, outages and restart. The [combined local acceptance](../../../DEMO-TODO.md#combined-local-acceptance-on-533a7be) also exercises the SakhiCredit browser UI and verifies automatic anchoring with a real DeDi node. SDK v0.1.0 is available to developers with access to this private repository. Distribution to developers without repository access remains open.
 
 
 ## Public discovery
