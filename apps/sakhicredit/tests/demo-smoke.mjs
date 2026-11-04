@@ -76,6 +76,31 @@ async function showCapabilities(page) {
   }
 }
 
+async function signIn(portal, landing) {
+  const mode = portal.getByRole("button", { name: /log.*OTP|OTP.*log/i });
+  const uin = portal.getByRole("textbox", { name: /UIN|VID/i });
+  await mode.or(uin).first().waitFor();
+  if (!(await uin.first().isVisible())) await mode.click();
+  await recording?.show(portal);
+  await hold(1600);
+  recording?.pause();
+  await uin.fill("9000000001");
+  await portal.getByRole("button", { name: /get OTP/i }).click();
+  const digits = portal.locator('input[autocomplete="one-time-code"]');
+  await digits.first().waitFor();
+  assert.equal(await digits.count(), 6);
+  for (let i = 0; i < 6; i++) await digits.nth(i).fill("1");
+  await portal.getByRole("button", { name: "Verify", exact: true }).click();
+  const allow = portal.getByRole("button", { name: /^Allow$/i });
+  await landing.or(allow).first().waitFor();
+  if (await allow.isVisible()) {
+    for (const checkbox of await portal.getByRole("checkbox").all())
+      await checkbox.check();
+    await allow.click();
+  }
+  await landing.waitFor();
+}
+
 async function review() {
   recording?.pause();
   const context = await browser.newContext({
@@ -92,31 +117,11 @@ async function review() {
   const popup = context.waitForEvent("page", { timeout: 15000 });
   await page.getByRole("link", { name: "Review sharing request" }).click();
   const portal = await popup;
-  const mode = portal.getByRole("button", { name: /log.*OTP|OTP.*log/i });
-  const uin = portal.getByRole("textbox", { name: /UIN|VID/i });
-  await mode.or(uin).first().waitFor();
-  if (!(await uin.first().isVisible())) await mode.click();
-  await recording?.show(portal);
-  await hold(1600);
-  recording?.pause();
-  await uin.fill("9000000001");
-  await portal.getByRole("button", { name: /get OTP/i }).click();
-  const digits = portal.locator('input[autocomplete="one-time-code"]');
-  await digits.first().waitFor();
-  assert.equal(await digits.count(), 6);
-  for (let i = 0; i < 6; i++) await digits.nth(i).fill("1");
-  await portal.getByRole("button", { name: "Verify", exact: true }).click();
   const registry = portal.getByRole("button", {
     name: "Verify registry membership",
     exact: true,
   });
-  const allow = portal.getByRole("button", { name: /^Allow$/i });
-  await registry.or(allow).first().waitFor();
-  if (await allow.isVisible()) {
-    for (const checkbox of await portal.getByRole("checkbox").all())
-      await checkbox.check();
-    await allow.click();
-  }
+  await signIn(portal, registry);
   await recording?.show(portal);
   await hold(1400);
   await registry.click();
@@ -161,35 +166,73 @@ try {
     "PASS: standalone launcher completed official eSignet, explicit consent and exact SakhiCredit retrieval",
   );
   await page.getByText("View sharing reference", { exact: true }).click();
-  reportDemoLegalHold(endpoints.data, join(state, "certs"), await page.locator("#receipt-reference").textContent());
+  reportDemoLegalHold(
+    endpoints.data, join(state, "certs"),
+    await page.locator("#receipt-reference").textContent(),
+  );
   recording?.pause();
   await portal.bringToFront();
   await showDemoLegalHold(portal);
   await recording?.show(portal);
   await hold(4000);
   console.log("PASS: authenticated consent receipt shows the recipient-reported legal hold");
+  const denied = await review();
+  await denied.portal
+    .getByRole("button", { name: "Reject this request", exact: true })
+    .click();
+  await denied.portal
+    .getByRole("heading", { name: "Your permission record", exact: true })
+    .waitFor();
+  await hold(2000);
+  recording?.pause();
+  await denied.page.bringToFront();
+  await recording?.show(denied.page);
+  await denied.page
+    .getByRole("heading", { name: "Sharing declined" })
+    .waitFor();
+  assert.equal(await denied.page.locator("#retrieve").isHidden(), true);
+  assert.equal(
+    await denied.page.locator("#approved-result").isHidden(),
+    true,
+  );
+  await hold(3000);
+  console.log("PASS: rejected request did not enable retrieval or show data");
+  recording?.pause();
+  const historyContext = await browser.newContext({
+    viewport: { width: 1280, height: 800 },
+  });
+  const history = await historyContext.newPage();
+  await history.goto(endpoints.gateway + "/consent-history/lokos");
+  const historySignIn = history.getByRole("link", { name: "Sign in to view history" });
+  await historySignIn.waitFor();
+  assert.equal(await history.getByRole("link", { name: "Download consent record" }).count(), 0);
+  await recording?.show(history);
+  await hold(1800);
+  await historySignIn.click();
+  const records = history.getByRole("link", { name: "Download consent record" });
+  await signIn(history, records.first());
+  const requestID = (page) => new URL(page.url()).pathname.split("/")[2];
+  const approvedID = requestID(portal);
+  const deniedID = requestID(denied.portal);
+  const receiptPath = (id) => `/consent-history/lokos/${id}/receipt`;
+  const approvedRecord = history.locator(`a[href="${receiptPath(approvedID)}"]`);
+  const deniedRecord = history.locator(`a[href="${receiptPath(deniedID)}"]`);
+  assert.match(await approvedRecord.locator("..").textContent(), /Request COMPLETED/);
+  assert.match(await deniedRecord.locator("..").textContent(), /Request REJECTED/);
+  await approvedRecord.locator("..").scrollIntoViewIfNeeded();
+  await recording?.show(history);
+  await hold(2600);
+  await deniedRecord.locator("..").scrollIntoViewIfNeeded();
+  await hold(2600);
+  const download = history.waitForEvent("download", { timeout: 5000 });
+  await approvedRecord.click();
+  const recovered = JSON.parse(readFileSync(await (await download).path(), "utf8"));
+  assert.equal(recovered.request_id, approvedID);
+  assert.equal(recovered.decision.decision, "approve");
+  recording?.pause();
+  await historyContext.close();
+  console.log("PASS: fresh eSignet sign-in recovered approved and rejected history and downloaded the approved receipt");
   if (recording) {
-    const denied = await review();
-    await denied.portal
-      .getByRole("button", { name: "Reject this request", exact: true })
-      .click();
-    await denied.portal
-      .getByRole("heading", { name: "Your permission record", exact: true })
-      .waitFor();
-    await hold(2000);
-    recording.pause();
-    await denied.page.bringToFront();
-    await recording.show(denied.page);
-    await denied.page
-      .getByRole("heading", { name: "Sharing declined" })
-      .waitFor();
-    assert.equal(await denied.page.locator("#retrieve").isHidden(), true);
-    assert.equal(
-      await denied.page.locator("#approved-result").isHidden(),
-      true,
-    );
-    await hold(3000);
-    console.log("PASS: rejected request did not enable retrieval or show data");
     recording.pause();
     const evidenceScript = fileURLToPath(
       new URL("../../../infra/demo/verify-evidence.py", import.meta.url),
