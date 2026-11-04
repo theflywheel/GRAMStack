@@ -12,6 +12,7 @@ case "$service" in
   esignet) paths=(infra/railway/esignet infra/esignet/flow-local-demo.yaml) ;;
   esignet-db) paths=(infra/railway/esignet-db infra/esignet/init.sql) ;;
   esignet-ui) paths=(infra/railway/esignet-ui) ;;
+  esignet-redis) paths=(infra/railway/esignet-redis) ;;
   gateway|lokos-adapter|mock-lokos|sakhicredit)
     paths=(go.work services/gateway sdk/go/adapter adapters/auth/oidc adapters/lokos
       mocks/identity mocks/lokos apps/sakhicredit tools/runtimefiles/main.go

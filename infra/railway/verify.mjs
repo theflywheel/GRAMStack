@@ -60,3 +60,20 @@ assert.equal(dedi.build.dockerfilePath, 'infra/railway/dedi/Dockerfile')
 assert.equal(dedi.deploy.healthcheckPath, '/healthz')
 for (const key of ['serviceDomains', 'customDomains', 'tcpProxies'])
   assert.deepEqual(Object.keys(dedi.networking?.[key] ?? {}), [], 'DeDi stays private')
+
+const identityMounts = {
+  'esignet-db': ['esignet-db-data', '/var/lib/postgresql/data'],
+  'esignet-redis': ['esignet-redis-data', '/data'],
+  'esignet-mock': ['esignet-mock-keys', '/keys'],
+  esignet: ['esignet-keys', '/opt/mosip/keys'],
+}
+for (const [name, [volume, path]] of Object.entries(identityMounts)) {
+  const resource = graph.resources.find(r => r.address === `service.${name}`)
+  assert.equal(resource.volumeAttachments[volume]?.mountPath, path)
+  for (const key of ['serviceDomains', 'customDomains', 'tcpProxies'])
+    assert.deepEqual(Object.keys(resource.networking?.[key] ?? {}), [], `${name} stays private`)
+}
+const esignetUI = graph.resources.find(r => r.address === 'service.esignet-ui')
+assert.equal(esignetUI.deploy.healthcheckPath, '/healthz')
+assert.deepEqual(esignetUI.networking.serviceDomains,
+  { 'gramstack-esignet-b9b69819.up.railway.app': { port: 3000 } })

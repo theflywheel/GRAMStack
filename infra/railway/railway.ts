@@ -1,4 +1,4 @@
-import { defineRailway, image, project, service, volume } from "railway/iac";
+import { defineRailway, image, project, service, volume, type ServiceConfigInput } from "railway/iac";
 
 // Keep every active service in this project definition; omission removes a resource.
 export default defineRailway(() => {
@@ -74,9 +74,47 @@ export default defineRailway(() => {
     deploy: { restartPolicyMaxRetries: 3 },
   });
 
+  const identityRegion = "asia-southeast1-eqsg3a";
+  const identityVolume = (name: string, sizeMB: number) => volume(name, { region: identityRegion, sizeMB });
+  const identityArtifact = (name: string, settings: ServiceConfigInput) => service(name, {
+    build: {
+      builder: "DOCKERFILE",
+      buildEnvironment: "V3",
+      dockerfilePath: `infra/railway/${name}/Dockerfile`,
+      watchPatterns: [`/infra/railway/${name}/**`, "/infra/esignet/**"],
+    },
+    replicas: { [identityRegion]: 1 },
+    deploy: { restartPolicyMaxRetries: 3 },
+    ...settings,
+  });
+  const esignetDB = identityArtifact("esignet-db", {
+    volumeMounts: { "/var/lib/postgresql/data": identityVolume("esignet-db-data", 2048) },
+  });
+  const esignetRedis = identityArtifact("esignet-redis", {
+    volumeMounts: { "/data": identityVolume("esignet-redis-data", 512) },
+  });
+  const esignetMock = service("esignet-mock", {
+    // The official image source is attached after private configuration is set.
+    replicas: { [identityRegion]: 1 },
+    deploy: { restartPolicyMaxRetries: 3 },
+    volumeMounts: { "/keys": identityVolume("esignet-mock-keys", 512) },
+  });
+  const esignet = identityArtifact("esignet", {
+    healthcheck: "/health",
+    healthcheckTimeout: 120,
+    volumeMounts: { "/opt/mosip/keys": identityVolume("esignet-keys", 512) },
+  });
+  const esignetUI = identityArtifact("esignet-ui", {
+    healthcheck: "/healthz",
+    healthcheckTimeout: 120,
+    networking: {
+      serviceDomains: { "gramstack-esignet-b9b69819.up.railway.app": { port: 3000 } },
+    },
+  });
+
   return project("gramstack-design", {
     // Secrets and environment variables stay managed in Railway.
     variables: { managed: false },
-    resources: [docs, platformDatabase, hydraAdmin, hydraPublic, dedi],
+    resources: [docs, platformDatabase, hydraAdmin, hydraPublic, dedi, esignetDB, esignetRedis, esignetMock, esignet, esignetUI],
   });
 });

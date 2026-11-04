@@ -12,6 +12,8 @@ services:
     build:
       context: ../..
       dockerfile: infra/railway/esignet/Dockerfile
+    environment:
+      REDIS_URL: redis://:${ESIGNET_DEMO_REDIS_PASSWORD:?Generate a fresh demo environment}@redis:6379/0
     networks:
       default:
         aliases: [esignet.railway.internal]
@@ -22,3 +24,13 @@ services:
       context: ../..
       dockerfile: infra/railway/esignet-ui/Dockerfile
     volumes: !reset []
+  redis:
+    image: gramstack-esignet-redis:deployment-check
+    build:
+      context: ../..
+      dockerfile: infra/railway/esignet-redis/Dockerfile
+    command: !reset []
+    environment:
+      REDIS_PASSWORD: ${ESIGNET_DEMO_REDIS_PASSWORD:?Generate a fresh demo environment}
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -qx PONG']

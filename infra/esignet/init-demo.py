@@ -20,6 +20,7 @@ def main():
             values[f"ESIGNET_DEMO_{kind}_PORT"] = str(listener.getsockname()[1])
         for key in ("DB_PASSWORD", "KEY_PASSWORD", "MOCK_KEY_PASSWORD"):
             values[f"ESIGNET_DEMO_{key}"] = secrets.token_hex(24)
+        values["ESIGNET_DEMO_REDIS_PASSWORD"] = secrets.token_hex(32)
         fd = os.open(args.directory / ".env", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, "w", encoding="ascii") as output:
             for key, value in values.items():

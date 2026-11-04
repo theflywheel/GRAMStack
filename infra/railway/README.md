@@ -80,9 +80,20 @@ The public UI image forwards its allowlisted login and OIDC routes to
 issuer and the UI redirect origin. Keep the API, client onboarding, mock
 identity management, PostgreSQL and Redis on the private network. See the
 [local single-origin check](../esignet/README.md#single-origin-ingress-verification)
-for the exact baked-image verification. These three artifacts are ready for
-staging. Hosted identity deployment and fixture provisioning remain separate
-acceptance steps.
+for the exact baked-image verification. The Railway service graph reserves the four private volumes and a single
+public ingress. The services are created before image activation so their
+runtime variables can be set first. Prepare private operator settings with:
+
+```sh
+state=$(mktemp -d /tmp/gramstack-esignet-railway.XXXXXX)
+python3 infra/railway/prepare-esignet.py "$state/settings"
+```
+
+Keep the generated files outside the repository. Deploy database and Redis
+first, then the official mock identity image pinned in the local Compose
+file, the private eSignet API, and the UI. Use the same credentials with the
+same volumes on restart. Hosted client registration and fictional identity
+fixture provisioning remain separate operator steps.
 
 ## Tooling and commands
 
