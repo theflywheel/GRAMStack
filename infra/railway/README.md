@@ -176,6 +176,29 @@ Files named by the configurations resolve under `/run/gramstack`.
 Private eSignet onboarding still needs to produce the provider profile,
 client assertion key and fictional subject bindings.
 
+Assemble the four scoped runtime bundles after signing the policy:
+
+```sh
+python3 infra/railway/prepare-app-bundles.py \
+  --certs "$state/certs" --config "$state/config" --identity "$state" \
+  --private-roots /private/hydra-and-dedi-ca.pem \
+  --publisher-key /private/dedi-publisher.key "$state/app-settings"
+```
+
+The files in `app-settings` contain private material and newly generated
+storage encryption keys. Preserve them across redeploys. The policy-signing
+private key stays offline and no role receives a peer's private key. The
+generator performs no network calls.
+
+Supply the remaining runtime variables separately. Use the role-scoped
+database DSNs for gateway `DATABASE_URL`, adapter
+`ADAPTER_STATE_DATABASE_URL` and product `SAKHI_DATABASE_URL`. Set
+`GRAMSTACK_PORTAL_CLIENT_SECRET` on the gateway and `SAKHI_CLIENT_SECRET`
+on the product from the registered Hydra client settings. Set
+`DEDI_ADMIN_PASSWORD` and `DEDI_CHECKPOINT_VERIFIER` on the gateway from the
+provisioned evidence node. Keep the source's subject bindings scoped to the
+fictional fixture identities.
+
 Set `GRAMSTACK_PRIVATE_CA_FILE` to the gateway bundle file containing the
 private Hydra admin and DeDi CA certificates. The gateway image appends those
 roots to its system roots at startup so it can still verify the public
