@@ -1210,6 +1210,16 @@ Each event has an ID, an aggregate version and a UTC occurrence time. The `REDEE
 
 The outbox is an **internal durable event stream**. The running deployment consumes selected events with its own workers, including the DeDi anchoring worker. A public telemetry endpoint, external event feed and third-party analytics export are outside this demo. The owner sees a projection from the persisted records in signed-in consent history. The one-use guarantee covers retrieval through GRAMStack. It does not track downstream reads of the recipient's copy.
 
+### Validate one disclosure at the platform layer
+
+In signed-in consent history, copy the **Request reference** from a completed audit card. An operator with a read-only connection to the gateway database can run:
+
+```sh
+gramstack verify-admission <request-id>
+```
+
+Supply the private database connection via `DATABASE_URL`. The command checks that exactly one admission event matches the request and that the consent reservation, grant, presenter, adapter attempt and signed receipt reference agree. It returns the authorization event reference, approval-use timestamp, receipt reference and use count so the operator can compare them with the owner-facing card. It fails if the request is incomplete or the retained links are inconsistent. It reads metadata only. Use `gramstack verify-anchors` separately to verify retained DeDi proofs against the pinned checkpoint key.
+
 ## Extended evidence and operational records
 
 | Record | Custodian and contents | Boundary |

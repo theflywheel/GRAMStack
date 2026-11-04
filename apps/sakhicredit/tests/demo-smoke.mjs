@@ -227,9 +227,13 @@ try {
   const deniedRecord = history.locator(`a[href="${receiptPath(deniedID)}"]`);
   assert.match(await approvedRecord.locator("..").textContent(), /Single use spent · Request COMPLETED/);
   assert.match(await deniedRecord.locator("..").textContent(), /Request REJECTED/);
-  await approvedRecord.locator("..").scrollIntoViewIfNeeded();
+  const accessAudit = approvedRecord.locator("..");
+  await accessAudit.getByText("Approval used to authorize retrieval").waitFor();
+  await accessAudit.getByText("Authorization event reference").waitFor();
+  await accessAudit.getByText("1 of 1 authorized retrievals used.", { exact: true }).waitFor();
+  await accessAudit.getByRole("heading", { name: "Access audit" }).scrollIntoViewIfNeeded();
   await recording?.show(history);
-  await hold(2600);
+  await hold(5000);
   await deniedRecord.locator("..").scrollIntoViewIfNeeded();
   await hold(2600);
   const download = history.waitForEvent("download", { timeout: 5000 });
