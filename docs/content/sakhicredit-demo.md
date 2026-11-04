@@ -11,4 +11,4 @@ Watch SakhiCredit request two fields, show an exact consent notice, and retrieve
 
 <a href="https://docs.gramstack.try-dough.com/media/sakhicredit-hosted.mp4?download=1" download>Download the MP4</a> · [Try the live SakhiCredit demo](https://sakhicredit-b9b69819.up.railway.app/)
 
-The 72-second walkthrough uses fictional identities, one-time codes, and source records. The recording includes the capability report.
+The 72-second walkthrough includes timed on-screen explanations and a capability report. It uses fictional identities, one-time codes, and source records.
