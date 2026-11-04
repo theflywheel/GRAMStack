@@ -62,6 +62,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	sdk "github.com/theflywheel/GRAMStack/sdk/go/adapter"
@@ -83,6 +84,11 @@ func TestIndependentProviderProjection(t *testing.T) {
 	p := &provider{}
 	subject := sdk.Subject{Reference: "verified-source-mapping"}
 	conformance.CheckProvider(t, p, subject, "status", json.RawMessage(`"active"`), func() int { return p.calls })
+}
+func TestIndependentAuthorityClient(t *testing.T) {
+	conformance.CheckAuthorityClient(t, func(origin string, client *http.Client) (conformance.AuthorityClient, error) {
+		return sdk.NewAuthorityClient(origin, client)
+	})
 }
 GO
 go -C "$scratch/consumer" mod tidy
