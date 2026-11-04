@@ -188,7 +188,14 @@ python3 infra/railway/prepare-app-bundles.py \
 The files in `app-settings` contain private material and newly generated
 storage encryption keys. Preserve them across redeploys. The policy-signing
 private key stays offline and no role receives a peer's private key. The
-generator performs no network calls.
+generator performs no network calls. It also checks that every runtime file referenced by
+a generated service configuration is present in that service's bundle. When
+refreshing configurations for the same deployment, pass
+`--previous-settings "$state/app-settings"` and write to a new output directory.
+This preserves the gateway authentication and history key, adapter state key,
+and SakhiCredit storage key. The previous settings files must be owner-only.
+Use the existing service certificates and signing keys when rebuilding bundles
+for the same environment.
 
 Supply the remaining runtime variables separately. Use the role-scoped
 database DSNs for gateway `DATABASE_URL`, adapter
