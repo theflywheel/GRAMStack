@@ -4,11 +4,23 @@ The active project definition is [railway.ts](railway.ts). It describes every ac
 
 The Go backend remains Go. This small, isolated Node toolchain authors Railway infrastructure using its supported TypeScript SDK; it is not an application workspace or a backend runtime dependency. The SDK is pinned in this directory. Use Railway CLI 5.71.0 or newer (validated with 5.71.0), installed from Railway or Homebrew; the legacy 4.x CLI cannot manage this configuration.
 
-## Current service
+## Current services
 
 | Service | Source/deployment | Build context | Build | Public endpoint |
 |---|---|---|---|---|
 | `docs` | Targeted local CLI upload | Repository root | `docs/Dockerfile` | `https://docs.gramstack.try-dough.com/` |
+
+| `platform-db` | Targeted local CLI upload | Repository root | `infra/railway/database/Dockerfile` | Private Railway network |
+
+The platform database uses a pinned PostgreSQL 17 image with a persistent
+`platform-data` volume at `/var/lib/postgresql/data`. The initial deployment
+requires `POSTGRES_PASSWORD` and separate `GRAMSTACK_DB_<ROLE>_PASSWORD`
+secrets for `CORE`, `ADAPTER`, `PRODUCT`, `HYDRA` and `DEDI`. Each role
+owns one database and is denied connections to its peers. Applications use
+their own credential over the private network. The bootstrap superuser is
+reserved for the database. PostgreSQL initialization runs only on an empty
+volume. Rotate credentials in the database and corresponding applications
+together.
 
 Docs needs both `docs/` and `specs/`, so its context stays at the repository root. Other services choose their own context. The existing generated Railway URL and private hostname are preserved during import. GitHub autodeploy is not enabled by this change.
 
