@@ -20,6 +20,7 @@ import (
 
 func main() {
 	dir := flag.String("dir", "", "private output directory")
+	railway := flag.Bool("railway-demo", false, "issue private Railway demo identities")
 	flag.Parse()
 	if *dir == "" {
 		log.Fatal("-dir required")
@@ -32,18 +33,35 @@ func main() {
 		log.Fatal(err)
 	}
 	now := time.Now()
-	ca := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "GRAMStack isolated demo CA"}, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(24 * time.Hour), IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign}
+	lifetime := 24 * time.Hour
+	if *railway {
+		lifetime = 30 * 24 * time.Hour
+	}
+	ca := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "GRAMStack isolated demo CA"}, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(lifetime), IsCA: true, BasicConstraintsValid: true, KeyUsage: x509.KeyUsageCertSign | x509.KeyUsageCRLSign}
 	der, err := x509.CreateCertificate(rand.Reader, ca, ca, &caKey.PublicKey, caKey)
 	if err != nil {
 		log.Fatal(err)
 	}
 	write(*dir, "ca.pem", "CERTIFICATE", der)
-	for i, name := range []string{"gateway", "lokos-adapter", "mock-lokos", "unauthorised", "consumer-one"} {
+	names := []string{"gateway", "lokos-adapter", "mock-lokos"}
+	if !*railway {
+		names = append(names, "unauthorised")
+	}
+	names = append(names, "consumer-one")
+	for i, name := range names {
 		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			log.Fatal(err)
 		}
-		cert := &x509.Certificate{SerialNumber: big.NewInt(int64(i + 2)), Subject: pkix.Name{CommonName: name + ".gramstack.internal"}, DNSNames: []string{name + ".gramstack.internal"}, IPAddresses: []net.IP{net.ParseIP("127.0.0.1")}, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(24 * time.Hour), ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}, KeyUsage: x509.KeyUsageDigitalSignature}
+		cert := &x509.Certificate{SerialNumber: big.NewInt(int64(i + 2)), Subject: pkix.Name{CommonName: name + ".gramstack.internal"}, DNSNames: []string{name + ".gramstack.internal"}, NotBefore: now.Add(-time.Minute), NotAfter: now.Add(lifetime), ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}, KeyUsage: x509.KeyUsageDigitalSignature}
+		if *railway {
+			switch name {
+			case "gateway", "lokos-adapter", "mock-lokos":
+				cert.DNSNames = append(cert.DNSNames, name+".railway.internal")
+			}
+		} else {
+			cert.IPAddresses = []net.IP{net.ParseIP("127.0.0.1")}
+		}
 		der, err := x509.CreateCertificate(rand.Reader, cert, ca, &key.PublicKey, caKey)
 		if err != nil {
 			log.Fatal(err)

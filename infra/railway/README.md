@@ -108,6 +108,28 @@ fictional LokOS source on private DNS with the existing mTLS identities.
 | Mock LokOS | None | Fictional native source |
 | SakhiCredit | `https://sakhicredit-b9b69819.up.railway.app` | Uses the gateway data listener as a consumer |
 
+Generate the demo mTLS identities in a fresh private directory:
+
+```sh
+state=$(mktemp -d /tmp/gramstack-railway-mtls.XXXXXX)
+GOWORK=off go run ./tools/devcerts/main.go -railway-demo -dir "$state/certs"
+```
+
+The gateway, adapter and source certificates include their Railway private
+DNS names and retain the existing `.gramstack.internal` service identities
+for peer authorization. The consumer certificate retains its approved
+consumer identity. The hosted demo certificates expire after 30 days.
+Keep private keys in their assigned service bundles and distribute the
+CA certificate to the authorized peers.
+
+Use `https://gateway.railway.internal:8445` for data, redemption and custody
+with the gateway private listener bound to `:8445`.
+Use `https://lokos-adapter.railway.internal:8443` for adapter RPCs and
+`https://mock-lokos.railway.internal:8444` for the adapter's native source.
+Set the gateway and source modes to `demo` and keep the eSignet demo provider
+and registry verifier explicitly enabled. Keep loopback HTTP disabled.
+The gateway's discovery configuration uses the public adapter metadata URL.
+
 Set `GRAMSTACK_PRIVATE_CA_FILE` to the gateway bundle file containing the
 private Hydra admin and DeDi CA certificates. The gateway image appends those
 roots to its system roots at startup so it can still verify the public
