@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -141,7 +142,7 @@ func run() error {
 	if port == "" {
 		port = "8081"
 	}
-	server := &http.Server{Addr: ":" + port, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384}
+	server := &http.Server{Addr: net.JoinHostPort(os.Getenv("BIND_HOST"), port), Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384}
 	workerCtx, cancelWorker := context.WithCancel(context.Background())
 	defer cancelWorker()
 	workerDone := make(chan struct{})

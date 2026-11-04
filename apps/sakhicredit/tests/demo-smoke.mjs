@@ -1,0 +1,86 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { chromium } from "playwright-core";
+const state = process.argv[2];
+assert.ok(
+  state && process.env.CHROME_BIN,
+  "Pass the demo state directory and set CHROME_BIN",
+);
+const endpoints = JSON.parse(
+  readFileSync(join(state, "endpoints.json"), "utf8"),
+);
+assert.equal(new URL(endpoints.product).origin, endpoints.product);
+assert.equal(new URL(endpoints.product).hostname, "127.0.0.1");
+const browser = await chromium.launch({
+  executablePath: process.env.CHROME_BIN,
+  headless: true,
+  timeout: 15000,
+});
+try {
+  const context = await browser.newContext();
+  context.setDefaultTimeout(20000);
+  const page = await context.newPage();
+  await page.goto(endpoints.product);
+  await page
+    .getByRole("button", { name: "Start application", exact: false })
+    .click();
+  const popup = context.waitForEvent("page", { timeout: 15000 });
+  await page.getByRole("link", { name: "Review sharing request" }).click();
+  const portal = await popup;
+  const mode = portal.getByRole("button", { name: /log.*OTP|OTP.*log/i });
+  const uin = portal.getByRole("textbox", { name: /UIN|VID/i });
+  await mode.or(uin).first().waitFor();
+  if (!(await uin.first().isVisible())) await mode.click();
+  await uin.fill("9000000001");
+  await portal.getByRole("button", { name: /get OTP/i }).click();
+  const digits = portal.locator('input[autocomplete="one-time-code"]');
+  await digits.first().waitFor();
+  assert.equal(await digits.count(), 6);
+  for (let i = 0; i < 6; i++) await digits.nth(i).fill("1");
+  await portal.getByRole("button", { name: "Verify", exact: true }).click();
+  const registry = portal.getByRole("button", {
+    name: "Verify registry membership",
+    exact: true,
+  });
+  const allow = portal.getByRole("button", { name: /^Allow$/i });
+  await registry.or(allow).first().waitFor();
+  if (await allow.isVisible()) {
+    for (const checkbox of await portal.getByRole("checkbox").all())
+      await checkbox.check();
+    await allow.click();
+  }
+  await registry.click();
+  await portal
+    .getByRole("heading", { name: "The exact notice", exact: true })
+    .waitFor();
+  await portal.getByRole("checkbox").check();
+  await portal
+    .getByRole("button", { name: "Approve this request", exact: true })
+    .click();
+  await portal
+    .getByRole("heading", { name: "Your permission record", exact: true })
+    .waitFor();
+  await page.bringToFront();
+  await page.getByRole("button", { name: "Get approved details" }).click();
+  await page
+    .getByRole("heading", { name: "Your details are ready for review" })
+    .waitFor();
+  assert.equal(
+    await page.locator("#membership-value").textContent(),
+    "Active member",
+  );
+  assert.equal(
+    await page.locator("#savings-value").textContent(),
+    "₹12,500.75",
+  );
+  await page.screenshot({
+    path: join(state, "approved-result.png"),
+    fullPage: true,
+  });
+  console.log(
+    "PASS: standalone launcher completed official eSignet, explicit consent and exact SakhiCredit retrieval",
+  );
+} finally {
+  await browser.close();
+}

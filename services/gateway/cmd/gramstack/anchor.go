@@ -28,7 +28,8 @@ func anchor(ctx context.Context, args []string, output io.Writer) error {
 	if flags.NArg() != 0 {
 		return errors.New("unexpected anchor arguments")
 	}
-	if *event == "" || *digest == "" {
+	provisionOnly := *provision && *event == "" && *digest == ""
+	if !provisionOnly && (*event == "" || *digest == "") {
 		return errors.New("anchor requires -event-id and -digest")
 	}
 	client, err := configuredDeDiClient(*loopback)
@@ -39,6 +40,9 @@ func anchor(ctx context.Context, args []string, output io.Writer) error {
 		if err := client.Provision(ctx); err != nil {
 			return err
 		}
+	}
+	if provisionOnly {
+		return nil
 	}
 	proof, err := client.Publish(ctx, *event, *digest)
 	if err != nil {

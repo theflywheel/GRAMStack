@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	source "github.com/theflywheel/GRAMStack/mocks/lokos"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -50,7 +51,7 @@ func main() {
 	if port == "" {
 		port = "8444"
 	}
-	server := &http.Server{Addr: ":" + port, Handler: native.Handler(), TLSConfig: tls, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: net.JoinHostPort(os.Getenv("BIND_HOST"), port), Handler: native.Handler(), TLSConfig: tls, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go func() {

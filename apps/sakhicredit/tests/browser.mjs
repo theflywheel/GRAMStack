@@ -308,7 +308,6 @@ async function run() {
     }
     assert.equal(new URL(receipt.url()).origin, gateway);
     assert.equal(reads(), before + 1);
-    await receipt.close();
     await page.bringToFront();
     await page
       .getByRole("button", { name: "Start a new application", exact: true })
@@ -345,7 +344,9 @@ async function run() {
     await portal
       .getByRole("button", { name: "Reject this request", exact: true })
       .click();
-    await portal.close();
+    await portal
+      .getByRole("heading", { name: "Your permission record", exact: true })
+      .waitFor();
     await page.bringToFront();
     await page.getByRole("heading", { name: "Sharing declined" }).waitFor();
     assert.equal(reads(), before);
