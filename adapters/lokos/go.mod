@@ -6,7 +6,7 @@ toolchain go1.26.8
 
 require (
 	github.com/jackc/pgx/v5 v5.12.0
-	github.com/theflywheel/GRAMStack/sdk/go/adapter v0.0.0
+	github.com/theflywheel/GRAMStack/sdk/go/adapter v0.1.0
 )
 
 require (

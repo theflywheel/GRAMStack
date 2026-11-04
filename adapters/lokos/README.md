@@ -46,3 +46,13 @@ Private authority/custody calls use the adapter's service identity and pinned ga
 ## Discovery listener
 
 When protected retrieval is configured, the public `PORT` listener publishes the SDK manifest and public JWK set. It serves no retrieval RPC. `ADAPTER_TLS_PORT` remains mandatory-mTLS for protected operations. Gateway registry configuration pins `discovery.version=0.1.0`, its public origin and required resources, while the existing private origin/server name and approved evidence keys remain separate. The public metadata expresses configured capabilities; readiness and successful source access are separate checks. No data/private-key material is part of discovery.
+
+## Standalone build
+
+LokOS pins the Go adapter SDK at `v0.1.0`. For an independent build, configure Git access to the private GRAMStack repository and run from this directory:
+
+```sh
+GOPRIVATE=github.com/theflywheel/GRAMStack GOWORK=off go build -mod=readonly ./cmd/lokos-adapter
+```
+
+The root workspace continues to use the SDK checkout for joint development.

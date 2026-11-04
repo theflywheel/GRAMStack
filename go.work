@@ -12,6 +12,6 @@ use (
 	./services/gateway
 )
 
-replace github.com/theflywheel/GRAMStack/sdk/go/adapter v0.0.0 => ./sdk/go/adapter
+replace github.com/theflywheel/GRAMStack/sdk/go/adapter v0.1.0 => ./sdk/go/adapter
 
 replace github.com/theflywheel/GRAMStack/adapters/auth/oidc v0.0.0 => ./adapters/auth/oidc
