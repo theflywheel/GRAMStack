@@ -46,6 +46,7 @@ def dsn(role):
 (root / "gateway.env").write_text("DATABASE_URL=" + dsn("core") + "\n")
 (root / "product.env").write_text("SAKHI_DATABASE_URL=" + dsn("product") + "\n")
 (root / "hydra.env").write_text("DSN=" + dsn("hydra") + "\n")
+(root / "dedi-db.env").write_text("DEDI_DB_URL=" + dsn("dedi") + "\n")
 files = {filename: base64.b64encode((root / "certs" / filename).read_bytes()).decode()
          for filename in ("ca.pem", "lokos-adapter.pem", "lokos-adapter.key")}
 (root / "adapter.env").write_text("\n".join((
@@ -118,3 +119,5 @@ for pass in 1 2; do
     oryd/hydra:v26.2.0@sha256:ff67c7fb5f95074fa53374d41151713554960504b340cd3f95b09e65deaea2a9 migrate sql up -e -y >/dev/null
 done
 echo "PASS: retry-safe PostgreSQL 17 bootstrap, five isolated roles, and migrations before and after restart"
+
+"$root/infra/railway/check-dedi-image.sh" "$state" "$name" "$revision"

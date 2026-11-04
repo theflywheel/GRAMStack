@@ -348,3 +348,10 @@ fixture credentials, verifies all five role databases are isolated, and
 first rejects an incomplete bootstrap without creating a PostgreSQL cluster,
 then starts the same volume with complete fixture settings. It applies gateway,
 LokOS adapter, SakhiCredit and pinned Hydra migrations before and after restart.
+
+The database preflight also builds the staged DeDi image, starts it over
+private TLS using fresh fixture keys, and provisions and publishes through
+the gateway image. It verifies that the plain HTTP port serves health only
+and that the same signed commitment can be recovered after restarting
+DeDi, without adding another log leaf. Install OpenSSL for the fixture
+certificate generation.
