@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
+import { setTimeout as delay } from "node:timers/promises";
+import { captureDemo } from "./demo-capture.mjs";
 const state = process.argv[2];
 assert.ok(
   state && process.env.CHROME_BIN,
@@ -17,11 +19,20 @@ const browser = await chromium.launch({
   headless: true,
   timeout: 15000,
 });
+const output = process.env.GRAMSTACK_DEMO_RECORDING;
+const recording = output ? captureDemo(output) : undefined;
+const hold = async (milliseconds) => {
+  if (recording) await delay(milliseconds);
+};
 try {
-  const context = await browser.newContext();
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 800 },
+  });
   context.setDefaultTimeout(20000);
   const page = await context.newPage();
   await page.goto(endpoints.product);
+  await recording?.show(page);
+  await hold(1400);
   await page
     .getByRole("button", { name: "Start application", exact: false })
     .click();
@@ -32,6 +43,9 @@ try {
   const uin = portal.getByRole("textbox", { name: /UIN|VID/i });
   await mode.or(uin).first().waitFor();
   if (!(await uin.first().isVisible())) await mode.click();
+  await recording?.show(portal);
+  await hold(1600);
+  recording?.pause();
   await uin.fill("9000000001");
   await portal.getByRole("button", { name: /get OTP/i }).click();
   const digits = portal.locator('input[autocomplete="one-time-code"]');
@@ -50,10 +64,13 @@ try {
       await checkbox.check();
     await allow.click();
   }
+  await recording?.show(portal);
+  await hold(1400);
   await registry.click();
   await portal
     .getByRole("heading", { name: "The exact notice", exact: true })
     .waitFor();
+  await hold(2500);
   await portal.getByRole("checkbox").check();
   await portal
     .getByRole("button", { name: "Approve this request", exact: true })
@@ -61,7 +78,9 @@ try {
   await portal
     .getByRole("heading", { name: "Your permission record", exact: true })
     .waitFor();
+  await hold(1600);
   await page.bringToFront();
+  await recording?.show(page);
   await page.getByRole("button", { name: "Get approved details" }).click();
   await page
     .getByRole("heading", { name: "Your details are ready for review" })
@@ -74,6 +93,7 @@ try {
     await page.locator("#savings-value").textContent(),
     "₹12,500.75",
   );
+  await hold(2400);
   await page.screenshot({
     path: join(state, "approved-result.png"),
     fullPage: true,
@@ -82,5 +102,9 @@ try {
     "PASS: standalone launcher completed official eSignet, explicit consent and exact SakhiCredit retrieval",
   );
 } finally {
-  await browser.close();
+  try {
+    await recording?.stop();
+  } finally {
+    await browser.close();
+  }
 }
