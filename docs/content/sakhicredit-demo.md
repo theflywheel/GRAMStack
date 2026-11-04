@@ -11,7 +11,7 @@ Watch SakhiCredit request two fields, show an exact consent notice, and retrieve
 
 <a href="https://docs.gramstack.try-dough.com/media/sakhicredit-hosted.mp4?download=1" download>Download the MP4</a> · [Try the live SakhiCredit demo](https://sakhicredit-b9b69819.up.railway.app/)
 
-The walkthrough includes timed on-screen explanations and a capability report. At 1:12, it shows the live SakhiCredit audit and an operator verification result from a standalone demo record. It uses fictional identities, one-time codes, and source records.
+The recording alternates between the live product and the [interactive architecture walkthrough](02-architecture#interactive-architecture-walkthrough). After approval, follow sign-in, ownership verification, and consent activation through the system. After retrieval, see how the adapter enforces one use and stores signed evidence before release. The live audit starts at about 1:51, followed by DeDi anchoring and an operator verification result from a standalone demo record. The demo uses fictional identities, one-time codes, and source records.
 
 
 ## Try the access audit

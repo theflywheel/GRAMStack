@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GRAMStack interactive architecture</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7f3;color:#17352c;font:16px/1.5 system-ui,sans-serif}main{max-width:1280px;margin:auto;padding:24px}h1,h2,p{margin:0 0 12px}h1{font-size:32px}h2{font-size:24px}.kicker{font-size:13px;font-weight:750;letter-spacing:.13em;color:#176450}.layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}.card{background:white;border:1px solid #d5e2d9;border-radius:14px;padding:16px}.graph{overflow:auto}.graph svg{display:block;min-width:570px;width:100%;height:auto}.node rect{fill:#f2f6f2;stroke:#b8cbbd;stroke-width:1.5}.node text{fill:#17352c;text-anchor:middle;font-size:14px;font-weight:650}.node.active rect{fill:#d7f3e4;stroke:#147455;stroke-width:3}.lane{fill:#52675b;font-size:13px;font-weight:700;letter-spacing:1px}.route{fill:none;stroke:#148357;stroke-width:4}.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}button,select{font:inherit;color:inherit;background:#fff;border:1px solid #a9c0b3;border-radius:8px;padding:7px 10px}button{cursor:pointer}button:focus-visible,select:focus-visible{outline:3px solid #2588be;outline-offset:2px}button:disabled{opacity:.45;cursor:default}select{max-width:100%}dt{font-weight:700;margin-top:12px}dd{margin:0;overflow-wrap:anywhere}code{background:#ecf3ed;padding:2px 4px}ol{margin:0;padding-left:24px}.steps{margin-top:14px}.steps button{border:0;text-align:left;padding:3px 6px}.steps button[aria-current]{background:#d7f3e4;font-weight:750}@media(max-width:850px){.layout{grid-template-columns:1fr}.graph svg{min-width:530px}main{padding:12px}}
+</style>
+</head>
+<body><main>
+<p class="kicker">GRAMSTACK · SAKHICREDIT DEMO</p>
+<h1>Follow one consented read</h1>
+<p>Step through the request. The diagram highlights the participants and the call behind each action in SakhiCredit.</p>
+<div class="controls"><button id="previous">Previous</button><button id="play" aria-pressed="false">Play</button><button id="next">Next</button><select id="step" aria-label="Architecture step"></select></div>
+<div class="layout">
+<div class="card graph"><svg id="diagram" viewBox="0 0 780 500" role="img" aria-labelledby="diagram-title"><title id="diagram-title">GRAMStack request participants</title><defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#148357"/></marker></defs><path class="route" id="route" marker-end="url(#arrow)"/></svg></div>
+<section class="card" aria-live="polite"><p id="position" class="kicker"></p><h2 id="title"></h2><p id="description"></p><dl><dt>Call path</dt><dd id="call"></dd><dt>Interface</dt><dd><code id="interface"></code></dd><dt>Request state</dt><dd id="state"></dd></dl></section>
+</div>
+<section class="card steps"><h2>Walkthrough steps</h2><ol id="steps"></ol></section>
+</main>
+<script>
+const nodes = {
+  browser: ["Member’s browser", 12, 42], product: ["SakhiCredit backend", 205, 42],
+  hydra: ["Ory Hydra", 398, 42], esignet: ["eSignet", 591, 42],
+  lifecycle: ["Gateway lifecycle", 12, 173], identity: ["Identity and binding", 205, 173],
+  consent: ["Consent portal", 398, 173], workers: ["Durable workers", 591, 173],
+  authz: ["Authorization", 12, 304], private: ["Private data listener", 205, 304],
+  custody: ["Evidence custody", 398, 304], dedi: ["DeDi node", 591, 304],
+  sql: ["Gateway PostgreSQL", 12, 435], adapter: ["LokOS adapter SDK", 205, 435],
+  source: ["Fictional LokOS source", 398, 435], productSql: ["SakhiCredit PostgreSQL", 591, 435],
+};
+const steps = [
+  ["Start an application","browser","product","SakhiCredit web form","Request not yet created","Sunita selects the membership status and, optionally, the savings summary. SakhiCredit saves the application before requesting access."],
+  ["Authenticate SakhiCredit","product","hydra","POST /oauth2/token","Request not yet created","Hydra issues a client credentials token to the SakhiCredit backend."],
+  ["Create the access request","product","lifecycle","POST /v1/access-requests","AUTHENTICATION_PENDING","The gateway durably binds the consumer, registry, purpose and exact field selection to this request."],
+  ["Sign in through eSignet","identity","esignet","OIDC authorization code","BINDING_PENDING","eSignet authenticates Sunita. GRAMStack validates the response and binds it to the browser session."],
+  ["Verify registry ownership","identity","adapter","POST /internal/v1/subject-verifications","CONSENT_PENDING","The LokOS adapter checks that the authenticated subject is entitled to the requested registry record."],
+  ["Approve the exact notice","browser","consent","Consent portal confirmation","CONSENT_PENDING","Sunita reviews the purpose, recipient, fields and retention terms, then explicitly approves."],
+  ["Activate signed consent","consent","workers","Consent signing outbox","CONSENTED","A durable worker signs and activates the approval. Activation makes the approval eligible for authorization."],
+  ["Issue a scoped grant","product","authz","Retrieval grant API","AUTHORIZED","The gateway checks current consent and policy and issues a short-lived grant bound to the recipient certificate and approved scope."],
+  ["Reserve the single authorized use","adapter","authz","POST /internal/v1/grants/redeem","REDEEMING","The gateway reserves the grant and records the authorization event together. The same consent cannot authorize another retrieval."],
+  ["Read and project only approved fields","adapter","source","Private source request","REDEEMING","The adapter fetches the verified record and projects only the field names authorized by the grant."],
+  ["Store signed evidence","adapter","custody","Private evidence custody","EVIDENCE_COMMITTED","The gateway persists the signed receipt before returning the projected fields. Registry values stay out of the audit record."],
+  ["Return the approved result","private","product","Private mTLS response","COMPLETED","The gateway records that it wrote the response. SakhiCredit saves its approved result in encrypted storage."],
+  ["Anchor the evidence commitment","workers","dedi","Signed DeDi publication","COMPLETED","The worker publishes a commitment and verifies inclusion asynchronously. The original evidence remains private."],
+  ["Review the access audit","browser","consent","GET /consent-history/lokos","COMPLETED","After signing in, Sunita can see the authorization event, fields shared, response time and evidence status."],
+];
+const byId = id => document.getElementById(id);
+const svg = byId("diagram");
+const addSvg = (tag, attrs, parent) => {
+  const el = document.createElementNS("http://www.w3.org/2000/svg",tag);
+  for (const [k,v] of Object.entries(attrs)) el.setAttribute(k,v);
+  parent.append(el);
+  return el;
+};
+for (const [label,y] of [["PRODUCT AND IDENTITY",24],["GATEWAY CONTROL",155],["RETRIEVAL AND EVIDENCE",286],["PERSISTENCE AND REGISTRY",417]]) {
+  addSvg("text",{x:12,y,class:"lane"},svg).textContent=label;
+}
+for (const [id,[name,x,y]] of Object.entries(nodes)) {
+  const g=addSvg("g",{id:"node-"+id,class:"node"},svg);
+  addSvg("rect",{x,y,width:177,height:52,rx:9},g);
+  addSvg("text",{x:x+88.5,y:y+32},g).textContent=name;
+}
+svg.append(byId("route"));
+let current=0,timer;
+function show(i){
+  current=i;
+  const [title,from,to,api,state,description]=steps[i];
+  byId("position").textContent="STEP "+(i+1)+" / "+steps.length;
+  byId("title").textContent=title;
+  byId("description").textContent=description;
+  byId("call").textContent=nodes[from][0]+" → "+nodes[to][0];
+  byId("interface").textContent=api;
+  byId("state").textContent=state;
+  byId("step").value=i;
+  byId("previous").disabled=i===0;
+  byId("next").disabled=i===steps.length-1;
+  for(const id of Object.keys(nodes)) byId("node-"+id).classList.toggle("active",id===from||id===to);
+  [...byId("steps").querySelectorAll("button")].forEach((button,j)=>{
+    if(j===i)button.setAttribute("aria-current","step");else button.removeAttribute("aria-current");
+  });
+  const [,x,y]=nodes[from], [,u,v]=nodes[to];
+  if(y===v){
+    const start=x<u?x+177:x, end=x<u?u-4:u+181;
+    byId("route").setAttribute("d",`M${start},${y+26} C${start},${y-13} ${end},${y-13} ${end},${y+26}`);
+  }else{
+    const start=y<v?y+52:y,end=y<v?v-4:v+56,middle=(start+end)/2;
+    byId("route").setAttribute("d",`M${x+88.5},${start} C${x+88.5},${middle} ${u+88.5},${middle} ${u+88.5},${end}`);
+  }
+}
+function stop(){clearInterval(timer);timer=undefined;byId("play").textContent="Play";byId("play").setAttribute("aria-pressed","false")}
+function select(i){stop();show(i)}
+steps.forEach(([label],i)=>{
+  byId("step").add(new Option((i+1)+". "+label,i));
+  const li=document.createElement("li"),button=document.createElement("button");
+  button.textContent=label;
+  button.onclick=()=>select(i);
+  li.append(button);byId("steps").append(li);
+});
+byId("step").onchange=e=>select(Number(e.target.value));
+byId("previous").onclick=()=>select(current-1);
+byId("next").onclick=()=>select(current+1);
+byId("play").onclick=()=>{
+  if(timer){stop();return}
+  if(current===steps.length-1)show(0);
+  byId("play").textContent="Pause";
+  byId("play").setAttribute("aria-pressed","true");
+  timer=setInterval(()=>{if(current===steps.length-1)stop();else show(current+1)},3500);
+};
+show(0);
+</script></body></html>
