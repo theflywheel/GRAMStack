@@ -38,7 +38,7 @@ CHROME_BIN=/path/to/chrome node apps/sakhicredit/tests/demo-smoke.mjs "$state/de
 ```
 
 The script exercises the actual product, identity UI and consent flow and
-saves the approved result screenshot in the private state directory. It uses the local demo recipient certificate to submit a fictional legal-hold report and verifies that the protected consent page displays it as a recipient assertion. The smoke run also refuses a separate request, opens the history page in a fresh browser context, signs in again, and downloads the approved record.
+saves the approved result screenshot in the private state directory. It uses the local demo recipient certificate to submit a fictional legal-hold report and verifies that the protected consent page displays it as a recipient assertion. The smoke run also refuses a separate request, opens the history page in a fresh browser context, signs in again, and downloads the approved record. It also submits a correction case, checks the registry operator’s private queue and verifies the acknowledgement after refreshing the owner page.
 Use the existing integration runners for the full denial and outage suite.
 
 To rehearse recording the same browser journey, set

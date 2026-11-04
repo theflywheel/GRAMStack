@@ -15,7 +15,7 @@ the acceptance gates.
 | Evidence custody and DeDi | Working locally | Signed evidence is retained before release. The actual DeDi node accepts a commitment and provides an offline-verifiable inclusion proof. Batch anchoring can follow release. It does not prove independent witness consistency, payload truth or downstream deletion. Hosted DeDi activation is pending. |
 | Hosted app deployment | Prepared | Railway has PostgreSQL, Hydra and the application and identity service topology. The complete hosted journey still needs authorized runtime settings, onboarding and acceptance. [Railway topology](infra/railway/README.md) |
 | Adapter distribution | Tagged private module | LokOS pins Go SDK v0.1.0 and builds independently with repository access. The reusable conformance checks cover provider, discovery, authority and protected retrieval behavior. Public distribution remains open. [SDK instructions](sdk/go/adapter/README.md) |
-| Extended consent and rights | Pending | The notice binds versioned purpose and processing terms, including field explanations, the responsible organisation and declared processors. The demo supports bounded single-use access to a current summary. The private gateway accepts authenticated handling reports, and the protected consent receipt displays them as recipient assertions. Fresh eSignet sign-in recovers cross-request history and downloads a protected receipt. Live integration verifies owner case intake and private registry and recipient status updates. Independent verification and historical source windows remain outside the demo. |
+| Extended consent and rights | Working locally | The notice binds versioned purpose and processing terms, including field explanations, the responsible organisation and declared processors. The demo supports bounded single-use access to a current summary. The private gateway accepts authenticated handling reports, and the protected consent receipt displays them as recipient assertions. Fresh eSignet sign-in recovers cross-request history and downloads a protected receipt. The browser opens a correction case and shows the registry operator’s acknowledgement. Private operator tests cover registry and recipient outcomes. Independent verification and historical source windows remain outside the demo. |
 | Authority and channels | Limited | The demo uses first-party browser confirmation. Delegated authority, alternate presentation channels and additional identity provider profiles have no demo acceptance evidence. Voice and AI assistants belong in product integrations. |
 | Legal status and retention proof | Outside demonstrated scope | The demo makes no legal registration, DPDP certification or DEPA conformance claim. A receipt or commitment does not prove that a recipient deleted its copy. |
 
@@ -30,7 +30,8 @@ the acceptance gates.
    legal-hold report and its verification boundary.
 3. Create a separate application and reject its notice. Show the rejected
    receipt and SakhiCredit's declined state with retrieval unavailable.
-   Sign in from a fresh browser context to show both history records.
+   Sign in from a fresh browser context to show both history records. Submit
+   a correction case, then refresh to show the registry acknowledgement.
 4. The rehearsal shows the live read-only verifier's aggregate DeDi result,
    then displays this matrix from the checked-in report. Update the report
    against final acceptance evidence before making the final recording.

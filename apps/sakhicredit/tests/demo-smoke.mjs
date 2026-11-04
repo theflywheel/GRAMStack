@@ -6,7 +6,9 @@ import { join } from "node:path";
 import { chromium } from "playwright-core";
 import { setTimeout as delay } from "node:timers/promises";
 import { captureDemo } from "./demo-capture.mjs";
-import { reportDemoLegalHold, showDemoLegalHold } from "./demo-handling.mjs";
+import {
+  acknowledgeDemoCorrection, reportDemoLegalHold, showDemoLegalHold,
+} from "./demo-handling.mjs";
 const state = process.argv[2];
 assert.ok(
   state && process.env.CHROME_BIN,
@@ -229,6 +231,26 @@ try {
   const recovered = JSON.parse(readFileSync(await (await download).path(), "utf8"));
   assert.equal(recovered.request_id, approvedID);
   assert.equal(recovered.decision.decision, "approve");
+  await approvedRecord.locator("..").getByRole("link", { name: "Rights and grievances" }).click();
+  await history.getByRole("heading", { name: "Rights and grievances", exact: true }).waitFor();
+  await history.getByLabel("Request type").selectOption("correction");
+  const caseID = await history.locator('input[name="case_id"]').inputValue();
+  await hold(2000);
+  await history.getByRole("button", { name: "Submit case" }).click();
+  const caseStatus = history.getByText("correction · queued", { exact: true });
+  await caseStatus.waitFor();
+  const caseDetails = caseStatus.locator("../..");
+  await caseDetails.getByText("Responsible registry").waitFor();
+  assert.match(await caseDetails.textContent(), new RegExp(caseID));
+  await caseDetails.scrollIntoViewIfNeeded();
+  await hold(2800);
+  acknowledgeDemoCorrection(endpoints.data, join(state, "certs"), caseID);
+  await history.reload();
+  const acknowledged = history.getByText("correction · acknowledged", { exact: true });
+  await acknowledged.waitFor();
+  await acknowledged.locator("../..").scrollIntoViewIfNeeded();
+  await hold(3500);
+  console.log("PASS: owner opened a correction case and saw the registry operator acknowledgement after refresh");
   recording?.pause();
   await historyContext.close();
   console.log("PASS: fresh eSignet sign-in recovered approved and rejected history and downloaded the approved receipt");
