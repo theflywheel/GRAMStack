@@ -1,0 +1,22 @@
+name: Verify deployment images
+on:
+  push:
+    branches: [main]
+    paths: ["services/gateway/Dockerfile", "adapters/lokos/Dockerfile", "mocks/lokos/Dockerfile", "apps/sakhicredit/Dockerfile", "tools/runtimefiles/**", "scripts/test-images.sh", "go.work", "**/go.mod", "**/go.sum", ".dockerignore", ".github/workflows/images-check.yml"]
+  pull_request:
+    paths: ["services/gateway/Dockerfile", "adapters/lokos/Dockerfile", "mocks/lokos/Dockerfile", "apps/sakhicredit/Dockerfile", "tools/runtimefiles/**", "scripts/test-images.sh", "go.work", "**/go.mod", "**/go.sum", ".dockerignore", ".github/workflows/images-check.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      # One daemon shares the pinned base layers and BuildKit Go caches across
+      # all four builds. Ordinary Go-only changes retain the existing Go checks.
+      - run: ./scripts/test-images.sh

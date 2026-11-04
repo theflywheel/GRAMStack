@@ -62,6 +62,9 @@ check_devcerts_tool(){
 check_product(){
   check_module apps/sakhicredit
   check_devcerts_tool
+  local runtime_files=("$root"/tools/runtimefiles/*.go)
+  GOWORK=off go test -race "${runtime_files[@]}"
+  GOWORK=off go vet "${runtime_files[@]}"
 }
 launch mock-lokos check_module mocks/lokos
 launch product check_product

@@ -93,12 +93,14 @@ async function layout(page) {
   );
 }
 async function casePage(mobile = false) {
+  console.log(`Browser scenario ${evidence.cases.length + 1}`);
   const context = await browser.newContext({
     viewport: mobile
       ? { width: 390, height: 844 }
       : { width: 1400, height: 1100 },
     reducedMotion: "reduce",
   });
+  context.setDefaultTimeout(15000);
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   page.on("pageerror", () =>
@@ -206,7 +208,11 @@ async function approve(page, context) {
   await portal
     .getByRole("button", { name: "Approve this request", exact: true })
     .click();
-  await portal.close();
+  await portal
+    .getByRole("heading", { name: "Your permission record", exact: true })
+    .waitFor();
+  // Leave the consent tab open until context teardown. Closing an active
+  // popup during a navigation can stall Chromium's target-close command.
   await page.bringToFront();
   await page.getByRole("button", { name: "Get approved details" }).waitFor();
 }
@@ -276,7 +282,7 @@ async function run() {
     await shot(page, "mobile-both-fields");
     await page.setViewportSize({ width: 1400, height: 1100 });
     await page.getByText("View sharing reference", { exact: true }).click();
-    const receiptPage = context.waitForEvent("page");
+    const receiptPage = context.waitForEvent("page", { timeout: 15000 });
     await page.getByRole("link", { name: "View consent receipt" }).click();
     const receipt = await receiptPage;
     await receipt

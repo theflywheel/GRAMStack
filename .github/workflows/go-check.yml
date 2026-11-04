@@ -2,9 +2,9 @@ name: Verify Go services and SDK
 on:
   push:
     branches: [main]
-    paths: ["apps/**", "services/**", "sdk/**", "adapters/**", "mocks/**", "tools/esignet-demo/**", "tools/devcerts/**", "scripts/check-go.sh", "scripts/gateway-module.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["apps/**", "services/**", "sdk/**", "adapters/**", "mocks/**", "tools/esignet-demo/**", "tools/devcerts/**", "tools/runtimefiles/**", "scripts/check-go.sh", "scripts/gateway-module.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
   pull_request:
-    paths: ["apps/**", "services/**", "sdk/**", "adapters/**", "mocks/**", "tools/esignet-demo/**", "tools/devcerts/**", "scripts/check-go.sh", "scripts/gateway-module.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
+    paths: ["apps/**", "services/**", "sdk/**", "adapters/**", "mocks/**", "tools/esignet-demo/**", "tools/devcerts/**", "tools/runtimefiles/**", "scripts/check-go.sh", "scripts/gateway-module.sh", "scripts/test-check-go.sh", "scripts/test-dedi.sh", "scripts/test-postgres.sh", "scripts/test-hydra.sh", "go.work", "go.work.sum", "specs/**", ".github/workflows/go-check.yml"]
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
