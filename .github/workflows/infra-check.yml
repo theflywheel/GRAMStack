@@ -3,9 +3,9 @@ name: Verify Railway infrastructure
 on:
   push:
     branches: [main]
-    paths: ["infra/railway/**", ".github/workflows/infra-check.yml", "docs/Dockerfile"]
+    paths: ["infra/railway/**", "infra/esignet/**", ".github/workflows/infra-check.yml", "docs/Dockerfile"]
   pull_request:
-    paths: ["infra/railway/**", ".github/workflows/infra-check.yml", "docs/Dockerfile"]
+    paths: ["infra/railway/**", "infra/esignet/**", ".github/workflows/infra-check.yml", "docs/Dockerfile"]
   workflow_dispatch:
 
 concurrency:
@@ -31,3 +31,18 @@ jobs:
           cache-dependency-path: infra/railway/package-lock.json
       - run: npm ci
       - run: npm run check
+      - name: Check staged eSignet Compose merge
+        working-directory: .
+        env:
+          ESIGNET_DEMO_REDIS_PASSWORD: compose-validation-fixture
+        run: |
+          set -o pipefail
+          bash -n infra/railway/check-esignet-images.sh
+          docker compose -f infra/esignet/compose.yaml -f infra/esignet/ingress-test.compose.yaml config --format json |
+            jq -e '
+              ([.services.database, .services.esignet, .services["esignet-ui"]] |
+                all((.configs // []) | length == 0)) and
+              (.services.database.volumes | any(.source == "database")) and
+              (.services.esignet.volumes | any(.source == "keystore")) and
+              (.services.redis.volumes | any(.source == "redis"))
+            '
