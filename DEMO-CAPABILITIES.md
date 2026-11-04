@@ -8,12 +8,12 @@ release and hosted acceptance.
 |---|---|---|
 | Application, request progress and approved fields | Working locally | The [standalone run](infra/demo/README.md) starts a separate SakhiCredit service. The browser retrieves the approved fields and can reopen its stored result. The product makes no lending decision. |
 | OAuth client authentication | Working locally and on hosted Hydra | Official Hydra issues and introspects tokens in integration tests. Railway's split services are active and public discovery passes. Hosted demo client registration is pending. [Hydra deployment](infra/railway/README.md#hydra-deployment) |
-| Person authentication | Mocked identity on official eSignet | Official eSignet and its UI complete the OIDC login. Its identity backend and OTP are fictional fixtures. The local single-origin test exercises both the browser and token exchange. Government credentials and hosted eSignet activation are pending. [eSignet setup](infra/esignet/README.md) |
+| Person authentication | Mocked identity on official eSignet | Official eSignet and its UI complete the OIDC login. Its identity backend and OTP are fictional fixtures. The local single-origin test exercises both the browser and token exchange. The hosted eSignet issuer is healthy. Demo client registration and fictional identity seeding remain pending there. Government credentials have not been integrated. [eSignet setup](infra/esignet/README.md) |
 | Registry ownership and fields | Mocked LokOS source | The separate fictional LokOS service maps approved demo subjects and returns synthetic membership and savings fields. The SDK-backed adapter verifies binding and projects approved fields. Actual LokOS onboarding requires the native provider implementation and approved credentials. |
 | Consent and withdrawal | Working locally | The exact notice is presented in English and needs explicit confirmation. The downloaded receipt binds the exact rendered notice and its fingerprint to the web channel, English template version and authenticated confirmation. Approval, rejection and withdrawal are covered. Changing the scope requires cancelling and creating a fresh request. |
 | Scoped retrieval and replay denial | Working locally | The gateway and SDK verify policy, subject, consent, grant, mTLS peer and single-use admission. Replay, dependency failure, restart and four-slot capacity checks passed. [Acceptance evidence](DEMO-TODO.md) |
-| Evidence custody and DeDi | Working locally | Signed evidence is retained before release. The actual DeDi node accepts a commitment and provides an offline-verifiable inclusion proof. Batch anchoring can follow release. It does not prove independent witness consistency, payload truth or downstream deletion. Hosted DeDi activation is pending. |
-| Hosted app deployment | Awaiting activation | Railway serves docs and Hydra. eSignet UI, gateway, adapter metadata and SakhiCredit have no active deployment. Hosted DeDi activation, client onboarding and acceptance are pending. [Railway topology](infra/railway/README.md) |
+| Evidence custody and DeDi | Working locally | Signed evidence is retained before release. The actual DeDi node accepts a commitment and provides an offline-verifiable inclusion proof. Batch anchoring can follow release. It does not prove independent witness consistency, payload truth or downstream deletion. The hosted DeDi node is healthy. Registry provisioning and gateway-to-DeDi publication still await hosted verification. |
+| Hosted app deployment | Awaiting activation | Railway serves docs, Hydra and the eSignet issuer. The private DeDi node is healthy. The gateway, adapter, fictional source and SakhiCredit await activation after private onboarding. [Railway topology](infra/railway/README.md) |
 | Adapter distribution | Tagged private module | LokOS pins Go SDK v0.1.0 and builds independently with repository access. The reusable conformance checks cover provider, discovery, authority and protected retrieval behavior. Public distribution remains open. [SDK instructions](sdk/go/adapter/README.md) |
 | Extended consent and rights | Working locally | The notice binds purpose and processing versions, field explanations, and recipient responsibilities. The demo covers single-use access, recipient-reported legal hold, fresh sign-in to consent history, receipt download, and an acknowledged correction case. Operator tests cover registry and recipient outcomes. Independent verification and historical source windows are unsupported. |
 | Authority and channels | Unsupported in demo | The demo uses first-party English web confirmation. Delegation, alternate presentation channels, additional identity provider profiles and voice confirmation are unsupported. Voice and AI assistants belong in product integrations. |
@@ -27,8 +27,10 @@ release and hosted acceptance.
 - GitHub Actions passed the independent module, PostgreSQL, DeDi and
   Hydra/browser jobs. Hosted CI's browser job uses the fast fictional IdP.
   [Go and browser CI](https://github.com/theflywheel/GRAMStack/actions/runs/41780644767)
-- The hosted documentation and Hydra endpoints passed the public probe.
-  The application services await credential provisioning and activation.
+- The hosted documentation, Hydra and eSignet endpoints passed the public probe.
+  All four probed eSignet management routes returned 404. The private DeDi
+  deployment passed its Railway health check. Hosted end-to-end acceptance
+  remains open.
   [Railway public check](infra/railway/README.md#public-acceptance-check) · [Live implementation profile](https://docs.gramstack.try-dough.com/specifications/post-disclosure)
 
 ## Recording sequence
