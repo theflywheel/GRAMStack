@@ -24,6 +24,7 @@ services:
         aliases: [esignet.railway.internal]
     configs: !reset []
   esignet-ui:
+    user: "1001:1001"
     image: gramstack-esignet-ingress:deployment-check
     build:
       context: ../..
