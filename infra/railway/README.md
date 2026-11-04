@@ -23,7 +23,8 @@ secrets for `CORE`, `ADAPTER`, `PRODUCT`, `HYDRA` and `DEDI`. Each role
 owns one database and is denied connections to its peers. Applications use
 their own credential over the private network. The bootstrap superuser is
 reserved for the database. PostgreSQL initialization runs only on an empty
-volume. Rotate credentials in the database and corresponding applications
+volume. The platform entrypoint checks all role passwords before allowing an
+empty volume to initialize. Rotate credentials in the database and corresponding applications
 together.
 
 Docs needs both `docs/` and `specs/`, so its context stays at the repository root. Other services choose their own context. The existing generated Railway URL and private hostname are preserved during import. GitHub autodeploy is not enabled by this change.
@@ -344,4 +345,6 @@ After building the three application images for a revision, run
 commands against the staged PostgreSQL 17 image. The test creates an
 isolated Docker network and volume with a `lost+found` directory, generates
 fixture credentials, verifies all five role databases are isolated, and
-applies gateway, LokOS adapter, SakhiCredit and pinned Hydra migrations twice.
+first rejects an incomplete bootstrap without creating a PostgreSQL cluster,
+then starts the same volume with complete fixture settings. It applies gateway,
+LokOS adapter, SakhiCredit and pinned Hydra migrations before and after restart.
