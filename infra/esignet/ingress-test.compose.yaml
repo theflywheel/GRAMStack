@@ -7,6 +7,11 @@ services:
       dockerfile: infra/railway/esignet-db/Dockerfile
     # Replace the base Compose bind-mounted initialization SQL with the image copy.
     configs: !reset []
+  mock-identity-system:
+    image: gramstack-esignet-mock:deployment-check
+    build:
+      context: ../..
+      dockerfile: infra/railway/esignet-mock/Dockerfile
   esignet:
     image: gramstack-esignet:deployment-check
     build:

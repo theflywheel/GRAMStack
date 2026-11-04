@@ -10,6 +10,7 @@ case "$service" in
   platform-db) paths=(infra/railway/database) ;;
   dedi) paths=(infra/railway/dedi tools/runtimefiles/main.go) ;;
   esignet) paths=(infra/railway/esignet infra/esignet/flow-local-demo.yaml) ;;
+  esignet-mock) paths=(infra/railway/esignet-mock infra/railway/esignet/keystore-start.sh) ;;
   esignet-db) paths=(infra/railway/esignet-db infra/esignet/init.sql) ;;
   esignet-ui) paths=(infra/railway/esignet-ui) ;;
   esignet-redis) paths=(infra/railway/esignet-redis) ;;

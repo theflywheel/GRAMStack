@@ -21,7 +21,7 @@ cleanup() {
 }
 unset COMPOSE_PROJECT_NAME
 trap cleanup EXIT
-for service in esignet-db esignet esignet-ui esignet-redis; do
+for service in esignet-db esignet-mock esignet esignet-ui esignet-redis; do
   image="gramstack-$service:deployment-check"
   if [[ "$service" == esignet-ui ]]; then image=gramstack-esignet-ingress:deployment-check; fi
   stage=$(./infra/railway/stage.sh "$service" "$revision")

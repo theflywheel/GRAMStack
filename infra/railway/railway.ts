@@ -93,10 +93,13 @@ export default defineRailway(() => {
   const esignetRedis = identityArtifact("esignet-redis", {
     volumeMounts: { "/data": identityVolume("esignet-redis-data", 512) },
   });
-  const esignetMock = service("esignet-mock", {
-    source: image("mosipid/mock-identity-system:0.14.0@sha256:4c3bbddfd280b5a6411c89db5f3b6ab231fc3a49fc25794e2e210db36f8cbb96", { autoUpdates: { type: "disabled" } }),
-    replicas: { [identityRegion]: 1 },
-    deploy: { restartPolicyMaxRetries: 3 },
+  const esignetMock = identityArtifact("esignet-mock", {
+    build: {
+      builder: "DOCKERFILE",
+      buildEnvironment: "V3",
+      dockerfilePath: "infra/railway/esignet-mock/Dockerfile",
+      watchPatterns: ["/infra/railway/esignet-mock/**", "/infra/railway/esignet/keystore-start.sh"],
+    },
     volumeMounts: { "/keys": identityVolume("esignet-mock-keys", 512) },
   });
   const esignet = identityArtifact("esignet", {

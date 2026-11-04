@@ -15,7 +15,7 @@ The Go backend remains Go. This small, isolated Node toolchain authors Railway i
 | `dedi` | Targeted local CLI upload | Repository root | `infra/railway/dedi/Dockerfile` | Private TLS on 8446 |
 | `esignet-db` | Targeted local CLI upload | Repository root | `infra/railway/esignet-db/Dockerfile` | Private |
 | `esignet-redis` | Targeted local CLI upload | Repository root | `infra/railway/esignet-redis/Dockerfile` | Private |
-| `esignet-mock` | Pinned official mock identity image, attached during activation | — | Upstream image | Private |
+| `esignet-mock` | Targeted local CLI upload | Repository root | `infra/railway/esignet-mock/Dockerfile` | Private |
 | `esignet` | Targeted local CLI upload | Repository root | `infra/railway/esignet/Dockerfile` | Private |
 | `esignet-ui` | Targeted local CLI upload | Repository root | `infra/railway/esignet-ui/Dockerfile` | `https://gramstack-esignet-b9b69819.up.railway.app/` |
 | `gateway` | Targeted local CLI upload | Repository root | `services/gateway/Dockerfile` | `https://gramstack-gateway-b9b69819.up.railway.app/` |
@@ -114,8 +114,9 @@ python3 infra/railway/prepare-esignet.py "$state/settings"
 ```
 
 Keep the generated files outside the repository. Deploy database and Redis
-first, then the official mock identity image pinned in the local Compose
-file, the private eSignet API, and the UI. Use the same credentials with the
+first, then the staged mock identity image, the private eSignet API, and the UI.
+The mock and API images initialize the mounted keystore as root and run
+the upstream process as the MOSIP user. Use the same credentials with the
 same volumes on restart. After discovery and readiness pass, run the
 onboarding tool from an operator host with private-network access:
 
