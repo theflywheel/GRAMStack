@@ -17,10 +17,10 @@ import (
 // fixtureSubject performs real OIDC verification solely for the fictional local
 // fixture being provisioned. Registry mock bindings are operator-owned config;
 // no production ownership assertion is manufactured by the gateway.
-func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credentials, callback, person, ui, api string) (string, error) {
+func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credentials, target onboardingTarget, person string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	adapter, err := oidcadapter.New(ctx, profile, credentials, callback, oidcadapter.Options{AllowLoopback: true, AllowDemo: true})
+	adapter, err := oidcadapter.New(ctx, profile, credentials, target.callback, oidcadapter.Options{AllowLoopback: target.loopback, AllowDemo: true})
 	if err != nil {
 		return "", err
 	}
@@ -29,7 +29,8 @@ func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credent
 	if err != nil {
 		return "", err
 	}
-	client := &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	client := onboardingHTTPClient()
+	defer client.CloseIdleConnections()
 	request, err := http.NewRequestWithContext(ctx, "GET", location, nil)
 	if err != nil {
 		return "", err
@@ -40,7 +41,7 @@ func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credent
 	}
 	response.Body.Close()
 	start, err := url.Parse(response.Header.Get("Location"))
-	if err != nil || response.StatusCode != 302 || start.Scheme+"://"+start.Host != ui || start.User != nil || start.Path != "/signin" || start.Query().Get("executionId") == "" || start.Query().Get("authId") == "" {
+	if err != nil || response.StatusCode != 302 || start.Scheme+"://"+start.Host != target.ui || start.User != nil || start.Path != "/signin" || start.Query().Get("executionId") == "" || start.Query().Get("authId") == "" {
 		return "", errors.New("unexpected fixture authorization redirect")
 	}
 	post := func(path string, payload, output any) error {
@@ -48,7 +49,7 @@ func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credent
 		if err != nil {
 			return err
 		}
-		request, err := http.NewRequestWithContext(ctx, "POST", api+path, bytes.NewReader(raw))
+		request, err := http.NewRequestWithContext(ctx, "POST", target.api+path, bytes.NewReader(raw))
 		if err != nil {
 			return err
 		}
@@ -116,12 +117,12 @@ func fixtureSubject(profile oidcadapter.Profile, credentials oidcadapter.Credent
 	if err = post("/oauth2/auth/callback", map[string]string{"authId": start.Query().Get("authId"), "assertion": flow.Assertion}, &completed); err != nil {
 		return "", err
 	}
-	target := completed.Redirect
-	if target == "" {
-		target = completed.Camel
+	redirect := completed.Redirect
+	if redirect == "" {
+		redirect = completed.Camel
 	}
-	result, err := url.Parse(target)
-	expected, expectedErr := url.Parse(callback)
+	result, err := url.Parse(redirect)
+	expected, expectedErr := url.Parse(target.callback)
 	if err != nil || expectedErr != nil || result.Scheme != expected.Scheme || result.Host != expected.Host || result.Path != expected.Path || result.Query().Get("state") != tx.State || result.Query().Get("code") == "" || result.Query().Get("error") != "" {
 		return "", errors.New("invalid fictional callback binding")
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -41,5 +42,31 @@ func TestConfigurableOriginsStayOnLoopback(t *testing.T) {
 	t.Setenv("ESIGNET_DEMO_API_PORT", "29080")
 	if origin, err := loopbackOrigin("ESIGNET_DEMO_API_PORT", "19080"); err != nil || origin != "http://127.0.0.1:29080" {
 		t.Fatal(origin, err)
+	}
+}
+
+func TestRailwayOnboardingPinsPrivateTargetsAndCallback(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GRAMSTACK_ENV", "production")
+	if _, err := railwayDemoTarget("", dir); err == nil {
+		t.Fatal("production mode accepted")
+	}
+	t.Setenv("GRAMSTACK_ENV", "demo")
+	if _, err := railwayDemoTarget("https://other.example/auth/provider/callback", dir); err == nil {
+		t.Fatal("callback override accepted")
+	}
+	t.Setenv("ESIGNET_DEMO_API_PORT", "1234")
+	target, err := railwayDemoTarget("", dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if target.loopback || target.api != "http://esignet.railway.internal:8080" ||
+		target.mock != "http://esignet-mock.railway.internal:8082" ||
+		target.issuer != "https://gramstack-esignet-b9b69819.up.railway.app" ||
+		target.callback != "https://gramstack-gateway-b9b69819.up.railway.app/auth/provider/callback" {
+		t.Fatal("Railway destination boundary changed")
 	}
 }

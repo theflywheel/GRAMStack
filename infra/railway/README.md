@@ -107,8 +107,22 @@ python3 infra/railway/prepare-esignet.py "$state/settings"
 Keep the generated files outside the repository. Deploy database and Redis
 first, then the official mock identity image pinned in the local Compose
 file, the private eSignet API, and the UI. Use the same credentials with the
-same volumes on restart. Hosted client registration and fictional identity
-fixture provisioning remain separate operator steps.
+same volumes on restart. After discovery and readiness pass, run the
+onboarding tool from an operator host with private-network access:
+
+```sh
+state=$(mktemp -d /tmp/gramstack-esignet-onboard.XXXXXX)
+root="$PWD"
+GRAMSTACK_ENV=demo GOWORK=off go -C adapters/auth/oidc run \
+  "$root/tools/esignet-demo/main.go" "$root/tools/esignet-demo/bindings.go" \
+  -railway-demo -directory "$state"
+```
+
+The hosted mode fixes the private API and mock identity destinations, the
+public issuer and the gateway callback. It verifies the fictional subjects
+through the public issuer before writing the bindings. Retain the output
+directory privately. The gateway receives the provider profile and assertion
+key, and only the fictional source receives the subject bindings.
 
 ## Application routing
 
