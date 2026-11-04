@@ -2,9 +2,9 @@ name: Verify deployment images
 on:
   push:
     branches: [main]
-    paths: ["services/gateway/Dockerfile", "adapters/lokos/Dockerfile", "mocks/lokos/Dockerfile", "apps/sakhicredit/Dockerfile", "tools/runtimefiles/**", "scripts/test-images.sh", "go.work", "**/go.mod", "**/go.sum", ".dockerignore", ".github/workflows/images-check.yml"]
+    paths: ["services/gateway/Dockerfile", "services/gateway/start.sh", "adapters/lokos/Dockerfile", "mocks/lokos/Dockerfile", "apps/sakhicredit/Dockerfile", "tools/runtimefiles/**", "scripts/test-images.sh", "go.work", "**/go.mod", "**/go.sum", ".dockerignore", ".github/workflows/images-check.yml"]
   pull_request:
-    paths: ["services/gateway/Dockerfile", "adapters/lokos/Dockerfile", "mocks/lokos/Dockerfile", "apps/sakhicredit/Dockerfile", "tools/runtimefiles/**", "scripts/test-images.sh", "go.work", "**/go.mod", "**/go.sum", ".dockerignore", ".github/workflows/images-check.yml"]
+    paths: ["services/gateway/Dockerfile", "services/gateway/start.sh", "adapters/lokos/Dockerfile", "mocks/lokos/Dockerfile", "apps/sakhicredit/Dockerfile", "tools/runtimefiles/**", "scripts/test-images.sh", "go.work", "**/go.mod", "**/go.sum", ".dockerignore", ".github/workflows/images-check.yml"]
   workflow_dispatch:
 permissions:
   contents: read

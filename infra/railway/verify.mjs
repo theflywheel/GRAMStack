@@ -77,3 +77,19 @@ const esignetUI = graph.resources.find(r => r.address === 'service.esignet-ui')
 assert.equal(esignetUI.deploy.healthcheckPath, '/healthz')
 assert.deepEqual(esignetUI.networking.serviceDomains,
   { 'gramstack-esignet-b9b69819.up.railway.app': { port: 3000 } })
+
+for (const [name, host] of [
+  ['gateway', 'gramstack-gateway-b9b69819.up.railway.app'],
+  ['lokos-adapter', 'gramstack-adapter-b9b69819.up.railway.app'],
+  ['mock-lokos', undefined],
+  ['sakhicredit', 'sakhicredit-b9b69819.up.railway.app'],
+]) {
+  const resource = graph.resources.find(r => r.address === `service.${name}`)
+  const manifest = (await import(`./deploy/${name}.json`, { with: { type: 'json' } })).default
+  assert.equal(resource.build.dockerfilePath, manifest.build.dockerfilePath)
+  assert.equal(resource.deploy.healthcheckPath, manifest.deploy.healthcheckPath)
+  assert.deepEqual(resource.deploy.preDeployCommand, manifest.deploy.preDeployCommand)
+  assert.deepEqual(resource.networking?.serviceDomains ?? {}, host ? { [host]: { port: 8080 } } : {})
+  assert.deepEqual(Object.keys(resource.networking?.tcpProxies ?? {}), [])
+  assert.deepEqual(Object.keys(resource.networking?.customDomains ?? {}), [])
+}

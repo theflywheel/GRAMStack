@@ -112,9 +112,29 @@ export default defineRailway(() => {
     },
   });
 
+  const application = (name: string, path: string, publicHost?: string) => service(name, {
+    build: {
+      builder: "DOCKERFILE",
+      buildEnvironment: "V3",
+      dockerfilePath: `${path}/Dockerfile`,
+    },
+    replicas: { [identityRegion]: 1 },
+    deploy: { restartPolicyMaxRetries: 3 },
+    ...(publicHost ? {
+      healthcheck: "/readyz",
+      healthcheckTimeout: 30,
+      preDeploy: ["/app/runtimefiles /app/service migrate"],
+      networking: { serviceDomains: { [publicHost]: { port: 8080 } } },
+    } : {}),
+  });
+  const gateway = application("gateway", "services/gateway", "gramstack-gateway-b9b69819.up.railway.app");
+  const adapter = application("lokos-adapter", "adapters/lokos", "gramstack-adapter-b9b69819.up.railway.app");
+  const source = application("mock-lokos", "mocks/lokos");
+  const product = application("sakhicredit", "apps/sakhicredit", "sakhicredit-b9b69819.up.railway.app");
+
   return project("gramstack-design", {
     // Secrets and environment variables stay managed in Railway.
     variables: { managed: false },
-    resources: [docs, platformDatabase, hydraAdmin, hydraPublic, dedi, esignetDB, esignetRedis, esignetMock, esignet, esignetUI],
+    resources: [docs, platformDatabase, hydraAdmin, hydraPublic, dedi, esignetDB, esignetRedis, esignetMock, esignet, esignetUI, gateway, adapter, source, product],
   });
 });

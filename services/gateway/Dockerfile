@@ -18,9 +18,10 @@ FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 RUN mkdir -p /app /run/gramstack && chown 10001:10001 /run/gramstack && chmod 0700 /run/gramstack
 COPY --from=build /out/service /out/runtimefiles /app/
+COPY services/gateway/start.sh /app/start-gateway
 USER 10001:10001
 WORKDIR /app
 ENV PORT=8080
 EXPOSE 8080
 ENTRYPOINT ["/app/runtimefiles"]
-CMD ["/app/service"]
+CMD ["/app/start-gateway"]

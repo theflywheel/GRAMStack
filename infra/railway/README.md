@@ -95,6 +95,30 @@ file, the private eSignet API, and the UI. Use the same credentials with the
 same volumes on restart. Hosted client registration and fictional identity
 fixture provisioning remain separate operator steps.
 
+## Application routing
+
+The gateway, adapter metadata and SakhiCredit UI each have a dedicated HTTPS
+origin targeting port 8080. Keep the gateway data listener, adapter RPCs and
+fictional LokOS source on private DNS with the existing mTLS identities.
+
+| Service | Public endpoint | Private role |
+|---|---|---|
+| Gateway | `https://gramstack-gateway-b9b69819.up.railway.app` | Authenticated data and custody listener |
+| LokOS adapter | `https://gramstack-adapter-b9b69819.up.railway.app` | Subject verification and retrieval |
+| Mock LokOS | None | Fictional native source |
+| SakhiCredit | `https://sakhicredit-b9b69819.up.railway.app` | Uses the gateway data listener as a consumer |
+
+Set `GRAMSTACK_PRIVATE_CA_FILE` to the gateway bundle file containing the
+private Hydra admin and DeDi CA certificates. The gateway image appends those
+roots to its system roots at startup so it can still verify the public
+Hydra issuer, eSignet issuer and adapter metadata certificates. This is
+separate from the mTLS CA configured for private GRAMStack data routes.
+
+The three SQL-backed applications run their explicit migration commands
+before deployment. Configure dependencies and service variables before
+uploading the committed images. The service placeholders and domain
+reservation alone do not imply an active application.
+
 ## Tooling and commands
 
 Use Node 24 and install or upgrade the CLI with `brew install railway` / `brew upgrade railway`. From the repository root:
