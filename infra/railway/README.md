@@ -9,8 +9,10 @@ The Go backend remains Go. This small, isolated Node toolchain authors Railway i
 | Service | Source/deployment | Build context | Build | Public endpoint |
 |---|---|---|---|---|
 | `docs` | Targeted local CLI upload | Repository root | `docs/Dockerfile` | `https://docs.gramstack.try-dough.com/` |
-
 | `platform-db` | Targeted local CLI upload | Repository root | `infra/railway/database/Dockerfile` | Private Railway network |
+
+| `hydra-admin` | Pinned official Hydra image | — | `serve admin` | Private TLS on 4445 |
+| `hydra-public` | Same pinned Hydra image | — | `serve public` | `https://gramstack-hydra-b9b69819.up.railway.app/` |
 
 The platform database uses a pinned PostgreSQL 17 image with a persistent
 `platform-data` volume at `/var/lib/postgresql/data`. PostgreSQL initializes
@@ -24,6 +26,27 @@ volume. Rotate credentials in the database and corresponding applications
 together.
 
 Docs needs both `docs/` and `specs/`, so its context stays at the repository root. Other services choose their own context. The existing generated Railway URL and private hostname are preserved during import. GitHub autodeploy is not enabled by this change.
+
+## Hydra deployment
+
+Both roles use the same `DSN` for the `hydra` database and the same random
+`SECRETS_SYSTEM`. Set the public HTTPS issuer in `URLS_SELF_ISSUER` and the
+gateway HTTPS login and consent routes in `URLS_LOGIN` and `URLS_CONSENT`.
+Keep credentials in Railway variables and set the same values on both roles.
+
+Deploy admin first. Its pre-deploy command runs Hydra's explicit SQL migration.
+Set `SERVE_ADMIN_PORT=4445`, `SERVE_TLS_ENABLED=true` and supply standard padded
+base64 PEM values in `SERVE_TLS_CERT_BASE64` and `SERVE_TLS_KEY_BASE64`.
+Use a private CA certificate for `hydra-admin.railway.internal` and include that
+CA in the gateway's TLS trust bundle. The admin role has no public domain or TCP
+proxy. The public role sets `PORT=4444`, `SERVE_PUBLIC_PORT=4444` and
+`SERVE_TLS_ENABLED=false` behind Railway HTTPS ingress. Use its HTTPS origin
+for discovery and token requests. Neither role uses Hydra development mode.
+
+Reproduce the listener split locally with
+`PG_BIN=... HYDRA_BIN=... ./infra/railway/check-hydra-split.sh`. The probe uses
+fresh PostgreSQL state and verifies private TLS, shared OAuth client and token
+state, and a 404 for the admin route on the public listener.
 
 ## Tooling and commands
 

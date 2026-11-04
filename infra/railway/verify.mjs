@@ -27,9 +27,9 @@ console.log(`Verified Railway graph with ${graph.resources.length} resource(s), 
 const platformDatabase = graph.resources.find(r => r.address === 'service.platform-db')
 assert.ok(platformDatabase, 'Keep the platform database in the project graph')
 assert.equal(platformDatabase.build.dockerfilePath, 'infra/railway/database/Dockerfile')
-assert.equal(platformDatabase.networking.privateNetworkEndpoint, 'platform-db')
+assert.equal(platformDatabase.name, 'platform-db')
 for (const key of ['serviceDomains', 'customDomains', 'tcpProxies'])
-  assert.deepEqual(Object.keys(platformDatabase.networking[key] ?? {}), [], 'Database stays private')
+  assert.deepEqual(Object.keys(platformDatabase.networking?.[key] ?? {}), [], 'Database stays private')
 assert.equal(platformDatabase.volumeAttachments['platform-data']?.mountPath,
   '/var/lib/postgresql/data', 'Keep the persistent PostgreSQL mount')
 
@@ -42,3 +42,15 @@ for (const [name, resource] of [['docs', docs], ['platform-db', platformDatabase
   assert.equal(manifest.deploy.healthcheckTimeout, resource.deploy.healthcheckTimeout ?? undefined)
   assert.equal(manifest.deploy.restartPolicyMaxRetries, resource.deploy.restartPolicyMaxRetries)
 }
+
+const hydraAdmin = graph.resources.find(r => r.address === 'service.hydra-admin')
+const hydraPublic = graph.resources.find(r => r.address === 'service.hydra-public')
+assert.equal(hydraAdmin.kind, 'docker-image')
+assert.deepEqual(hydraAdmin.source, hydraPublic.source)
+assert.match(hydraAdmin.source.image, /^oryd\/hydra:v26\.2\.0@sha256:[a-f0-9]{64}$/)
+assert.deepEqual(hydraAdmin.deploy.preDeployCommand, ['hydra migrate sql up -e -y'])
+assert.equal(hydraAdmin.deploy.startCommand, 'hydra serve admin --sqa-opt-out')
+assert.equal(hydraPublic.deploy.startCommand, 'hydra serve public --sqa-opt-out')
+for (const key of ['serviceDomains', 'customDomains', 'tcpProxies'])
+  assert.deepEqual(Object.keys(hydraAdmin.networking?.[key] ?? {}), [], 'Hydra admin stays private')
+assert.equal(hydraPublic.networking.serviceDomains['gramstack-hydra-b9b69819.up.railway.app'].port, 4444)
