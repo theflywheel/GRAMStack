@@ -69,6 +69,23 @@ outbox
 
 These conceptual records describe the storage contract; database migrations implement this model. Separate minimum operational enforcement fields from retained evidence. Define deletion and compaction rules, including backups and signed artefact retention, before production.
 
+## Approval-use events in the running system
+
+GRAMStack automatically writes structured lifecycle events to its PostgreSQL outbox in the same transaction as the corresponding state change. The event that marks an approval as **used to authorize retrieval** is `request.transitioned` with status `REDEEMING`. It is written only when the adapter first reserves the grant against the approved consent, after the gateway rechecks the consent, current policy, exact scope and authenticated presenter. Approval and dispatch are earlier milestones.
+
+| Outbox event | When it is written | What it establishes |
+|---|---|---|
+| `consent.approval_recorded`, then `consent.active` | The owner's decision commits, then the signing worker activates the consent | Permission was granted. No source retrieval is implied. |
+| `retrieval.dispatched` | The gateway claims the one dispatch attempt | A retrieval was initiated. The consent reservation has its own event. |
+| `request.transitioned` → `REDEEMING` | The first grant redemption and consent-use reservation commit together | This approval was used for the bound retrieval attempt. A retry of that reservation adds no second admission event. |
+| `evidence.received` | Signed adapter evidence and pending anchor work commit | The gateway accepted a receipt for the outcome. A receipt alone does not establish that a response was sent. |
+| `request.transitioned` → `COMPLETED` or `DELIVERY_UNKNOWN` | The gateway records the outcome of the response attempt | The gateway wrote the response or could not confirm delivery. An uncertain outcome does not automatically re-fetch. |
+| `evidence.anchored` | The worker verifies and stores DeDi inclusion | A commitment to the signed evidence was recorded. This event can arrive after release. |
+
+Each event has an ID, an aggregate version and a UTC occurrence time. The `REDEEMING` event carries the request ID, request digest and status. The durable reservation links that request to its consent ID, grant ID, authenticated presenter, adapter, attempt and reservation time. The signed receipt ties the attempt to its exact field names and outcome. Use those records together for attribution. Registry response values, bearer tokens and private keys are excluded from these events.
+
+The outbox is an **internal durable event stream**. The running deployment consumes selected events with its own workers, including the DeDi anchoring worker. A public telemetry endpoint, external event feed and third-party analytics export are outside this demo. The owner sees a projection from the persisted records in signed-in consent history. The one-use guarantee covers retrieval through GRAMStack. It does not track downstream reads of the recipient's copy.
+
 ## Extended evidence and operational records
 
 | Record | Custodian and contents | Boundary |
