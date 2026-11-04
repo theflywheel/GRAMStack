@@ -40,7 +40,7 @@ Gate C: D07–D10 pass. Exactly approved fields cross the adapter boundary once 
 - [ ] D14 Design additions exercised by the demo. Checklist below must pass or have an explicit, approved scope decision before this task can close. Unsupported features are visible in the capability report, never silently accepted.
   - [x] Trusted versioned purpose/processing profile bindings, bounded single-use access to the current summary, and recipient/processor responsibility metadata.
   - [x] Channel/language presentation evidence linked to exact notice and explicit confirmation for the English web channel. Assistance confers no authority.
-  - [ ] Protected consent/disclosure history and machine-readable receipt export.
+  - [x] Protected consent/disclosure history and machine-readable receipt export.
   - [x] Authenticated downstream handling receipts with reported/verified distinction and retention exceptions.
   - [ ] Rights/grievance case creation, responsible-organisation routing and safe asynchronous status. No claim of registry mutation or guaranteed recipient deletion.
 
@@ -193,3 +193,5 @@ CI speed is part of each phase gate. Measure critical-path and total job time, r
 - D14 protected history reader. A separate forced upstream sign-in issues a browser-bound, five-minute maximum, registry-scoped history session. The gateway lists only the authenticated owner's linked records and downloads the existing v1 receipt without depending on the original interaction cookie. Live portal tests passed same-person two-request history, distinct-person and registry denial, anonymous export redirection, cross-browser callback denial, and replay rejection. Official eSignet browser and recording acceptance remain open.
 
 - D14 official-eSignet history rehearsal. Fresh Chrome sign-in on the standalone stack recovered both approved and refused requests and downloaded the approved v1 receipt without interaction cookies. The 71.5-second rehearsal includes handling, refusal, history, two offline-verified DeDi commitments and the updated capability matrix. Full decode, Chrome playback and seeking, and representative frames passed. The history list still renders the stored ACTIVE state for an already-used consent alongside COMPLETED; it needs the same exhausted-state projection as the individual receipt before the history item closes.
+
+- D14 history display follow-up. The history list now projects the same status as the individual consent receipt. The live Hydra, mTLS and PostgreSQL run exercised an actual completed single-use disclosure and verified that fresh owner history labelled it spent. The standalone recorder now asserts this label on the completed record before capture. The earlier official-eSignet rehearsal demonstrated the independent sign-in and receipt download before this label change.

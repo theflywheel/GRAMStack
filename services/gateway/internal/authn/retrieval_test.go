@@ -226,6 +226,22 @@ func TestActualProtectedRetrieval(t *testing.T) {
 			t.Fatal("handling report triggered another native read")
 		}
 	})
+	if os.Getenv("GRAMSTACK_TEST_ESIGNET") != "1" {
+		t.Run("spent consent history label", func(t *testing.T) {
+			browser := historyBrowser(t, base, "sunita")
+			history, _ := http.NewRequest("GET", base+"/consent-history/lokos", nil)
+			response, body := liveResponse(t, browser, history)
+			for _, card := range strings.Split(body, "</section>") {
+				if strings.Contains(card, "/"+id+"/receipt") {
+					if response.StatusCode != 200 || !strings.Contains(card, "Single use spent · Request COMPLETED") {
+						t.Fatal("history presented completed single-use consent as reusable")
+					}
+					return
+				}
+			}
+			t.Fatal("completed request missing from owner history")
+		})
+	}
 	// Direct SDK retries remain denied, even with the trusted gateway certificate.
 	var snapshot []byte
 	var digest string

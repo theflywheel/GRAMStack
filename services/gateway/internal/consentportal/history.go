@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	cm "github.com/theflywheel/GRAMStack/services/gateway/internal/consentmanager"
 )
 
 var historyRequestID = regexp.MustCompile(`^[A-Z2-7]{26}$`)
@@ -18,11 +19,18 @@ type historyRow struct {
 	RequestID string
 	Consumer  string
 	Consent   string
+	Use       string
 	Request   string
 	CreatedAt time.Time
 }
 
-var historyPage = template.Must(template.New("history").Parse(`<!doctype html>
+var historyPage = template.Must(template.New("history").Funcs(template.FuncMap{"consentLabel": func(status, use string) string {
+	status = cm.DisplayStatus(status, use)
+	if status == "EXHAUSTED" {
+		return "Single use spent"
+	}
+	return stateLabel(status)
+}}).Parse(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Your consent history</title><link rel="stylesheet" href="/assets/consent.css"></head>
@@ -32,7 +40,7 @@ var historyPage = template.Must(template.New("history").Parse(`<!doctype html>
 <a class="button secondary" href="/auth/history/{{.Registry}}">Sign in to view history</a>
 {{else}}
 {{range .Rows}}<section class="card"><h2>{{.Consumer}}</h2>
-<p>Consent {{.Consent}} · Request {{.Request}}</p>
+<p>{{consentLabel .Consent .Use}} · Request {{.Request}}</p>
 <p>{{.CreatedAt.UTC.Format "2 Jan 2006, 15:04 UTC"}}</p>
 <a href="/consent-history/{{$.Registry}}/{{.RequestID}}/receipt">Download consent record</a></section>
 {{else}}<p>No consent records are available for this identity.</p>{{end}}
@@ -58,7 +66,7 @@ func (s *Service) history(w http.ResponseWriter, r *http.Request) {
 		Next     string
 	}{Registry: registry, SignIn: err != nil}
 	if err == nil {
-		rows, err := s.config.Pool.Query(r.Context(), `SELECT a.request_id,a.consumer_id,c.status,a.status,a.created_at
+		rows, err := s.config.Pool.Query(r.Context(), `SELECT a.request_id,a.consumer_id,c.status,c.use_state,a.status,a.created_at
 			FROM consent_history_owners h JOIN access_requests a USING(request_id)
 			JOIN consent_state c USING(request_id) JOIN consent_requests cr USING(consent_id)
 			WHERE h.owner_digest=$1 AND h.principal_ref=cr.principal_context_ref AND h.request_id>$2

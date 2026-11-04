@@ -217,7 +217,7 @@ try {
   const receiptPath = (id) => `/consent-history/lokos/${id}/receipt`;
   const approvedRecord = history.locator(`a[href="${receiptPath(approvedID)}"]`);
   const deniedRecord = history.locator(`a[href="${receiptPath(deniedID)}"]`);
-  assert.match(await approvedRecord.locator("..").textContent(), /Request COMPLETED/);
+  assert.match(await approvedRecord.locator("..").textContent(), /Single use spent · Request COMPLETED/);
   assert.match(await deniedRecord.locator("..").textContent(), /Request REJECTED/);
   await approvedRecord.locator("..").scrollIntoViewIfNeeded();
   await recording?.show(history);

@@ -82,11 +82,16 @@ func load(ctx context.Context, q queryer, id string, locked bool) (row, error) {
 	}
 	result.notice.ConsentRequestID = id
 	result.notice.RequestDigest = result.digest
-	result.status.Status = result.rawStatus
-	if result.rawStatus == "ACTIVE" && result.status.Use == "RESERVED" {
-		result.status.Status = "EXHAUSTED"
-	}
+	result.status.Status = DisplayStatus(result.rawStatus, result.status.Use)
 	return result, nil
+}
+
+// DisplayStatus projects the persisted consent and use states for readers.
+func DisplayStatus(status, use string) string {
+	if status == "ACTIVE" && use == "RESERVED" {
+		return "EXHAUSTED"
+	}
+	return status
 }
 func databaseTime(ctx context.Context, q queryer) (time.Time, error) {
 	var now time.Time
