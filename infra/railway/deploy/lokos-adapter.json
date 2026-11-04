@@ -1,0 +1,15 @@
+{
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "adapters/lokos/Dockerfile"
+  },
+  "deploy": {
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3,
+    "healthcheckPath": "/readyz",
+    "healthcheckTimeout": 30,
+    "preDeployCommand": [
+      "/app/runtimefiles /app/service migrate"
+    ]
+  }
+}

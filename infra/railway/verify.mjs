@@ -32,3 +32,13 @@ for (const key of ['serviceDomains', 'customDomains', 'tcpProxies'])
   assert.deepEqual(Object.keys(platformDatabase.networking[key] ?? {}), [], 'Database stays private')
 assert.equal(platformDatabase.volumeAttachments['platform-data']?.mountPath,
   '/var/lib/postgresql/data', 'Keep the persistent PostgreSQL mount')
+
+for (const [name, resource] of [['docs', docs], ['platform-db', platformDatabase]]) {
+  const manifest = (await import(`./deploy/${name}.json`, { with: { type: 'json' } })).default
+  assert.equal(manifest.build.builder, resource.build.builder)
+  assert.equal(manifest.build.dockerfilePath, resource.build.dockerfilePath)
+  assert.deepEqual(manifest.build.watchPatterns, resource.build.watchPatterns)
+  assert.equal(manifest.deploy.healthcheckPath, resource.deploy.healthcheckPath ?? undefined)
+  assert.equal(manifest.deploy.healthcheckTimeout, resource.deploy.healthcheckTimeout ?? undefined)
+  assert.equal(manifest.deploy.restartPolicyMaxRetries, resource.deploy.restartPolicyMaxRetries)
+}

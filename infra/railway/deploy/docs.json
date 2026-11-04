@@ -1,0 +1,19 @@
+{
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "docs/Dockerfile",
+    "watchPatterns": [
+      "/docs/**",
+      "/specs/**",
+      "/infra/railway/**",
+      "/.dockerignore",
+      "/.railwayignore"
+    ]
+  },
+  "deploy": {
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3,
+    "healthcheckPath": "/healthz",
+    "healthcheckTimeout": 30
+  }
+}

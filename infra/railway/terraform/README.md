@@ -6,8 +6,9 @@ It has no resources for Railway secrets and declares no public database route.
 
 The community provider manages topology. Keep Dockerfile paths, pre-deploy
 commands and health checks in per-service Railway configuration when switching
-off the current TypeScript project definition. Keep deploying committed source
-archives through the Railway CLI. These deployment operations are separate
+off the current TypeScript project definition. The checked-in manifests under
+`../deploy/` are selected by `../stage.sh` for each committed upload.
+Deploy those source archives through the Railway CLI. These deployment operations are separate
 from Terraform state.
 
 ## Cutover

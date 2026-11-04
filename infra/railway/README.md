@@ -44,11 +44,19 @@ railway link --project gramstack-design --environment production
 
 `plan` is read-only. Review its changes, then `apply` updates the selected environment. Keep all active resources in the `resources` list: removing a resource declares its removal. Never use a docs-only partial file to apply over an environment that already contains other services.
 
-An infrastructure apply configures services; source deployment is a separate operation. Deploy docs from the repository root:
+An infrastructure apply configures services; source deployment is a separate operation. Stage docs from a committed revision and upload its dedicated build context:
 
 ```sh
-railway up . --path-as-root --service docs --detach
+stage=$(./infra/railway/stage.sh docs HEAD)
+railway up "$stage" --path-as-root --service docs --environment production --detach
 ```
+
+The staging command selects the service's manifest from `deploy/`, places
+it at the upload root as `railway.json`, and includes only committed build
+inputs for that role. The repository root has no shared Railway manifest.
+Use the same command with `platform-db` for the private database. The Go
+service manifests are prepared for the hosted rollout. Their pre-deploy
+commands apply explicit migrations using the runtime file entrypoint.
 
 Target `--service` on every upload, log and redeploy command. Watch paths isolate Git-triggered builds; they do not filter an explicitly requested CLI deployment. `.railwayignore` filters CLI uploads; `.dockerignore` filters repository-root Docker contexts. A Dockerfile located in a subdirectory still uses COPY paths relative to its selected build context.
 
