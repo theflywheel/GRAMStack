@@ -10,10 +10,18 @@ The Go backend remains Go. This small, isolated Node toolchain authors Railway i
 |---|---|---|---|---|
 | `docs` | Targeted local CLI upload | Repository root | `docs/Dockerfile` | `https://docs.gramstack.try-dough.com/` |
 | `platform-db` | Targeted local CLI upload | Repository root | `infra/railway/database/Dockerfile` | Private Railway network |
-
 | `hydra-admin` | Pinned official Hydra image | — | `serve admin` | Private TLS on 4445 |
 | `hydra-public` | Same pinned Hydra image | — | `serve public` | `https://gramstack-hydra-b9b69819.up.railway.app/` |
 | `dedi` | Targeted local CLI upload | Repository root | `infra/railway/dedi/Dockerfile` | Private TLS on 8446 |
+| `esignet-db` | Targeted local CLI upload | Repository root | `infra/railway/esignet-db/Dockerfile` | Private |
+| `esignet-redis` | Targeted local CLI upload | Repository root | `infra/railway/esignet-redis/Dockerfile` | Private |
+| `esignet-mock` | Pinned official mock identity image, attached during activation | — | Upstream image | Private |
+| `esignet` | Targeted local CLI upload | Repository root | `infra/railway/esignet/Dockerfile` | Private |
+| `esignet-ui` | Targeted local CLI upload | Repository root | `infra/railway/esignet-ui/Dockerfile` | `https://gramstack-esignet-b9b69819.up.railway.app/` |
+| `gateway` | Targeted local CLI upload | Repository root | `services/gateway/Dockerfile` | `https://gramstack-gateway-b9b69819.up.railway.app/` |
+| `lokos-adapter` | Targeted local CLI upload | Repository root | `adapters/lokos/Dockerfile` | `https://gramstack-adapter-b9b69819.up.railway.app/` |
+| `mock-lokos` | Targeted local CLI upload | Repository root | `mocks/lokos/Dockerfile` | Private |
+| `sakhicredit` | Targeted local CLI upload | Repository root | `apps/sakhicredit/Dockerfile` | `https://sakhicredit-b9b69819.up.railway.app/` |
 
 The platform database uses a pinned PostgreSQL 17 image with a persistent
 `platform-data` volume at `/var/lib/postgresql/data`. PostgreSQL initializes
