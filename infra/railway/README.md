@@ -301,3 +301,15 @@ Before adding staging, make domain and replica choices environment-specific in t
 - [Monorepo roots and watch paths](https://docs.railway.com/deployments/monorepo)
 
 The older per-deployment `railway.toml` format is deprecated by Railway. New services belong in this project graph; they do not need copies of the old global docs configuration.
+
+## Public acceptance check
+
+Run `python3 infra/railway/check-public.py` to verify production HTTPS
+readiness, pinned OIDC discovery, adapter metadata, and representative
+public route isolation. It returns a status-only JSON report and exits
+nonzero if any required check fails. A null result for a private-route probe
+means the public service was unready, so the probe could not establish route
+isolation. The command uses fixed origins and does not follow redirects.
+
+This check covers the public ingress. Complete the private-network and
+browser journey checks separately before calling the hosted demo ready.
