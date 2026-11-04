@@ -101,6 +101,7 @@ def run(state, pg, hydra, dedi_source):
     try:
         command([sys.executable, "infra/esignet/init-demo.py", state / "esignet"])
         e_env = dict(line.split("=", 1) for line in (state / "esignet/.env").read_text().splitlines())
+        e_env["ESIGNET_DEMO_ISSUER_PORT"] = e_env["ESIGNET_DEMO_API_PORT"]
         compose = ["docker", "compose", "-f", "infra/esignet/compose.yaml"]
         logged("esignet-compose", compose + ["up", "-d", "--wait", "--wait-timeout", "240"], os.environ | e_env)
         issuer = "http://127.0.0.1:" + e_env["ESIGNET_DEMO_API_PORT"]

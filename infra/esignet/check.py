@@ -20,8 +20,9 @@ def origin(kind, default):
 
 
 def check():
-    issuer = origin("API", "19080")
-    get(issuer + "/health")
+    api = origin("API", "19080")
+    issuer = origin("ISSUER", api.rsplit(":", 1)[1])
+    get(api + "/health")
     discovery = json.loads(get(issuer + "/.well-known/openid-configuration"))
     expected = {
         "issuer": issuer,

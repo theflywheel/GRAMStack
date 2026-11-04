@@ -1,0 +1,24 @@
+# Local verification of the Railway images. Use a freshly generated project.
+services:
+  database:
+    image: gramstack-esignet-db:deployment-check
+    build:
+      context: ../..
+      dockerfile: infra/railway/esignet-db/Dockerfile
+    # Replace the base Compose bind-mounted initialization SQL with the image copy.
+    volumes: !reset []
+  esignet:
+    image: gramstack-esignet:deployment-check
+    build:
+      context: ../..
+      dockerfile: infra/railway/esignet/Dockerfile
+    networks:
+      default:
+        aliases: [esignet.railway.internal]
+    volumes: !reset []
+  esignet-ui:
+    image: gramstack-esignet-ingress:deployment-check
+    build:
+      context: ../..
+      dockerfile: infra/railway/esignet-ui/Dockerfile
+    volumes: !reset []

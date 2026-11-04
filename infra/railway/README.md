@@ -67,6 +67,23 @@ Reproduce the listener split locally with
 fresh PostgreSQL state and verifies private TLS, shared OAuth client and token
 state, and a 404 for the admin route on the public listener.
 
+## eSignet deployment artifacts
+
+The `esignet-db`, `esignet` and `esignet-ui` build contexts are prepared under
+`infra/railway/`. Start the dedicated PostgreSQL and Redis dependencies, then
+the official mock identity service and the private API. The API carries the
+same demo-only flow used in the local eSignet test. Preserve the SQL and
+software keystore volumes across redeploys.
+
+The public UI image forwards its allowlisted login and OIDC routes to
+`esignet.railway.internal:8080`. Configure the public UI's HTTPS origin as the
+issuer and the UI redirect origin. Keep the API, client onboarding, mock
+identity management, PostgreSQL and Redis on the private network. See the
+[local single-origin check](../esignet/README.md#single-origin-ingress-verification)
+for the exact baked-image verification. These three artifacts are ready for
+staging. Hosted identity deployment and fixture provisioning remain separate
+acceptance steps.
+
 ## Tooling and commands
 
 Use Node 24 and install or upgrade the CLI with `brew install railway` / `brew upgrade railway`. From the repository root:

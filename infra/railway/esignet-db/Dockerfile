@@ -1,0 +1,3 @@
+FROM postgres:17-bookworm@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5
+ENV PGDATA=/var/lib/postgresql/data/pgdata
+COPY infra/esignet/init.sql /docker-entrypoint-initdb.d/10-esignet.sql

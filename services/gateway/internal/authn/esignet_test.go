@@ -47,7 +47,7 @@ func esignetCallback(t *testing.T, browser *http.Client, base string, start *url
 		if err != nil {
 			t.Fatal(err)
 		}
-		request, _ := http.NewRequest("POST", os.Getenv("GRAMSTACK_TEST_IDP_URL")+path, bytes.NewReader(raw))
+		request, _ := http.NewRequest("POST", os.Getenv("GRAMSTACK_TEST_ESIGNET_API_URL")+path, bytes.NewReader(raw))
 		request.Header.Set("Content-Type", "application/json")
 		response, body := liveResponse(t, browser, request)
 		if response.StatusCode != 200 || json.Unmarshal([]byte(body), output) != nil {

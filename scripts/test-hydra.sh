@@ -163,7 +163,8 @@ if [[ "${GRAMSTACK_TEST_AUTHN:-}" == 1 ]]; then
  export GRAMSTACK_AUTH_KEY=$(python3 -c 'import base64,secrets; print(base64.b64encode(secrets.token_bytes(32)).decode())')
  export GRAMSTACK_PORTAL_CLIENT_SECRET="isolated-portal-secret"
  if [[ "${GRAMSTACK_TEST_ESIGNET:-}" == 1 ]]; then
-  export GRAMSTACK_TEST_IDP_URL="http://127.0.0.1:${ESIGNET_DEMO_API_PORT:-19080}"
+  export GRAMSTACK_TEST_ESIGNET_API_URL="http://127.0.0.1:${ESIGNET_DEMO_API_PORT:-19080}"
+  export GRAMSTACK_TEST_IDP_URL="http://127.0.0.1:${ESIGNET_DEMO_ISSUER_PORT:-${ESIGNET_DEMO_API_PORT:-19080}}"
   export GRAMSTACK_TEST_ESIGNET_UI="http://127.0.0.1:${ESIGNET_DEMO_UI_PORT:-19300}"
   unset GRAMSTACK_UPSTREAM_CLIENT_SECRET
   export GRAMSTACK_UPSTREAM_PRIVATE_KEY_FILE="$scratch/esignet-client.pem"

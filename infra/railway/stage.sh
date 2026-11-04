@@ -9,6 +9,9 @@ case "$service" in
   docs) paths=(docs specs .dockerignore .railwayignore) ;;
   platform-db) paths=(infra/railway/database) ;;
   dedi) paths=(infra/railway/dedi tools/runtimefiles/main.go) ;;
+  esignet) paths=(infra/railway/esignet infra/esignet/flow-local-demo.yaml) ;;
+  esignet-db) paths=(infra/railway/esignet-db infra/esignet/init.sql) ;;
+  esignet-ui) paths=(infra/railway/esignet-ui) ;;
   gateway|lokos-adapter|mock-lokos|sakhicredit)
     paths=(go.work services/gateway sdk/go/adapter adapters/auth/oidc adapters/lokos
       mocks/identity mocks/lokos apps/sakhicredit tools/runtimefiles/main.go

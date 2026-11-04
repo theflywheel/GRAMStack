@@ -63,9 +63,16 @@ func onboard(callback, directory string) error {
 	if directory == "" {
 		return errors.New("private output directory required")
 	}
-	issuer, err := loopbackOrigin("ESIGNET_DEMO_API_PORT", "19080")
+	api, err := loopbackOrigin("ESIGNET_DEMO_API_PORT", "19080")
 	if err != nil {
 		return err
+	}
+	issuer := api
+	if os.Getenv("ESIGNET_DEMO_ISSUER_PORT") != "" {
+		issuer, err = loopbackOrigin("ESIGNET_DEMO_ISSUER_PORT", "")
+		if err != nil {
+			return err
+		}
 	}
 	mock, err := loopbackOrigin("ESIGNET_DEMO_MOCK_PORT", "19082")
 	if err != nil {
@@ -129,7 +136,7 @@ func onboard(callback, directory string) error {
 		return err
 	}
 	clientID := "gst-" + rand.Text()
-	if err = post(issuer+"/client-mgmt/client", map[string]any{"clientId": clientID, "clientName": "GRAMStack local demo", "clientNameLangMap": map[string]string{"eng": "GRAMStack local demo"}, "relyingPartyId": clientID, "logoUri": "https://example.com/gramstack.svg", "redirectUris": []string{callback}, "userClaims": []string{"name"}, "authContextRefs": []string{"mosip:idp:acr:generated-code"}, "publicKey": jose.JSONWebKey{Key: &key.PublicKey, KeyID: "client-key", Algorithm: "PS256", Use: "sig"}, "grantTypes": []string{"authorization_code"}, "clientAuthMethods": []string{"private_key_jwt"}, "additionalConfig": map[string]any{"require_pkce": true, "require_pushed_authorization_requests": false, "dpop_bound_access_tokens": false}}, false); err != nil {
+	if err = post(api+"/client-mgmt/client", map[string]any{"clientId": clientID, "clientName": "GRAMStack local demo", "clientNameLangMap": map[string]string{"eng": "GRAMStack local demo"}, "relyingPartyId": clientID, "logoUri": "https://example.com/gramstack.svg", "redirectUris": []string{callback}, "userClaims": []string{"name"}, "authContextRefs": []string{"mosip:idp:acr:generated-code"}, "publicKey": jose.JSONWebKey{Key: &key.PublicKey, KeyID: "client-key", Algorithm: "PS256", Use: "sig"}, "grantTypes": []string{"authorization_code"}, "clientAuthMethods": []string{"private_key_jwt"}, "additionalConfig": map[string]any{"require_pkce": true, "require_pushed_authorization_requests": false, "dpop_bound_access_tokens": false}}, false); err != nil {
 		return err
 	}
 	for _, person := range []struct{ id, name string }{{"9000000001", "Sunita"}, {"9000000002", "Rani"}} {
@@ -154,7 +161,7 @@ func onboard(callback, directory string) error {
 	}
 	bindings := map[string]string{}
 	for _, fixture := range []struct{ person, member string }{{"9000000001", "member-12345"}, {"9000000002", "member-67890"}} {
-		subject, err := fixtureSubject(provider, oidcadapter.Credentials{PrivateKeyPEM: pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})}, callback, fixture.person, ui)
+		subject, err := fixtureSubject(provider, oidcadapter.Credentials{PrivateKeyPEM: pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})}, callback, fixture.person, ui, api)
 		if err != nil {
 			return err
 		}

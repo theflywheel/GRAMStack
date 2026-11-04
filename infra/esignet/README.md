@@ -40,6 +40,28 @@ an explicit database and keystore rotation.
 `docker compose -f infra/esignet/compose.yaml down` stops this project and
 keeps its volumes. Run it with the same exported project configuration.
 
+## Single-origin ingress verification
+
+Use a new isolated project as above and set
+`ESIGNET_DEMO_ISSUER_PORT="$ESIGNET_DEMO_UI_PORT"`. This makes the browser
+ingress the issuer while keeping fixture provisioning on the separate
+loopback API port. Build and launch the same images prepared for Railway:
+
+```sh
+export ESIGNET_DEMO_ISSUER_PORT="$ESIGNET_DEMO_UI_PORT"
+docker compose -f infra/esignet/compose.yaml -f infra/esignet/ingress-test.compose.yaml up -d --build --wait
+python3 infra/esignet/check.py
+GRAMSTACK_TEST_ESIGNET=1 GRAMSTACK_TEST_PRODUCT_UI=1 \
+  PG_BIN=/path/to/postgres/bin HYDRA_BIN=/path/to/hydra ./scripts/test-hydra.sh
+```
+
+The override removes the source configuration bind mounts so the test runs
+the baked SQL, demo flow and ingress configuration. Use a fresh project each
+time. The ingress forwards the demo's OIDC routes and the three UI flow
+operations. Client management, identity provisioning, PAR, introspection and
+unsupported API routes are inaccessible through the UI listener. The API
+and mock identity ports in this local check remain bound to loopback.
+
 ## Provenance
 
 SQL and nginx configuration originate from [MOSIP eSignet v2.0.0](https://github.com/mosip/esignet/tree/db528423dac7898ad546cb7b2f5f867a949676a7/docker-compose), commit `db528423dac7898ad546cb7b2f5f867a949676a7`, under MPL-2.0 (included). The upstream personal-looking example identity was omitted from SQL. Compose adds Redis, persistent key files, dependency health checks, loopback ports and immutable image references. Upstream documentation: https://docs.esignet.io/.
