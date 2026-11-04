@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Check a tagged module shape without publishing a tag or using go.work.
+# Check a candidate or the published SDK tag without using go.work.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
+published=false
+if [[ "${1:-}" == --published ]]; then
+  published=true
+  shift
+fi
 revision=$(git -C "$root" rev-parse --verify "${1:-HEAD}^{commit}")
 go_root=$(go -C "$root" env GOROOT)
 dependency_cache=$(go -C "$root" env GOMODCACHE)
@@ -12,9 +17,10 @@ trap 'rm -rf "$scratch"' EXIT
 mkdir "$scratch/source" "$scratch/consumer"
 git -C "$root" archive "$revision" sdk/go/adapter adapters/lokos | tar -xf - -C "$scratch/source"
 module=github.com/theflywheel/GRAMStack/sdk/go/adapter
-version=v0.1.0
-timestamp=$(git -C "$root" show -s --format=%cI "$revision")
-python3 - "$scratch" "$module" "$version" "$timestamp" <<'PY'
+version=v0.1.1-rehearsal
+if ! "$published"; then
+  timestamp=$(git -C "$root" show -s --format=%cI "$revision")
+  python3 - "$scratch" "$module" "$version" "$timestamp" <<'PY'
 import json
 import pathlib
 import sys
@@ -35,19 +41,45 @@ with zipfile.ZipFile(proxy / (version + ".zip"), "w", zipfile.ZIP_DEFLATED) as a
         if file.is_file():
             archive.write(file, module + "@" + version + "/" + file.relative_to(source).as_posix())
 PY
+fi
 export GOWORK=off
 export GOMODCACHE="$scratch/cache"
-export GOPROXY="file://$scratch/proxy,file://$dependency_cache/cache/download,${GOPROXY:-https://proxy.golang.org}"
-# The unpublished candidate is available only on the temporary file proxy.
+export GOPROXY="file://$dependency_cache/cache/download,${GOPROXY:-https://proxy.golang.org}"
 export GONOSUMDB="$module"
-export GONOPROXY=none
+if "$published"; then
+  version=v0.1.0
+  export GONOPROXY="$module"
+  export GIT_TERMINAL_PROMPT=0
+else
+  # The unpublished candidate is available only on the temporary file proxy.
+  export GONOPROXY=none
+  export GOPROXY="file://$scratch/proxy,$GOPROXY"
+fi
 export GOFLAGS=-modcacherw
 lokos="$scratch/source/adapters/lokos"
-go -C "$lokos" mod edit -require="$module@$version"
-go -C "$lokos" mod tidy
+if "$published"; then
+  go -C "$lokos" mod download -json "$module@$version" > "$scratch/published.json"
+  published_dir=$(python3 - "$scratch/published.json" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1]) as source:
+    package = json.load(source)
+origin = package["Origin"]
+assert origin["URL"] == "https://github.com/theflywheel/GRAMStack"
+assert origin["Ref"] == "refs/tags/sdk/go/adapter/v0.1.0"
+assert origin["Hash"] == "bb7e25952a399f5dcbf4671c322016d048b6a032"
+print(package["Dir"])
+PY
+)
+  go -C "$published_dir" test -mod=readonly -race ./...
+else
+  go -C "$lokos" mod edit -require="$module@$version"
+  go -C "$lokos" mod tidy
+fi
 test "$(go -C "$lokos" list -m -f '{{.Version}}{{if .Replace}} replaced{{end}}' "$module")" = "$version"
-go -C "$lokos" test -race ./...
-go -C "$lokos" build -o "$scratch/lokos-adapter" ./cmd/lokos-adapter
+go -C "$lokos" test -mod=readonly -race ./...
+go -C "$lokos" build -mod=readonly -o "$scratch/lokos-adapter" ./cmd/lokos-adapter
 
 cat > "$scratch/consumer/go.mod" <<MOD
 module example.invalid/external-adapter
