@@ -47,7 +47,7 @@ func main() {
 	if !*railway {
 		names = append(names, "unauthorised")
 	}
-	names = append(names, "consumer-one")
+	names = append(names, "consumer-one", "lokos-rights")
 	for i, name := range names {
 		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {

@@ -12,8 +12,8 @@ import (
 )
 
 type rightsCase struct {
-	ID, Type, Role, Responsible, Status string
-	CreatedAt, DueAt                    time.Time
+	ID, Type, Role, Responsible, Status, Exception string
+	CreatedAt, DueAt                               time.Time
 }
 
 var rightsPage = template.Must(template.New("rights").Parse(`<!doctype html>
@@ -35,6 +35,8 @@ var rightsPage = template.Must(template.New("rights").Parse(`<!doctype html>
 <section class="card"><h2>Case status</h2>
 {{range .Cases}}<dl><div><dt>Case {{.ID}}</dt><dd>{{.Type}} · {{.Status}}</dd></div>
 <div><dt>Responsible {{.Role}}</dt><dd>{{.Responsible}}</dd></div>
+{{if eq .Status "resolved"}}<div><dt>Outcome</dt><dd>The responsible organisation reported resolution.</dd></div>{{end}}
+{{if .Exception}}<div><dt>Reported exception</dt><dd>{{if eq .Exception "legal_hold"}}Legal hold{{else if eq .Exception "statutory_retention"}}Statutory retention{{else}}Insufficient information{{end}}</dd></div>{{end}}
 <div><dt>Submitted</dt><dd>{{.CreatedAt.UTC.Format "2 Jan 2006, 15:04 UTC"}}</dd></div>
 <div><dt>Demo follow-up target</dt><dd>{{.DueAt.UTC.Format "2 Jan 2006, 15:04 UTC"}}</dd></div></dl>
 {{else}}<p>No cases for this consent record.</p>{{end}}</section>
@@ -65,7 +67,7 @@ func (s *Service) rights(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	rows, err := s.config.Pool.Query(r.Context(), `SELECT case_id,case_type,responsible_role,responsible_id,status,created_at,due_at
+	rows, err := s.config.Pool.Query(r.Context(), `SELECT case_id,case_type,responsible_role,responsible_id,status,exception_code,created_at,due_at
 		FROM rights_cases WHERE request_id=$1 ORDER BY created_at DESC,case_id DESC LIMIT 25`, id)
 	var cases []rightsCase
 	if err == nil {

@@ -33,7 +33,7 @@ def settings(args):
     roles = {
         "gateway": (
             files(certs, "ca.pem", "gateway.pem", "gateway.key", "consent-signing.key",
-                  "grant-signing.key", "policy-signing.pub", "adapter-evidence.pub", "consumer-one.pem")
+                  "grant-signing.key", "policy-signing.pub", "adapter-evidence.pub", "consumer-one.pem", "lokos-rights.pem")
             | files(config, "gateway.json", "policy.jws") | files(identity, "esignet-client.pem")
             | {"private-ca.pem": read(args.private_roots), "publisher.key": read(args.publisher_key)},
             tls("gateway") | dict(

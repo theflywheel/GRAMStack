@@ -280,6 +280,7 @@ func TestActualConsentPortal(t *testing.T) {
 				strings.Count(casePage, "Case "+form.Get("case_id")) != 1 {
 				t.Fatal("rights case did not retain its pending registry route", status)
 			}
+			correctionID := form.Get("case_id")
 			form.Set("case_type", "grievance")
 			if status := post(owner, base); status != 409 {
 				t.Fatal("changed retry did not conflict", status)
@@ -292,6 +293,15 @@ func TestActualConsentPortal(t *testing.T) {
 			if err := pool.QueryRow(ctx, `SELECT responsible_role,responsible_id,status FROM rights_cases WHERE case_id=$1`, form.Get("case_id")).
 				Scan(&role, &responsible, &state); err != nil || role != "recipient" || responsible != "consumer-one" || state != "queued" {
 				t.Fatal("grievance did not retain its pending recipient route", err)
+			}
+			if os.Getenv("GRAMSTACK_TEST_AUTHZ_URL") != "" {
+				checkRightsOperator(t, base, correctionID, form.Get("case_id"))
+				status, casePage = get(owner, rightsURL)
+				if status != 200 || !strings.Contains(casePage, "correction · resolved") ||
+					!strings.Contains(casePage, "reported resolution") || !strings.Contains(casePage, "grievance · exception") ||
+					!strings.Contains(casePage, "Legal hold") {
+					t.Fatal("owner did not see the asynchronous reported outcomes", status)
+				}
 			}
 		})
 	}
@@ -362,4 +372,66 @@ func historyBrowser(t *testing.T, base, identity string) *http.Client {
 		t.Fatal("history callback was replayable", res.StatusCode)
 	}
 	return browser
+}
+
+func checkRightsOperator(t *testing.T, public, correction, grievance string) {
+	t.Helper()
+	private := os.Getenv("GRAMSTACK_TEST_AUTHZ_URL")
+	registry := serviceClient(t, "lokos-rights", "gateway.gramstack.internal")
+	recipient := serviceClient(t, "consumer-one", "gateway.gramstack.internal")
+	adapter := serviceClient(t, "lokos-adapter", "gateway.gramstack.internal")
+	call := func(client *http.Client, method, origin, path, body string) (int, string) {
+		t.Helper()
+		req, _ := http.NewRequest(method, origin+"/internal/v1/rights-cases/"+path, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		response, content := liveResponse(t, client, req)
+		return response.StatusCode, content
+	}
+	registryPath := "registry/lokos"
+	recipientPath := "recipient/consumer-one"
+	if status, _ := call(adapter, "GET", private, registryPath, ""); status != 404 {
+		t.Fatal("adapter was treated as a registry rights operator", status)
+	}
+	if status, _ := call(browserClient(t), "GET", public, registryPath, ""); status != 404 {
+		t.Fatal("rights operator queue exposed on the public listener", status)
+	}
+	if status, queue := call(registry, "GET", private, registryPath, ""); status != 200 ||
+		!strings.Contains(queue, correction) || strings.Contains(queue, grievance) || strings.Contains(queue, "member-12345") {
+		t.Fatal("registry queue leaked or omitted case metadata", status)
+	}
+	if status, queue := call(recipient, "GET", private, recipientPath, ""); status != 200 ||
+		!strings.Contains(queue, grievance) || strings.Contains(queue, correction) {
+		t.Fatal("recipient queue crossed case routes", status)
+	}
+	ack := `{"action":"acknowledge"}`
+	resolve := `{"action":"resolve"}`
+	exception := `{"action":"record_exception","exception_code":"legal_hold"}`
+	if status, _ := call(registry, "PUT", private, registryPath+"/"+grievance+"/ack-1", ack); status != 404 {
+		t.Fatal("registry could update the recipient's case", status)
+	}
+	if status, _ := call(registry, "PUT", private, registryPath+"/"+correction+"/done-1", resolve); status != 409 {
+		t.Fatal("case skipped acknowledgement", status)
+	}
+	for _, fixture := range []struct {
+		client              *http.Client
+		path, outcome, want string
+	}{
+		{registry, registryPath + "/" + correction, resolve, "resolved"},
+		{recipient, recipientPath + "/" + grievance, exception, "exception"},
+	} {
+		status, first := call(fixture.client, "PUT", private, fixture.path+"/ack-1", ack)
+		if status != 200 || !strings.Contains(first, `"status":"acknowledged"`) {
+			t.Fatal("case acknowledgement failed", status)
+		}
+		status, terminal := call(fixture.client, "PUT", private, fixture.path+"/done-1", fixture.outcome)
+		if status != 200 || !strings.Contains(terminal, `"status":"`+fixture.want+`"`) {
+			t.Fatal("case terminal assertion failed", status)
+		}
+		if status, repeated := call(fixture.client, "PUT", private, fixture.path+"/ack-1", ack); status != 200 || repeated != first {
+			t.Fatal("acknowledgement retry changed after terminal outcome", status)
+		}
+		if status, _ := call(fixture.client, "PUT", private, fixture.path+"/ack-1", resolve); status != 409 {
+			t.Fatal("changed event retry was accepted", status)
+		}
+	}
 }

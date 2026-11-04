@@ -69,6 +69,7 @@ def configs(provider):
                            service_identity="lokos-adapter.gramstack.internal", evidence_keys=[
                                dict(key_id="demo-adapter-key", file=RUNTIME + "adapter-evidence.pub")])],
             presenter_certificates={"consumer-one": RUNTIME + "consumer-one.pem"},
+            registry_rights_certificates={"lokos": RUNTIME + "lokos-rights.pem"},
             evidence=dict(release_profile="batch", anchoring_enabled=True),
             retrieval=dict(max_concurrent=4),
         ),

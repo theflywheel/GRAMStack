@@ -25,6 +25,7 @@ import (
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/evidence/anchoring"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/evidence/custody"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/retrieval"
+	"github.com/theflywheel/GRAMStack/services/gateway/internal/rights"
 	"github.com/theflywheel/GRAMStack/services/gateway/internal/subjectbinding"
 )
 
@@ -51,8 +52,9 @@ type authorizationConfig struct {
 			File  string `json:"file"`
 		} `json:"evidence_keys"`
 	} `json:"adapters"`
-	Presenters map[string]string `json:"presenter_certificates"`
-	Retrieval  *struct {
+	Presenters          map[string]string `json:"presenter_certificates"`
+	RegistryRightsPeers map[string]string `json:"registry_rights_certificates,omitempty"`
+	Retrieval           *struct {
 		MaxConcurrent int `json:"max_concurrent"`
 	} `json:"retrieval"`
 	Evidence *struct {
@@ -91,6 +93,25 @@ func publicKey(path string) (*ecdsa.PublicKey, error) {
 		return nil, errors.New("ECDSA policy public key required")
 	}
 	return key, nil
+}
+func clientFingerprint(path string, roots *x509.CertPool) (string, error) {
+	raw, err := readBounded(path, 16384)
+	if err != nil {
+		return "", err
+	}
+	block, rest := pem.Decode(raw)
+	if block == nil || block.Type != "CERTIFICATE" || len(strings.TrimSpace(string(rest))) != 0 {
+		return "", errors.New("presenter leaf certificate required")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return "", errors.New("invalid presenter certificate")
+	}
+	if _, err = cert.Verify(x509.VerifyOptions{Roots: roots, KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}}); err != nil {
+		return "", errors.New("untrusted presenter certificate")
+	}
+	sum := sha256.Sum256(cert.Raw)
+	return base64.RawURLEncoding.EncodeToString(sum[:]), nil
 }
 func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpool.Pool, auth consumer.Authenticator, subjects *subjectbinding.Service, terms *consumer.Service, registries []subjectbinding.Registry, consents *cm.Service, verifier *cm.Verifier, origin string, loopback bool, c authorizationConfig) (func(), error) {
 	if c.Issuer == "" {
@@ -149,23 +170,23 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 	}
 	presenters := map[string]string{}
 	for client, path := range c.Presenters {
-		raw, err := readBounded(path, 16384)
+		presenters[client], err = clientFingerprint(path, roots)
 		if err != nil {
 			return nil, err
 		}
-		block, rest := pem.Decode(raw)
-		if block == nil || block.Type != "CERTIFICATE" || len(strings.TrimSpace(string(rest))) != 0 {
-			return nil, errors.New("presenter leaf certificate required")
+	}
+	registryRights := map[string]string{}
+	usedRightsFingerprints := map[string]bool{}
+	for _, thumb := range presenters {
+		usedRightsFingerprints[thumb] = true
+	}
+	for registry, path := range c.RegistryRightsPeers {
+		thumb, err := clientFingerprint(path, roots)
+		if err != nil || usedRightsFingerprints[thumb] {
+			return nil, errors.New("registry rights operators require distinct trusted client certificates")
 		}
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return nil, errors.New("invalid presenter certificate")
-		}
-		if _, err = cert.Verify(x509.VerifyOptions{Roots: roots, KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}}); err != nil {
-			return nil, errors.New("untrusted presenter certificate")
-		}
-		sum := sha256.Sum256(cert.Raw)
-		presenters[client] = base64.RawURLEncoding.EncodeToString(sum[:])
+		registryRights[registry] = thumb
+		usedRightsFingerprints[thumb] = true
 	}
 	adapters := map[string]az.Adapter{}
 	for _, a := range c.Adapters {
@@ -180,6 +201,7 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 	}
 	privateHandler := http.NewServeMux()
 	privateHandler.Handle("/", service.InternalHandler(consents))
+	privateHandler.Handle("/internal/v1/rights-cases/", rights.OperatorHandler(pool, service, registryRights))
 	var dataService *retrieval.Service
 	var anchorWorker *anchoring.Worker
 	if c.Retrieval != nil && c.Evidence == nil {

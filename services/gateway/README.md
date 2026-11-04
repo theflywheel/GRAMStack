@@ -98,3 +98,20 @@ owner to the status page. An exact submission retry retains one case.
 New cases appear as queued with a seven-day demo follow-up target. Queued
 cases await action by the responsible organisation. The demo target is an
 operational fixture.
+
+The private gateway listener exposes the responsible party's queue at
+`GET /internal/v1/rights-cases/{role}/{actor}`. A recipient uses its pinned
+presenter certificate. A registry uses a distinct client certificate pinned
+in `registry_rights_certificates`; the registry adapter identity has no
+implicit operator access. The queue returns up to 25 open cases with only
+case references, type, status, version and timing.
+
+Send `PUT /internal/v1/rights-cases/{role}/{actor}/{case}/{event}` with JSON
+`action` set to `acknowledge`, `resolve`, or `record_exception`. A terminal
+outcome follows acknowledgement. An exception requires `exception_code`
+of `legal_hold`, `statutory_retention`, or `insufficient_information`.
+The case state and immutable operator event commit together. Retrying the
+same event returns the original acknowledgement, while changing its content
+returns 409. The owner sees the organisation's reported outcome after
+refreshing. The platform records the organisation's statement and leaves
+registry records and recipient-held data under the organisation's control.

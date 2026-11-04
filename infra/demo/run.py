@@ -208,6 +208,7 @@ def run(state, pg, hydra, dedi_source):
                                adapters=[dict(registry="lokos", audience="lokos-adapter", adapter_id="lokos-adapter",
                                               service_identity="lokos-adapter.gramstack.internal", evidence_keys=[evidence_key])],
                                presenter_certificates={"consumer-one": str(certs / "consumer-one.pem")},
+                               registry_rights_certificates={"lokos": str(certs / "lokos-rights.pem")},
                                evidence=dict(release_profile="batch", anchoring_enabled=True), retrieval=dict(max_concurrent=4))))
         gateway_env = tls("gateway") | dict(
             PORT=str(ports["gateway"]), GRAMSTACK_ENV="development", DATABASE_URL=db("core"),

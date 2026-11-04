@@ -22,7 +22,7 @@ func (s *Service) AuthenticateRetrieval(r *http.Request) (Grant, string, error) 
 	if err != nil {
 		return Grant{}, "", err
 	}
-	if presenterThumbprint(r) != grant.Confirmation.Thumbprint || !s.IsRecipient(r, grant.Consumer) {
+	if PresenterThumbprint(r) != grant.Confirmation.Thumbprint || !s.IsRecipient(r, grant.Consumer) {
 		return Grant{}, "", ErrBinding
 	}
 	return grant, compact, nil
@@ -30,11 +30,12 @@ func (s *Service) AuthenticateRetrieval(r *http.Request) (Grant, string, error) 
 
 // IsRecipient checks the current registered certificate of a recipient.
 func (s *Service) IsRecipient(r *http.Request, recipient string) bool {
-	thumb := presenterThumbprint(r)
+	thumb := PresenterThumbprint(r)
 	return thumb != "" && s.config.Presenters[recipient] == thumb
 }
 
-func presenterThumbprint(r *http.Request) string {
+// PresenterThumbprint returns the verified TLS leaf fingerprint, or an empty string.
+func PresenterThumbprint(r *http.Request) string {
 	if r.TLS == nil || len(r.TLS.VerifiedChains) == 0 || len(r.TLS.PeerCertificates) == 0 {
 		return ""
 	}
