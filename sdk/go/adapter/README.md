@@ -33,3 +33,7 @@ Configured reference-runtime acceptance now exercises the actual gateway → SDK
 ## Public discovery
 
 A configured `RetrievalService.DiscoveryHandler()` serves anonymous GET `/.well-known/gramstack-adapter` and `/.well-known/gramstack-adapter/jwks.json`, with discovery profile 0.1.0 and core 0.3.0 headers. It materializes only configured resource/method/capability metadata and public P-256 signing keys; a host must mount it on its public metadata listener separately from protected mTLS RPCs. It exposes no private parameters, source records, consumer tokens or authority URLs. Verification-only hosting cannot claim this full pipeline. Clients must compare every key point/ID and required resource/version with operator-approved trust; no fetched key becomes trusted automatically. The reference gateway does this before each SQL dispatch.
+
+## Provider conformance
+
+Import `github.com/theflywheel/GRAMStack/sdk/go/adapter/conformance` from an adapter test and call `CheckProvider` with a fictional, verified subject, one field and its expected JSON, and a counter on the fixture native source. The suite checks exact projection and one native read, and verifies that invalid scopes, missing mappings, and cancelled requests cause zero reads. LokOS runs it for both of its fields. These checks cover the provider boundary. Verification, grant redemption, evidence custody and HTTP transport require separate acceptance.

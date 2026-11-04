@@ -62,10 +62,10 @@ package consumer
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"testing"
 
 	sdk "github.com/theflywheel/GRAMStack/sdk/go/adapter"
+	"github.com/theflywheel/GRAMStack/sdk/go/adapter/conformance"
 )
 
 type provider struct{ calls int }
@@ -82,18 +82,7 @@ func (p *provider) Fetch(context.Context, sdk.Subject, []string) (sdk.Data, erro
 func TestIndependentProviderProjection(t *testing.T) {
 	p := &provider{}
 	subject := sdk.Subject{Reference: "verified-source-mapping"}
-	for _, fields := range [][]string{{"unsupported"}, {"status", "status"}} {
-		if _, err := sdk.ReadSelected(context.Background(), p, subject, fields); !errors.Is(err, sdk.ErrFields) {
-			t.Fatal("invalid scope admitted")
-		}
-	}
-	if p.calls != 0 {
-		t.Fatal("invalid requests reached source")
-	}
-	result, err := sdk.ReadSelected(context.Background(), p, subject, []string{"status"})
-	if err != nil || p.calls != 1 || len(result) != 1 || string(result["status"]) != `"active"` {
-		t.Fatal("incorrect external projection", err)
-	}
+	conformance.CheckProvider(t, p, subject, "status", json.RawMessage(`"active"`), func() int { return p.calls })
 }
 GO
 go -C "$scratch/consumer" mod tidy

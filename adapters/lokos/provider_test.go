@@ -3,28 +3,28 @@ package lokos
 import (
 	"context"
 	"encoding/json"
-	sdk "github.com/theflywheel/GRAMStack/sdk/go/adapter"
 	"testing"
+
+	sdk "github.com/theflywheel/GRAMStack/sdk/go/adapter"
+	"github.com/theflywheel/GRAMStack/sdk/go/adapter/conformance"
 )
 
-type fakeSource struct{}
+type fakeSource struct{ reads int }
 
-func (fakeSource) Membership(context.Context, string) (Membership, error) {
+func (s *fakeSource) Membership(context.Context, string) (Membership, error) {
+	s.reads++
 	return Membership{Status: "active", SavingsRupees: json.Number("12500.25")}, nil
 }
 func TestSDKBackedProjection(t *testing.T) {
-	provider, err := New(fakeSource{})
+	source := &fakeSource{}
+	provider, err := New(source)
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, err := sdk.ReadSelected(context.Background(), provider, sdk.Subject{Reference: "verified-context"}, []string{"membership_status"})
-	if err != nil || len(data) != 1 || string(data["membership_status"]) != `"active"` {
-		t.Fatalf("%s %v", data, err)
-	}
-	data, err = sdk.ReadSelected(context.Background(), provider, sdk.Subject{Reference: "verified-context"}, []string{"savings_summary"})
-	if err != nil || string(data["savings_summary"]) != `{"amount":12500.25,"currency":"INR"}` {
-		t.Fatalf("%s %v", data, err)
-	}
+	subject := sdk.Subject{Reference: "verified-context"}
+	reads := func() int { return source.reads }
+	conformance.CheckProvider(t, provider, subject, "membership_status", json.RawMessage(`"active"`), reads)
+	conformance.CheckProvider(t, provider, subject, "savings_summary", json.RawMessage(`{"amount":12500.25,"currency":"INR"}`), reads)
 }
 
 type partialSource struct{}
