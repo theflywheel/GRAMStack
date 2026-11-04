@@ -13,7 +13,8 @@ The Go backend remains Go. This small, isolated Node toolchain authors Railway i
 | `platform-db` | Targeted local CLI upload | Repository root | `infra/railway/database/Dockerfile` | Private Railway network |
 
 The platform database uses a pinned PostgreSQL 17 image with a persistent
-`platform-data` volume at `/var/lib/postgresql/data`. The initial deployment
+`platform-data` volume at `/var/lib/postgresql/data`. PostgreSQL initializes
+in its `pgdata` subdirectory. The initial deployment
 requires `POSTGRES_PASSWORD` and separate `GRAMSTACK_DB_<ROLE>_PASSWORD`
 secrets for `CORE`, `ADAPTER`, `PRODUCT`, `HYDRA` and `DEDI`. Each role
 owns one database and is denied connections to its peers. Applications use
