@@ -20,11 +20,9 @@ case "$service" in
     ;;
   *) echo "Unknown deployment service: $service" >&2; exit 1 ;;
 esac
-manifest="infra/railway/deploy/$service.json"
 stage=$(mktemp -d /tmp/gramstack-railway-source.XXXXXX)
 trap 'rm -rf "$stage"' EXIT
-git archive "$revision" "${paths[@]}" "$manifest" | tar -xf - -C "$stage"
-mv "$stage/$manifest" "$stage/railway.json"
+git archive "$revision" "${paths[@]}" | tar -xf - -C "$stage"
 if [[ -n $(find "$stage" -type l -print -quit) ]]; then
   echo 'Deployment source contains a symbolic link' >&2
   exit 1

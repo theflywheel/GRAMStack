@@ -7,7 +7,9 @@ const definition = await configuration(createRailwayContext({ environment: 'prod
 const graph = { version: RAILWAY_GRAPH_VERSION, project: { name: definition.name }, environments: [], resources: definition.resources.flat(), edges: [] }
 assert.deepEqual(validateGraph(graph), [])
 assert.equal(definition.variables.managed, false, 'An infra apply must preserve Railway-managed variables')
-assert.ok(!existsSync(new URL('../../railway.toml', import.meta.url)), 'No service-specific defaults at repository root')
+for (const filename of ['railway.toml', 'railway.json']) {
+  assert.ok(!existsSync(new URL('../../' + filename, import.meta.url)), 'No service-specific defaults at repository root')
+}
 for (const resource of graph.resources.filter(r => r.type === 'service')) {
   if (resource.kind === 'docker-image') {
     assert.ok(resource.source.image, `${resource.name}: image reference required`)
@@ -32,16 +34,6 @@ for (const key of ['serviceDomains', 'customDomains', 'tcpProxies'])
   assert.deepEqual(Object.keys(platformDatabase.networking?.[key] ?? {}), [], 'Database stays private')
 assert.equal(platformDatabase.volumeAttachments['platform-data']?.mountPath,
   '/var/lib/postgresql/data', 'Keep the persistent PostgreSQL mount')
-
-for (const [name, resource] of [['docs', docs], ['platform-db', platformDatabase]]) {
-  const manifest = (await import(`./deploy/${name}.json`, { with: { type: 'json' } })).default
-  assert.equal(manifest.build.builder, resource.build.builder)
-  assert.equal(manifest.build.dockerfilePath, resource.build.dockerfilePath)
-  assert.deepEqual(manifest.build.watchPatterns, resource.build.watchPatterns)
-  assert.equal(manifest.deploy.healthcheckPath, resource.deploy.healthcheckPath ?? undefined)
-  assert.equal(manifest.deploy.healthcheckTimeout, resource.deploy.healthcheckTimeout ?? undefined)
-  assert.equal(manifest.deploy.restartPolicyMaxRetries, resource.deploy.restartPolicyMaxRetries)
-}
 
 const hydraAdmin = graph.resources.find(r => r.address === 'service.hydra-admin')
 const hydraPublic = graph.resources.find(r => r.address === 'service.hydra-public')
@@ -85,10 +77,8 @@ for (const [name, host] of [
   ['sakhicredit', 'sakhicredit-b9b69819.up.railway.app'],
 ]) {
   const resource = graph.resources.find(r => r.address === `service.${name}`)
-  const manifest = (await import(`./deploy/${name}.json`, { with: { type: 'json' } })).default
-  assert.equal(resource.build.dockerfilePath, manifest.build.dockerfilePath)
-  assert.equal(resource.deploy.healthcheckPath, manifest.deploy.healthcheckPath)
-  assert.deepEqual(resource.deploy.preDeployCommand, manifest.deploy.preDeployCommand)
+  assert.equal(resource.deploy.healthcheckPath, host ? '/readyz' : undefined)
+  assert.deepEqual(resource.deploy.preDeployCommand, host ? ['/app/runtimefiles /app/service migrate'] : undefined)
   assert.deepEqual(resource.networking?.serviceDomains ?? {}, host ? { [host]: { port: 8080 } } : {})
   assert.deepEqual(Object.keys(resource.networking?.tcpProxies ?? {}), [])
   assert.deepEqual(Object.keys(resource.networking?.customDomains ?? {}), [])

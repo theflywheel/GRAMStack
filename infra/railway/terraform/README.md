@@ -4,12 +4,9 @@ This configuration drafts the import of the existing production services,
 the PostgreSQL volume attached to its service, and both docs domains.
 It has no resources for Railway secrets and declares no public database route.
 
-The community provider manages topology. Keep Dockerfile paths, pre-deploy
-commands and health checks in per-service Railway configuration when switching
-off the current TypeScript project definition. The checked-in manifests under
-`../deploy/` are selected by `../stage.sh` for each committed upload.
-Deploy those source archives through the Railway CLI. These deployment operations are separate
-from Terraform state.
+Railway IaC currently owns build settings, migrations and health checks.
+Before a Terraform cutover, decide how those settings will be managed.
+The committed source archives from `../stage.sh` are uploaded separately.
 
 ## Cutover
 

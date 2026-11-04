@@ -236,9 +236,9 @@ stage=$(./infra/railway/stage.sh docs HEAD)
 railway up "$stage" --path-as-root --service docs --environment production --detach
 ```
 
-The staging command selects the service's manifest from `deploy/`, places
-it at the upload root as `railway.json`, and includes only committed build
-inputs for that role. The repository root has no shared Railway manifest.
+The staging command includes only committed build inputs for that role.
+Railway uses the build, migration and health-check settings already applied
+from `railway.ts`. Apply changes to those settings before uploading source.
 Use the same command with `platform-db` for the private database. The Go
 service manifests are prepared for the hosted rollout. Their pre-deploy
 commands apply explicit migrations using the runtime file entrypoint.
@@ -267,7 +267,7 @@ const gateway = service("gateway", {
 });
 ```
 
-This is an onboarding example, not an active Railway service; the gateway module exists under `services/gateway/`, while its application routes and deployment image are still being built. The code service can instead omit `source` and use targeted CLI uploads, as docs does today. Connecting a GitHub source enables the repository deployment path; configure its branch and checks deliberately. For an independent component with no shared files, use its subdirectory as root and make all build commands/Dockerfile COPY paths relative to that directory. Mocks remain under `mocks/`, separate from core `cmd/` and production services.
+The current gateway uses targeted CLI uploads. Connecting a GitHub source enables repository deployments. Configure its branch and checks deliberately. For an independent component with no shared files, use its subdirectory as root and make all build commands/Dockerfile COPY paths relative to that directory. Mocks remain under `mocks/`, separate from core `cmd/` and production services.
 
 ## Adding an upstream image service
 
