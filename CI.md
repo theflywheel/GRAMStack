@@ -172,3 +172,18 @@ The readiness commit's [hosted run](https://github.com/theflywheel/GRAMStack/act
 The deployment image workflow runs on Dockerfile, runtime file tool, module manifest, workspace or image test changes. Its single Linux job shares base layers and BuildKit Go caches across the four builds. Routine Go-only changes keep the existing verification jobs. All four local Docker builds and runtime smoke checks passed.
 
 The corrected browser harness and deployment images passed hosted verification on `8402849`. Go verification took 66s, PostgreSQL 48s, DeDi 48s and Hydra/browser 100s, for a 100s execution window and 262 summed job seconds. The separate Linux image job took 74s and completed within that execution window. The fresh official eSignet test runs locally with new Compose volumes and generated credentials. The hosted Hydra job retains its fast fictional IdP, so the new eSignet port configuration adds no container startup to routine CI.
+
+### Distinct-disclosure capacity check
+
+The capacity check shares the existing gateway, adapter, native source and
+PostgreSQL processes. It adds no CI job, setup or dependency. The subtest
+took 2.06 seconds in the combined official-eSignet run.
+
+| Commit | Go CI execution window | Sum of job durations | Hydra/browser job |
+|---|---:|---:|---:|
+| [399d473](https://github.com/theflywheel/GRAMStack/actions/runs/41779059246) | 89 s | 243 s | 88 s |
+| [26809d7](https://github.com/theflywheel/GRAMStack/actions/runs/41779239673) | 94 s | 250 s | 94 s |
+| [533a7be](https://github.com/theflywheel/GRAMStack/actions/runs/41779671863) | 89 s | 249 s | 88 s |
+
+These are observed job timestamps from separate runs. They do not isolate
+the capacity test's CI cost from runner and parallel job variation.

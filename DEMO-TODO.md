@@ -205,3 +205,19 @@ CI speed is part of each phase gate. Measure critical-path and total job time, r
 - D15 bounded-load evidence. The isolated real-Hydra, PostgreSQL and mTLS run held four distinct approved requests at the native-source gate, filling the configured gateway cap. Eight calls for a fifth request returned metadata-only 429 and Retry-After without claiming a dispatch or reading the source. After release, the four requests finished and the fifth succeeded with its original grant and exactly one read. The capacity subtest took 2.06 seconds locally and reused the existing process suite, including its restart checks. Hosted acceptance and the wider acceptance ledger remain open.
 
 - D12 hosted public acceptance checkpoint. The production smoke checker verified docs health, Hydra readiness and exact discovery endpoints, and 404 for the public Hydra admin route. Railway's deployment inventory showed no deployments for eSignet UI, gateway, adapter metadata, or SakhiCredit. Their public probes returned 404, and the checker correctly exited nonzero without treating those responses as proof of private-route isolation. The same readiness validators and gateway/adapter isolation probes passed against the real local standalone services. Hosted credential provisioning and full acceptance remain open.
+
+### Combined local acceptance on 533a7be
+
+Ran the [full local acceptance command](infra/demo/README.md#full-local-acceptance) with official Hydra and eSignet, fresh platform and DeDi PostgreSQL state, a freshly built DeDi node, and headless Chrome. The identity backend and source records were fictional. The run exited successfully.
+
+| Acceptance area | Observed result |
+|---|---|
+| Approval and data scope | Both fields disclosed only when selected. Membership-only flow returned membership alone. Download matched the exact rendered notice and recorded decision. |
+| Rejection, expiry and cancellation | Chrome showed refusal and authoritative expiry with no source read. Lost-response and network cases preserved the same application. Cancellation and withdrawal before admission stopped retrieval. After admission, the existing attempt finished once and replay failed. |
+| Authority and leakage | Invalid presenter, scope, policy and custody requests failed. Browser checks covered secret isolation; the process suite checked gateway and custody rows for source plaintext. |
+| Outages and replay | Source outage, disconnect, and custody failure withheld data without a repeated source fetch. Actual-node checks covered publication outage, lost acknowledgement, SQL rollback and concurrent publication. |
+| Bounded capacity | Four independent disclosures filled the configured limit. Eight overflow calls returned 429 before dispatch. The original grant recovered when capacity returned. |
+| Restart | Grant and custody acknowledgements, single-use dispatch, encrypted product result and worker state survived process restart. |
+| Browser and evidence | Seven scenarios passed and produced 14 screenshots. After browser execution, the actual DeDi node retained 12 disclosure commitments with offline-verifiable inclusion proofs. |
+
+The [hosted Go/browser CI](https://github.com/theflywheel/GRAMStack/actions/runs/41779671863) also passed on this commit. It exercises the fast fictional IdP in the browser job and the actual DeDi node in its dedicated job. Railway production acceptance remains open.

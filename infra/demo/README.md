@@ -68,3 +68,27 @@ Ctrl-C stops the processes and the launcher's Compose project. The private
 state directory and eSignet volumes remain available for inspection. Use a
 new directory for each launch. The launcher is for fresh local demos.
 Railway uses separate deployments and reviewed public/private routes.
+
+## Full local acceptance
+
+Start the [isolated official eSignet demo](../esignet/README.md) first. Export
+its local API, mock and UI ports, and export the issuer port if it differs
+from the API port. Set the binary paths from the standalone setup above,
+then run from the repository root:
+
+```sh
+export PG_BIN=/path/to/postgresql/bin
+export HYDRA_BIN=/path/to/hydra
+export DEDI_SOURCE=/path/to/DeDi-node
+export CHROME_BIN=/path/to/chrome
+export GRAMSTACK_BROWSER_ARTIFACTS="$(mktemp -d /tmp/gramstack-acceptance.XXXXXX)"
+GRAMSTACK_TEST_ESIGNET=1 GRAMSTACK_TEST_PRODUCT_UI=1 GRAMSTACK_TEST_ANCHORING=1 \
+  ./scripts/test-dedi.sh
+```
+
+The runner builds DeDi and uses fresh private PostgreSQL state. It starts the
+configured gateway and adapter processes, exercises authorization and fault
+paths, verifies signed custody against the actual DeDi node, then runs the
+browser and post-browser proof checks. The browser writes case summaries and
+screenshots to the chosen artifact directory. The live process log can include
+private fixture diagnostics on failure, so review it before sharing.

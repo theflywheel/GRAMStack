@@ -19,6 +19,8 @@ the acceptance gates.
 | Authority and channels | Limited | The demo uses first-party browser confirmation. Delegated authority, alternate presentation channels and additional identity provider profiles have no demo acceptance evidence. Voice and AI assistants belong in product integrations. |
 | Legal status and retention proof | Outside demonstrated scope | The demo makes no legal registration, DPDP certification or DEPA conformance claim. A receipt or commitment does not prove that a recipient deleted its copy. |
 
+The [combined local acceptance](DEMO-TODO.md#combined-local-acceptance-on-533a7be) covers the full browser and failure suite on official eSignet, Hydra and DeDi. The [Railway public check](infra/railway/README.md#public-acceptance-check) separately measures hosted readiness.
+
 ## Recording sequence
 
 1. Launch fresh local state with the documented standalone command. Run the
