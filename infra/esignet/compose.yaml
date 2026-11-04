@@ -7,8 +7,10 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "${ESIGNET_DEMO_DB_PASSWORD:-postgres}"
+    configs:
+      - source: local-sql
+        target: /docker-entrypoint-initdb.d/init.sql
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - database:/var/lib/postgresql/data
     healthcheck:
       test:
@@ -82,9 +84,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    configs:
+      - source: local-flow
+        target: /home/mosip/data/flows/flow-local-demo-v2.yaml
     volumes:
       - keystore:/opt/mosip/keys
-      - ./flow-local-demo.yaml:/home/mosip/data/flows/flow-local-demo-v2.yaml:ro
   esignet-ui:
     image: mosipid/oidc-ui:2.0.0@sha256:9d87a526518d63922de6d2d987bdeddd1ef1c215d27656252f7d38e58ffb9708
     user: root
@@ -98,8 +102,9 @@ services:
         22Jwks%20Json%22%2C%22value%22%3A%22%2F.well-known%2Fjwks.json%22%7D%2C\
         %7B%22name%22%3A%22Authorization%20Server%22%2C%22value%22%3A%22%2F.wel\
         l-known%2Foauth-authorization-server%22%7D%5D"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+    configs:
+      - source: local-nginx
+        target: /etc/nginx/nginx.conf
     depends_on:
       - esignet
   redis:
@@ -123,3 +128,10 @@ volumes:
   database: {}
   keystore: {}
   redis: {}
+configs:
+  local-sql:
+    file: ./init.sql
+  local-flow:
+    file: ./flow-local-demo.yaml
+  local-nginx:
+    file: ./nginx.conf

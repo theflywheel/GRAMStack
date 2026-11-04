@@ -55,9 +55,14 @@ GRAMSTACK_TEST_ESIGNET=1 GRAMSTACK_TEST_PRODUCT_UI=1 \
   PG_BIN=/path/to/postgres/bin HYDRA_BIN=/path/to/hydra ./scripts/test-hydra.sh
 ```
 
-The override removes the source configuration bind mounts so the test runs
-the baked SQL, demo flow and ingress configuration. Use a fresh project each
-time. The ingress forwards the demo's OIDC routes and the three UI flow
+The override removes the local file mounts while retaining the named
+database and keystore volumes. The test runs the baked SQL, demo flow and
+ingress configuration. Use a fresh project each time. For a repeatable check
+of the exact committed Railway upload contexts, run
+`./infra/railway/check-esignet-images.sh HEAD` with the same gateway and
+Chrome prerequisites. It creates and cleans up its own fixture project,
+recreates the database and API on their persistent volumes, and checks
+private management route isolation before running browser acceptance. The ingress forwards the demo's OIDC routes and the three UI flow
 operations. Client management, identity provisioning, PAR, introspection and
 unsupported API routes are inaccessible through the UI listener. The API
 and mock identity ports in this local check remain bound to loopback.
