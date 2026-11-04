@@ -62,23 +62,35 @@ docker network create --internal "$name" >/dev/null
 docker volume create "$name" >/dev/null
 docker run --rm --network none --mount "type=volume,source=$name,target=/var/lib/postgresql/data" \
   --entrypoint /bin/mkdir "$db_image" /var/lib/postgresql/data/lost+found
+sed '/^GRAMSTACK_DB_DEDI_PASSWORD=/d' "$state/db.env" > "$state/missing.env"
+if docker run --rm --network "$name" --env-file "$state/missing.env" \
+  --mount "type=volume,source=$name,target=/var/lib/postgresql/data" "$db_image" >"$state/missing.log" 2>&1; then
+  echo "Database accepted incomplete bootstrap settings." >&2
+  exit 1
+fi
+grep -q 'Required database role password is missing: GRAMSTACK_DB_DEDI_PASSWORD' "$state/missing.log"
+docker run --rm --network none --mount "type=volume,source=$name,target=/var/lib/postgresql/data" \
+  --entrypoint /usr/bin/test "$db_image" ! -s /var/lib/postgresql/data/pgdata/PG_VERSION
 docker run -d --name "$name" --network "$name" --network-alias platform-db \
   --env-file "$state/db.env" --mount "type=volume,source=$name,target=/var/lib/postgresql/data" \
   "$db_image" >/dev/null
-ready=false
-for _ in $(seq 1 100); do
-  if docker exec "$name" pg_isready -h 127.0.0.1 -U postgres -d postgres >/dev/null 2>&1; then
-    ready=true
-    break
+wait_ready() {
+  ready=false
+  for _ in $(seq 1 100); do
+    if docker exec "$name" pg_isready -h 127.0.0.1 -U postgres -d postgres >/dev/null 2>&1; then
+      ready=true
+      break
+    fi
+    if [[ $(docker inspect --format "{{.State.Running}}" "$name") != true ]]; then break; fi
+    sleep 0.2
+  done
+  if [[ "$ready" != true ]]; then
+    docker logs "$name" >&2
+    echo "Staged PostgreSQL did not become ready." >&2
+    exit 1
   fi
-  if [[ $(docker inspect --format "{{.State.Running}}" "$name") != true ]]; then break; fi
-  sleep 0.2
-done
-if [[ "$ready" != true ]]; then
-  docker logs "$name" >&2
-  echo "Staged PostgreSQL did not become ready." >&2
-  exit 1
-fi
+}
+wait_ready
 
 docker exec "$name" bash -ec '
   for role in core adapter product hydra dedi; do
@@ -93,7 +105,11 @@ docker exec "$name" bash -ec '
     done
   done
 '
-for _ in 1 2; do
+for pass in 1 2; do
+  if [[ "$pass" == 2 ]]; then
+    docker restart "$name" >/dev/null
+    wait_ready
+  fi
   for role in gateway adapter product; do
     docker run --rm --network "$name" --env-file "$state/$role.env" \
       --entrypoint /app/runtimefiles "gramstack-$role:deployment-check" /app/service migrate
@@ -101,4 +117,4 @@ for _ in 1 2; do
   docker run --rm --network "$name" --env-file "$state/hydra.env" \
     oryd/hydra:v26.2.0@sha256:ff67c7fb5f95074fa53374d41151713554960504b340cd3f95b09e65deaea2a9 migrate sql up -e -y >/dev/null
 done
-echo "PASS: staged PostgreSQL 17, five isolated roles, and repeatable application and Hydra migrations"
+echo "PASS: retry-safe PostgreSQL 17 bootstrap, five isolated roles, and migrations before and after restart"
