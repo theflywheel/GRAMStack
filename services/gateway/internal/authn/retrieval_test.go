@@ -430,6 +430,9 @@ func TestActualProtectedRetrieval(t *testing.T) {
 			t.Fatal("post-admission stop caused another native read")
 		}
 	})
+	t.Run("distinct request capacity", func(t *testing.T) {
+		checkDistinctRetrievalCapacity(t, pool, base, private, token, consumerClient)
+	})
 	// Persisted operational rows contain metadata, never native resource plaintext.
 	for _, query := range []string{`SELECT to_jsonb(a)::text FROM gateway_retrieval_attempts a WHERE request_id=$1`, `SELECT to_jsonb(a)::text FROM evidence_receipts a WHERE request_id=$1`} {
 		var raw string
