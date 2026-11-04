@@ -23,6 +23,8 @@ var (
 	digestPattern  = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 )
 
+const MaxAccessSeconds = 300
+
 const NoticeVersion = "gramstack.en.v1"
 const ConsentType = "gramstack-consent+jwt"
 
@@ -171,7 +173,7 @@ func ValidateAccessRequest(r AccessRequest) error {
 			return ErrBinding
 		}
 	}
-	if !validFields(r.Fields) || r.SubjectHint.Value == "" || len(r.SubjectHint.Value) > 1024 || !utf8.ValidString(r.SubjectHint.Value) || r.Access.Mode != "single_use" || r.Access.ValidForSeconds < 1 || r.Access.ValidForSeconds > 300 {
+	if !validFields(r.Fields) || r.SubjectHint.Value == "" || len(r.SubjectHint.Value) > 1024 || !utf8.ValidString(r.SubjectHint.Value) || r.Access.Mode != "single_use" || r.Access.ValidForSeconds < 1 || r.Access.ValidForSeconds > MaxAccessSeconds {
 		return ErrBinding
 	}
 	return nil

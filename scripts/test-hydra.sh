@@ -72,7 +72,7 @@ DATABASE_URL="$GRAMSTACK_TEST_DATABASE_URL" "$scratch/gateway" migrate
 export GRAMSTACK_CONFIG_FILE="$scratch/gateway.json" GRAMSTACK_ENV=development DATABASE_URL="$GRAMSTACK_TEST_DATABASE_URL" PORT="$gateway_port"
 python3 - <<'PY'
 import json,os,pathlib
-policy=dict(registry='lokos',resource='shg.membership',fields=['membership_status','savings_summary'],purposes=['credit_eligibility'],hint_types=['member_reference'],terms_version='terms-v1',terms_text='Use only for this credit eligibility assessment. Retain approved data for up to 30 days, then delete it unless a documented legal retention requirement applies. No onward sharing.')
+policy=dict(registry='lokos',resource='shg.membership',fields=['membership_status','savings_summary'],purposes=['credit_eligibility'],hint_types=['member_reference'],terms_version='terms-v1',max_access_seconds=300,terms_text='Use only for this credit eligibility assessment. Retain approved data for up to 30 days, then delete it unless a documented legal retention requirement applies. No onward sharing.')
 config=dict(public_origin='http://127.0.0.1:'+os.environ['PORT'],hydra_introspection_url=os.environ['GRAMSTACK_TEST_HYDRA_ADMIN']+'/admin/oauth2/introspect',hydra_issuer=os.environ['GRAMSTACK_TEST_HYDRA_PUBLIC']+'/',audience='gramstack',scope='gramstack.access',allow_loopback_http=True,consumers={'consumer-one':[policy]})
 pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']).write_text(json.dumps(config))
 PY

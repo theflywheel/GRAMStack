@@ -68,6 +68,44 @@ func invoke(h http.Handler, method, path, token, key, body string) *httptest.Res
 	h.ServeHTTP(result, req)
 	return result
 }
+func TestRequestRespectsApprovedAccessWindow(t *testing.T) {
+	s, pool := setup(t)
+	policy := s.policies["consumer-one"][0]
+	config := Config{Pool: pool, Auth: fixtureAuth{}, PublicOrigin: "https://gateway.example", Consumers: map[string][]Policy{"consumer-one": {policy}}}
+	for _, invalid := range []int64{-1, 0, 301} {
+		config.Consumers["consumer-one"][0].MaxAccessSeconds = &invalid
+		if _, err := New(config); err == nil {
+			t.Fatalf("invalid policy time bound %d accepted", invalid)
+		}
+	}
+
+	limit := int64(120)
+	config.Consumers["consumer-one"][0].MaxAccessSeconds = &limit
+	restricted, err := New(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	limit = 300 // The live policy must retain the approved 120-second ceiling.
+	input := decodeInput(t, requestJSON)
+	key := rand.Text()
+	if _, err := restricted.Create(context.Background(), "consumer-one", key, input); !errors.Is(err, ErrPolicy) {
+		t.Fatalf("overlong request should be denied, got %v", err)
+	}
+	input.Access.ValidForSeconds = 120
+	accepted, err := restricted.Create(context.Background(), "consumer-one", key, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var raw []byte
+	if err := pool.QueryRow(context.Background(), `SELECT snapshot_bytes FROM accepted_requests WHERE request_id=$1`, accepted.RequestID).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	var snapshot cm.Snapshot
+	if err := json.Unmarshal(raw, &snapshot); err != nil || snapshot.Request.Access.ValidForSeconds != 120 {
+		t.Fatal("accepted snapshot did not preserve the requested bound", err)
+	}
+}
+
 func TestRequestsHTTPAndRestart(t *testing.T) {
 	s, pool := setup(t)
 	h := s.Handler()

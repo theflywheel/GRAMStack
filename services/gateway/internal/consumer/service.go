@@ -26,13 +26,14 @@ var (
 )
 
 type Policy struct {
-	Registry     string   `json:"registry"`
-	Resource     string   `json:"resource"`
-	Fields       []string `json:"fields"`
-	Purposes     []string `json:"purposes"`
-	HintTypes    []string `json:"hint_types"`
-	TermsVersion string   `json:"terms_version"`
-	TermsText    string   `json:"terms_text"`
+	Registry         string   `json:"registry"`
+	Resource         string   `json:"resource"`
+	Fields           []string `json:"fields"`
+	Purposes         []string `json:"purposes"`
+	HintTypes        []string `json:"hint_types"`
+	TermsVersion     string   `json:"terms_version"`
+	TermsText        string   `json:"terms_text"`
+	MaxAccessSeconds *int64   `json:"max_access_seconds,omitempty"`
 }
 type Config struct {
 	Pool          *pgxpool.Pool
@@ -87,6 +88,9 @@ func New(c Config) (*Service, error) {
 		}
 		terms := map[string]string{}
 		for _, p := range entries {
+			if p.MaxAccessSeconds != nil && (*p.MaxAccessSeconds < 1 || *p.MaxAccessSeconds > cm.MaxAccessSeconds) {
+				return nil, ErrInput
+			}
 			if old, ok := terms[p.TermsVersion]; ok && old != p.TermsText {
 				return nil, ErrInput
 			}
@@ -113,6 +117,9 @@ func (s *Service) Create(ctx context.Context, client, key string, input cm.Acces
 	// Bind approved text, not merely a mutable policy label.
 	for _, p := range s.policies[client] {
 		if p.Registry != input.Registry || p.Resource != input.Resource || p.TermsVersion != input.RecipientTerms.RetentionPolicyID || !slices.Contains(p.Purposes, input.Purpose) || !slices.Contains(p.HintTypes, input.SubjectHint.Type) {
+			continue
+		}
+		if p.MaxAccessSeconds != nil && input.Access.ValidForSeconds > *p.MaxAccessSeconds {
 			continue
 		}
 		allowed := true

@@ -189,7 +189,7 @@ def run(state, pg, hydra, dedi_source):
             public_origin=urls["gateway"], hydra_introspection_url=urls["admin"]+"/admin/oauth2/introspect",
             hydra_issuer=urls["hydra"]+"/", audience="gramstack", scope="gramstack.access", allow_loopback_http=True,
             consumers={"consumer-one": [dict(registry="lokos", resource="shg.membership", fields=fields,
-                       purposes=["credit_eligibility"], hint_types=["member_reference"], terms_version="terms-v1",
+                       purposes=["credit_eligibility"], hint_types=["member_reference"], terms_version="terms-v1", max_access_seconds=300,
                        terms_text="Use only for this credit eligibility assessment. Retain approved data for up to 30 days, then delete it unless a documented legal retention requirement applies. No onward sharing.")]},
             authentication=dict(client_id="gramstack-portal", hydra_admin_url=urls["admin"],
                                 provider=json.loads((state / "esignet-profile.json").read_text()), demo_upstream=True),

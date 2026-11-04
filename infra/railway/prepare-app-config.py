@@ -48,7 +48,7 @@ def configs(provider):
         allow_loopback_http=False,
         consumers={"consumer-one": [dict(registry="lokos", resource="shg.membership", fields=FIELDS,
                     purposes=["credit_eligibility"], hint_types=["member_reference"],
-                    terms_version="terms-v1", terms_text=TERMS)]},
+                    terms_version="terms-v1", max_access_seconds=300, terms_text=TERMS)]},
         authentication=dict(client_id="gramstack-portal", hydra_admin_url=HYDRA_ADMIN,
                             provider=provider, demo_upstream=True),
         registries=[dict(registry="lokos", origin=ADAPTER, server_name="lokos-adapter.gramstack.internal",
