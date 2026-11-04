@@ -574,6 +574,8 @@ For multiple sources, the client creates separate bounded requests and handles p
 
 ## Rights and responsible organisations
 
+The [post-disclosure profile](specifications/post-disclosure) specifies independent history sign-in, the consent record download, rights case intake and private operator queues.
+
 The platform exposes authorised consent/disclosure history and machine-readable receipt export, with metadata minimised for the caller. It accepts and routes access, correction, erasure and grievance requests to the organisation responsible for the relevant records. Source correction happens in the registry's own process; read-only interoperability does not become registry mutation. Withdrawal, cancellation and erasure are distinct operations.
 
 Each rights case records the verified requester/authority reference, request type, affected consent/disclosure references, responsible organisation, acknowledgement, policy-defined deadline, status and authenticated outcome or exception. Acceptance is not completion. Products provide user interfaces and notifications; the platform provides durable case correlation and status. History lookup and export require reauthentication and subject/role checks, without introducing a universal citizen identity index. Never return other household members' records through an export.
@@ -1102,7 +1104,7 @@ Capability discovery and verification workflows are adapter responsibilities. Th
 
 ## Platform extension interfaces
 
-These architecture interfaces expose the additional platform responsibilities described in [consent](04-consent) and [data handling](08-state-and-evidence). These interfaces are separate from the published v0.2 cancellation API; they are not additional implemented wire operations. A versioned capability/schema defines each extension before client adoption.
+The [post-disclosure profile](specifications/post-disclosure) defines the implemented routes for protected history, recipient handling reports and rights cases. The table also includes architecture extension points that need their own versioned contracts before client adoption.
 
 | Interface | Authorised caller | Contract and timing |
 |---|---|---|

@@ -206,7 +206,7 @@ Capability discovery and verification workflows are adapter responsibilities. Th
 
 ## Platform extension interfaces
 
-These architecture interfaces expose the additional platform responsibilities described in [consent](04-consent) and [data handling](08-state-and-evidence). These interfaces are separate from the published v0.2 cancellation API; they are not additional implemented wire operations. A versioned capability/schema defines each extension before client adoption.
+The [post-disclosure profile](specifications/post-disclosure) defines the implemented routes for protected history, recipient handling reports and rights cases. The table also includes architecture extension points that need their own versioned contracts before client adoption.
 
 | Interface | Authorised caller | Contract and timing |
 |---|---|---|

@@ -34,3 +34,7 @@ const discoveryRoot = new URL('adapter-discovery/0.1.0/', source)
 const discoveryReadme = await readFile(new URL('README.md', discoveryRoot), 'utf8')
 const discoveryDownload = 'https://docs.gramstack.try-dough.com/static/specs/adapter-discovery/0.1.0/'
 await writeFile(new URL('adapter-discovery.md', target), front('Adapter discovery and public keys') + discoveryReadme.replace(/\]\((schemas|examples)\.json\)/g, `](${discoveryDownload}$1.json)`) + '\n[Download schemas](' + discoveryDownload + 'schemas.json) · [Download fixtures](' + discoveryDownload + 'examples.json)\n')
+
+const postDisclosure = await readFile(new URL('post-disclosure/0.1.0/README.md', source), 'utf8')
+const postDisclosureDownload = 'https://docs.gramstack.try-dough.com/static/specs/post-disclosure/0.1.0/README.md'
+await writeFile(new URL('post-disclosure.md', target), front('Post-disclosure profile') + postDisclosure + '\n[Download canonical profile](' + postDisclosureDownload + ')\n')

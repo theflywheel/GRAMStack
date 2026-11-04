@@ -27,6 +27,8 @@ Current specification version: **0.3.0**. Versions 0.1.0 and 0.2.0 remain unchan
 
 [Adapter discovery 0.1.0](/specifications/adapter-discovery) defines public capability/JWK metadata and fail-closed comparison against approved origins, methods, resources and key material. [Canonical profile source](https://github.com/theflywheel/GRAMStack/tree/main/specs/adapter-discovery/0.1.0).
 
+[Post-disclosure 0.1.0](/specifications/post-disclosure) defines protected history and receipt recovery, authenticated recipient handling assertions and responsible-party rights case routing.
+
 ## Maintaining the contracts
 
 Edit this directory; Quartz generates its specification pages and downloadable files from it. Do not edit generated copies under `docs/content/specifications/`. Run `cd docs && npm ci && npm run verify:specs && npm run build && npm run verify:content`.
