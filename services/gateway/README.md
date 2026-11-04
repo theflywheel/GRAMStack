@@ -63,3 +63,19 @@ Optional `authorization.evidence: {"release_profile":"batch"}` plus each adapter
 Enable `authorization.retrieval: {"max_concurrent":4}` alongside private evidence custody, registry descriptors and adapter configuration. The private listener accepts the original registered consumer certificate and retrieval-grant bearer token on GET `/v1/access-requests/{id}/data`; forwarding a certificate header through a generic public proxy cannot satisfy it. See [single dispatch, release gates and recovery](internal/retrieval/README.md). Migration 0010 retains one immutable dispatch scope and fixed deadline per request, with FSM outcomes and receipt references. The reference adapter uses the separately published SDK interface, not imported registry code in the gateway.
 
 Run `GRAMSTACK_TEST_RETRIEVAL=1 PG_BIN=... HYDRA_BIN=... ./scripts/test-hydra.sh` for all earlier gates plus actual protected disclosure, one/two-field selection, native read counts, disconnect/evidence failures, withdrawal cutoff and gateway/adapter/source restart. Add `GRAMSTACK_TEST_ESIGNET=1` for the official provider. The native records and ownership policy are fictional. Data remains transient in gateway/adapter memory; batch custody can acknowledge pending anchoring, with the optional worker performing verified DeDi publication asynchronously. Full deployment readiness remains separately tracked.
+
+### Recipient handling reports
+
+On the private retrieval listener, the registered recipient can submit
+`PUT /v1/disclosures/{receipt}/handling-reports/{report}` with its mTLS
+certificate. The JSON body contains `action` and RFC 3339 `occurred_at`.
+Use `retained`, `deleted`, or `retention_exception`. A retention exception
+requires `exception_code` of `legal_hold` or `statutory_retention`. The action
+time must be between evidence acceptance and the database's current time.
+
+The gateway derives the producer and terms fingerprint from the existing
+disclosure and approved consent. An identical retry returns the original
+record, and reusing the same report ID for different content returns 409.
+Every acknowledgement is labelled `reported`. This endpoint records the
+recipient's assertion. Independently verified deletion and processor
+delegation require their own trust profiles.

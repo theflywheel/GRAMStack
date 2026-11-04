@@ -266,6 +266,7 @@ func configureAuthorization(ctx context.Context, mux *http.ServeMux, pool *pgxpo
 				return nil, err
 			}
 			privateHandler.Handle("GET /v1/access-requests/{id}/data", dataService.Handler())
+			privateHandler.Handle("PUT /v1/disclosures/{receipt}/handling-reports/{report}", dataService.HandlingHandler())
 		}
 
 	}

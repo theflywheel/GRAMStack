@@ -167,6 +167,46 @@ func TestActualProtectedRetrieval(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM evidence_receipts e JOIN outbox o ON o.aggregate_type='evidence' AND o.aggregate_id=e.receipt_id WHERE e.receipt_id=$1 AND e.request_id=$2 AND e.attempt_id=$3 AND e.outcome='release_ready'`, approved.ReceiptID, id, attempt).Scan(&count); err != nil || count != 1 {
 		t.Fatal("data was released without durable evidence and work", err)
 	}
+	t.Run("recipient handling report", func(t *testing.T) {
+		path := "/v1/disclosures/" + approved.ReceiptID + "/handling-reports/report-1"
+		occurred := time.Now().UTC().Format(time.RFC3339Nano)
+		payload := `{"action":"retention_exception","exception_code":"legal_hold","occurred_at":"` + occurred + `"}`
+		send := func(origin string, client *http.Client, body string) (int, string) {
+			t.Helper()
+			request, err := http.NewRequest("PUT", origin+path, strings.NewReader(body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("X-Forwarded-Client-Cert", "consumer-one")
+			response, content := liveResponse(t, client, request)
+			return response.StatusCode, content
+		}
+		if status, _ := send(base, &http.Client{Timeout: 5 * time.Second}, payload); status != 404 {
+			t.Fatal("handling report route exposed on public listener", status)
+		}
+		if status, _ := send(private, serviceClient(t, "lokos-adapter", "gateway.gramstack.internal"), payload); status != 404 {
+			t.Fatal("adapter could submit a recipient report", status)
+		}
+		if status, _ := send(private, consumerClient, strings.Replace(payload, "legal_hold", "unapproved", 1)); status != 400 {
+			t.Fatal("unsupported retention exception admitted", status)
+		}
+		status, recorded := send(private, consumerClient, payload)
+		if status != 200 || !strings.Contains(recorded, `"verification":"reported"`) ||
+			!strings.Contains(recorded, `"terms_version":"terms-v1"`) ||
+			!strings.Contains(recorded, `"producer_id":"consumer-one"`) {
+			t.Fatal("valid recipient assertion was not bound to the disclosure and terms", status)
+		}
+		if status, repeated := send(private, consumerClient, payload); status != 200 || repeated != recorded {
+			t.Fatal("identical retry changed handling report", status)
+		}
+		if status, _ := send(private, consumerClient, strings.Replace(payload, "legal_hold", "statutory_retention", 1)); status != 409 {
+			t.Fatal("report ID reuse changed recorded assertion", status)
+		}
+		if sourceReads(t) != before+1 {
+			t.Fatal("handling report triggered another native read")
+		}
+	})
 	// Direct SDK retries remain denied, even with the trusted gateway certificate.
 	var snapshot []byte
 	var digest string
