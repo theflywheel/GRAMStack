@@ -20,7 +20,7 @@ The 96-second walkthrough includes timed on-screen explanations, a capability re
 2. Return to SakhiCredit and tap **Get approved details**, then **View access audit in consent history**. Sign in again. The audit is available after a reload or a fresh session. [Open consent history](https://gramstack-gateway-b9b69819.up.railway.app/consent-history/lokos)
 3. Find your completed request. The card shows recipient application `consumer-one` (SakhiCredit), field `membership_status`, the UTC response time, and the signed receipt reference. **1 of 1 authorized retrievals used** means the same consent cannot authorize another retrieval through GRAMStack.
 4. Check the receipt's DeDi status. Anchoring runs asynchronously, so a new receipt can show **DeDi anchoring pending** before it shows **DeDi commitment verified**.
-5. Decline a separate request and check its history. It should show **No completed disclosure is recorded for this request**. An uncertain response attempt has a separate **Delivery is unconfirmed** message.
+5. Decline a separate request and check its history. It should show **No completed disclosure is recorded for this request**. An uncertain response attempt is shown separately.
 
 ### What happened behind the screen
 
