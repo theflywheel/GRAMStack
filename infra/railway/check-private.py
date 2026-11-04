@@ -27,7 +27,7 @@ def local_targets(state):
     return targets
 
 
-def request(target, certs, identity, method, path):
+def request(target, certs, identity, method, path, forward_port=None):
     host, port = target
     command = [
         "curl", "--disable", "--silent", "--noproxy", "*",
@@ -35,6 +35,8 @@ def request(target, certs, identity, method, path):
         "--request", method, "--header", "Content-Type: text/plain",
         "--output", "/dev/null", "--write-out", "%{http_code}",
     ]
+    if forward_port is not None:
+        command += ["--connect-to", f"{host}:{port}:127.0.0.1:{forward_port}"]
     if identity:
         command += ["--cert", str(certs / f"{identity}.pem"), "--key", str(certs / f"{identity}.key")]
     # The adapter probe deliberately sends no valid contract or JSON.
@@ -47,7 +49,7 @@ def request(target, certs, identity, method, path):
     return "unreachable"
 
 
-def check(targets, certs):
+def check(targets, certs, forwarded=None):
     registry_queue = "/internal/v1/rights-cases/registry/lokos"
     recipient_queue = "/internal/v1/rights-cases/recipient/consumer-one"
     verification = "/internal/v1/subject-verifications"
@@ -64,7 +66,7 @@ def check(targets, certs):
     )
     results = {}
     for label, service, identity, method, path, expected in probes:
-        observed = request(targets[service], certs, identity, method, path)
+        observed = request(targets[service], certs, identity, method, path, (forwarded or {}).get(service))
         results[label] = {"observed": observed, "passed": observed == expected}
     return results
 
@@ -74,12 +76,21 @@ def main():
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--certs", type=Path, help="private operator directory for the Railway demo certificates")
     mode.add_argument("--local-state", type=Path, help="running standalone demo directory")
+    parser.add_argument("--forwarded-ports", type=int, nargs=3, metavar=("GATEWAY", "ADAPTER", "SOURCE"),
+                        help="local SSH forward ports, in gateway, adapter, source order")
     args = parser.parse_args()
+    forwarded = None
+    if args.forwarded_ports:
+        if not args.certs or len(set(args.forwarded_ports)) != 3 or any(
+            not 1 <= port <= 65535 for port in args.forwarded_ports
+        ):
+            parser.error("Use --certs and three distinct, valid loopback SSH forward ports")
+        forwarded = dict(zip(TARGETS, args.forwarded_ports))
     try:
         targets, certs = (local_targets(args.local_state), args.local_state / "certs") if args.local_state else (
             TARGETS, args.certs
         )
-        results = check(targets, certs)
+        results = check(targets, certs, forwarded)
     except (OSError, KeyError, ValueError, subprocess.TimeoutExpired):
         parser.error("Check the demo endpoints and operator certificate files")
     passed = all(result["passed"] for result in results.values())

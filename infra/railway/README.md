@@ -339,6 +339,20 @@ adapter verification, and adapter-only access to the native source. It
 reports status codes only and sends no valid verification or business
 request. The gateway, adapter and source enforce TLS 1.3.
 
+An operator with Railway SSH access can instead bind three forwards to
+`127.0.0.1` using these destinations:
+
+| Loopback port | Private destination |
+|---|---|
+| 29445 | `gateway.railway.internal:8445` |
+| 29443 | `lokos-adapter.railway.internal:8443` |
+| 29444 | `mock-lokos.railway.internal:8444` |
+
+Run the same check locally with
+`python3 infra/railway/check-private.py --certs /private/demo-certs --forwarded-ports 29445 29443 29444`.
+Curl connects through the forwards while still verifying the private service
+hostnames. The operator client keys stay on the operator machine.
+
 The same probe accepts `--local-state "$state/demo"` for a running isolated
 standalone environment. That mode only accepts HTTPS literal-loopback
 endpoints. This is an operator check, separate from the product journey.
