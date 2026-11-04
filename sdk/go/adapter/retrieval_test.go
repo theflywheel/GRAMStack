@@ -21,6 +21,7 @@ import (
 	"time"
 
 	jose "github.com/go-jose/go-jose/v4"
+	"github.com/theflywheel/GRAMStack/sdk/go/adapter/internal/retrievalcheck"
 )
 
 type attemptMemory struct {
@@ -205,6 +206,25 @@ func retrievalHTTP(input RetrievalRequest) *http.Request {
 	r.TLS = &tls.ConnectionState{VerifiedChains: [][]*x509.Certificate{{cert}}, PeerCertificates: []*x509.Certificate{cert}}
 	return r
 }
+func TestSharedRetrievalConformance(t *testing.T) {
+	f := newRetrievalFixture(t)
+	invalid := f.input
+	grant := f.claims
+	grant.Audience = "different-adapter"
+	invalid.Grant = signGrant(t, f.grantKey, grant, GrantType, nil)
+	replay := f.input
+	replay.AttemptID = "different-attempt"
+	retrievalcheck.Run(t, retrievalcheck.Fixture{
+		Handler:      f.service(t).Handler(),
+		Valid:        func() *http.Request { return retrievalHTTP(f.input) },
+		InvalidGrant: func() *http.Request { return retrievalHTTP(invalid) },
+		Replay:       func() *http.Request { return retrievalHTTP(replay) },
+		Reads:        func() int { return int(f.provider.calls.Load()) },
+		Acknowledged: func() int { return int(f.recorded.Load()) },
+		Field:        "membership_status", Value: json.RawMessage(`"active"`), ReceiptID: "receipt-1",
+	})
+}
+
 func TestRetrievalProjectsAfterDurableEvidenceAndNeverReplays(t *testing.T) {
 	f := newRetrievalFixture(t)
 	service := f.service(t)
