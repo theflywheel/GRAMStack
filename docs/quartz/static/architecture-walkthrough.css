@@ -56,12 +56,20 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 svg { width: 100%; height: auto; display: block; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); }
 button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--node-line); background: var(--node); color: var(--text); cursor: pointer; }
-input[type="checkbox"] { accent-color: var(--control); }
+.legend input[type="checkbox"] {
+  accent-color: var(--control);
+  flex: 0 0 16px;
+  margin: 0;
+  transform: none;
+}
 button:hover { border-color: var(--text); }
 button.primary { background: var(--control); color: var(--on-accent); border-color: var(--control); }
-.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--muted); margin-left: auto; }
-.legend label { display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap; flex: 0 0 auto; }
-.sw { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--muted); margin-left: auto; max-width: 100%; }
+.legend label { display: flex; align-items: center; gap: 5px; cursor: pointer; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+@container (max-width: 460px) {
+  .legend { display: grid; flex-basis: 100%; margin-left: 0; gap: 8px; }
+}
+.sw { flex: 0 0 18px; width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
 aside { min-width: 0; padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 120px); position: sticky; top: 12px; }
 @container (max-width: 1000px) { aside { position: static; max-height: none; } }
 .step-head { display: flex; gap: 10px; align-items: baseline; }
