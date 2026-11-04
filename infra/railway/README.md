@@ -130,6 +130,23 @@ Set the gateway and source modes to `demo` and keep the eSignet demo provider
 and registry verifier explicitly enabled. Keep loopback HTTP disabled.
 The gateway's discovery configuration uses the public adapter metadata URL.
 
+After private eSignet client onboarding, generate the runtime JSON from the
+onboarded provider profile:
+
+```sh
+python3 infra/railway/prepare-app-config.py --provider "$state/esignet-profile.json" "$state/config"
+go run ./services/gateway/cmd/gramstack sign-policy \
+  -input "$state/config/policy.json" -key "$state/certs/policy-signing.key" \
+  -key-id demo-policy-key -output "$state/config/policy.jws"
+```
+
+The generator pins the public issuers, private listener names and approved
+demo policy. Put `gateway.json`, `adapter.json` and `product.json` in their
+respective service bundles. The gateway also needs the signed `policy.jws`.
+Files named by the configurations resolve under `/run/gramstack`.
+Private eSignet onboarding still needs to produce the provider profile,
+client assertion key and fictional subject bindings.
+
 Set `GRAMSTACK_PRIVATE_CA_FILE` to the gateway bundle file containing the
 private Hydra admin and DeDi CA certificates. The gateway image appends those
 roots to its system roots at startup so it can still verify the public
