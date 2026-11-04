@@ -2,111 +2,393 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GRAMStack interactive architecture</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GRAMStack Data Flow</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f4f7f3;color:#17352c;font:16px/1.5 system-ui,sans-serif}main{max-width:1280px;margin:auto;padding:24px}h1,h2,p{margin:0 0 12px}h1{font-size:32px}h2{font-size:24px}.kicker{font-size:13px;font-weight:750;letter-spacing:.13em;color:#176450}.layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}.card{background:white;border:1px solid #d5e2d9;border-radius:14px;padding:16px}.graph{overflow:auto}.graph svg{display:block;min-width:570px;width:100%;height:auto}.node rect{fill:#f2f6f2;stroke:#b8cbbd;stroke-width:1.5}.node text{fill:#17352c;text-anchor:middle;font-size:14px;font-weight:650}.node.active rect{fill:#d7f3e4;stroke:#147455;stroke-width:3}.lane{fill:#52675b;font-size:13px;font-weight:700;letter-spacing:1px}.route{fill:none;stroke:#148357;stroke-width:4}.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}button,select{font:inherit;color:inherit;background:#fff;border:1px solid #a9c0b3;border-radius:8px;padding:7px 10px}button{cursor:pointer}button:focus-visible,select:focus-visible{outline:3px solid #2588be;outline-offset:2px}button:disabled{opacity:.45;cursor:default}select{max-width:100%}dt{font-weight:700;margin-top:12px}dd{margin:0;overflow-wrap:anywhere}code{background:#ecf3ed;padding:2px 4px}ol{margin:0;padding-left:24px}.steps{margin-top:14px}.steps button{border:0;text-align:left;padding:3px 6px}.steps button[aria-current]{background:#d7f3e4;font-weight:750}@media(max-width:850px){.layout{grid-template-columns:1fr}.graph svg{min-width:530px}main{padding:12px}}
-</style>
-</head>
-<body><main>
-<p class="kicker">GRAMSTACK · SAKHICREDIT DEMO</p>
-<h1>Follow one consented read</h1>
-<p>Step through the request. The diagram highlights the participants and the call behind each action in SakhiCredit.</p>
-<div class="controls"><button id="previous">Previous</button><button id="play" aria-pressed="false">Play</button><button id="next">Next</button><select id="step" aria-label="Architecture step"></select></div>
-<div class="layout">
-<div class="card graph"><svg id="diagram" viewBox="0 0 780 500" role="img" aria-labelledby="diagram-title"><title id="diagram-title">GRAMStack request participants</title><defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#148357"/></marker></defs><path class="route" id="route" marker-end="url(#arrow)"/></svg></div>
-<section class="card" aria-live="polite"><p id="position" class="kicker"></p><h2 id="title"></h2><p id="description"></p><dl><dt>Call path</dt><dd id="call"></dd><dt>Interface</dt><dd><code id="interface"></code></dd><dt>Request state</dt><dd id="state"></dd></dl></section>
-</div>
-<section class="card steps"><h2>Walkthrough steps</h2><ol id="steps"></ol></section>
-</main>
-<script>
-const nodes = {
-  browser: ["Member’s browser", 12, 42], product: ["SakhiCredit backend", 205, 42],
-  hydra: ["Ory Hydra", 398, 42], esignet: ["eSignet", 591, 42],
-  lifecycle: ["Gateway lifecycle", 12, 173], identity: ["Identity and binding", 205, 173],
-  consent: ["Consent portal", 398, 173], workers: ["Durable workers", 591, 173],
-  authz: ["Authorization", 12, 304], private: ["Private data listener", 205, 304],
-  custody: ["Evidence custody", 398, 304], dedi: ["DeDi node", 591, 304],
-  sql: ["Gateway PostgreSQL", 12, 435], adapter: ["LokOS adapter SDK", 205, 435],
-  source: ["Fictional LokOS source", 398, 435], productSql: ["SakhiCredit PostgreSQL", 591, 435],
-};
-const steps = [
-  ["Start an application","browser","product","SakhiCredit web form","Request not yet created","Sunita selects the membership status and, optionally, the savings summary. SakhiCredit saves the application before requesting access."],
-  ["Authenticate SakhiCredit","product","hydra","POST /oauth2/token","Request not yet created","Hydra issues a client credentials token to the SakhiCredit backend."],
-  ["Create the access request","product","lifecycle","POST /v1/access-requests","AUTHENTICATION_PENDING","The gateway durably binds the consumer, registry, purpose and exact field selection to this request."],
-  ["Sign in through eSignet","identity","esignet","OIDC authorization code","BINDING_PENDING","eSignet authenticates Sunita. GRAMStack validates the response and binds it to the browser session."],
-  ["Verify registry ownership","identity","adapter","POST /internal/v1/subject-verifications","CONSENT_PENDING","The LokOS adapter checks that the authenticated subject is entitled to the requested registry record."],
-  ["Approve the exact notice","browser","consent","Consent portal confirmation","CONSENT_PENDING","Sunita reviews the purpose, recipient, fields and retention terms, then explicitly approves."],
-  ["Activate signed consent","consent","workers","Consent signing outbox","CONSENTED","A durable worker signs and activates the approval. Activation makes the approval eligible for authorization."],
-  ["Issue a scoped grant","product","authz","Retrieval grant API","AUTHORIZED","The gateway checks current consent and policy and issues a short-lived grant bound to the recipient certificate and approved scope."],
-  ["Reserve the single authorized use","adapter","authz","POST /internal/v1/grants/redeem","REDEEMING","The gateway reserves the grant and records the authorization event together. The same consent cannot authorize another retrieval."],
-  ["Read and project only approved fields","adapter","source","Private source request","REDEEMING","The adapter fetches the verified record and projects only the field names authorized by the grant."],
-  ["Store signed evidence","adapter","custody","Private evidence custody","EVIDENCE_COMMITTED","The gateway persists the signed receipt before returning the projected fields. Registry values stay out of the audit record."],
-  ["Return the approved result","private","product","Private mTLS response","COMPLETED","The gateway records that it wrote the response. SakhiCredit saves its approved result in encrypted storage."],
-  ["Anchor the evidence commitment","workers","dedi","Signed DeDi publication","COMPLETED","The worker publishes a commitment and verifies inclusion asynchronously. The original evidence remains private."],
-  ["Review the access audit","browser","consent","GET /consent-history/lokos","COMPLETED","After signing in, Sunita can see the authorization event, fields shared, response time and evidence status."],
-];
-const byId = id => document.getElementById(id);
-const svg = byId("diagram");
-const addSvg = (tag, attrs, parent) => {
-  const el = document.createElementNS("http://www.w3.org/2000/svg",tag);
-  for (const [k,v] of Object.entries(attrs)) el.setAttribute(k,v);
-  parent.append(el);
-  return el;
-};
-for (const [label,y] of [["PRODUCT AND IDENTITY",24],["GATEWAY CONTROL",155],["RETRIEVAL AND EVIDENCE",286],["PERSISTENCE AND REGISTRY",417]]) {
-  addSvg("text",{x:12,y,class:"lane"},svg).textContent=label;
+:root {
+  --bg: #f7f6f2; --panel: #ffffff; --text: #1f1f1d; --muted: #5f5e5a; --line: #d9d7cf;
+  --zone: #efede6; --node: #ffffff; --node-line: #b9b6ab;
+  --control: #2563a8; --identity: #7a4fb0; --consent: #0f7b6c; --data: #c2410c; --evidence: #6b7280;
+  --hl: #f5c542;
 }
-for (const [id,[name,x,y]] of Object.entries(nodes)) {
-  const g=addSvg("g",{id:"node-"+id,class:"node"},svg);
-  addSvg("rect",{x,y,width:177,height:52,rx:9},g);
-  addSvg("text",{x:x+88.5,y:y+32},g).textContent=name;
-}
-svg.append(byId("route"));
-let current=0,timer;
-function show(i){
-  current=i;
-  const [title,from,to,api,state,description]=steps[i];
-  byId("position").textContent="STEP "+(i+1)+" / "+steps.length;
-  byId("title").textContent=title;
-  byId("description").textContent=description;
-  byId("call").textContent=nodes[from][0]+" → "+nodes[to][0];
-  byId("interface").textContent=api;
-  byId("state").textContent=state;
-  byId("step").value=i;
-  byId("previous").disabled=i===0;
-  byId("next").disabled=i===steps.length-1;
-  for(const id of Object.keys(nodes)) byId("node-"+id).classList.toggle("active",id===from||id===to);
-  [...byId("steps").querySelectorAll("button")].forEach((button,j)=>{
-    if(j===i)button.setAttribute("aria-current","step");else button.removeAttribute("aria-current");
-  });
-  const [,x,y]=nodes[from], [,u,v]=nodes[to];
-  if(y===v){
-    const start=x<u?x+177:x, end=x<u?u-4:u+181;
-    byId("route").setAttribute("d",`M${start},${y+26} C${start},${y-13} ${end},${y-13} ${end},${y+26}`);
-  }else{
-    const start=y<v?y+52:y,end=y<v?v-4:v+56,middle=(start+end)/2;
-    byId("route").setAttribute("d",`M${x+88.5},${start} C${x+88.5},${middle} ${u+88.5},${middle} ${u+88.5},${end}`);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171716; --panel: #212120; --text: #ecebe6; --muted: #a8a69e; --line: #3a3936;
+    --zone: #262624; --node: #2c2c2a; --node-line: #55534d;
+    --control: #6ea8e8; --identity: #b391e0; --consent: #3cc2ad; --data: #f08a4b; --evidence: #a3a8b3;
   }
 }
-function stop(){clearInterval(timer);timer=undefined;byId("play").textContent="Play";byId("play").setAttribute("aria-pressed","false")}
-function select(i){stop();show(i)}
-steps.forEach(([label],i)=>{
-  byId("step").add(new Option((i+1)+". "+label,i));
-  const li=document.createElement("li"),button=document.createElement("button");
-  button.textContent=label;
-  button.onclick=()=>select(i);
-  li.append(button);byId("steps").append(li);
-});
-byId("step").onchange=e=>select(Number(e.target.value));
-byId("previous").onclick=()=>select(current-1);
-byId("next").onclick=()=>select(current+1);
-byId("play").onclick=()=>{
-  if(timer){stop();return}
-  if(current===steps.length-1)show(0);
-  byId("play").textContent="Pause";
-  byId("play").setAttribute("aria-pressed","true");
-  timer=setInterval(()=>{if(current===steps.length-1)stop();else show(current+1)},3500);
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { padding: 20px 24px 8px; max-width: 1400px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.lede { color: var(--muted); margin: 0; max-width: 90ch; }
+.wrap { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; padding: 12px 24px 24px; max-width: 1400px; margin: 0 auto; }
+@media (max-width: 1000px) { .wrap { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; } header { padding: 16px 16px 4px; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+#graph { padding: 8px; overflow: auto; }
+@media (max-width: 680px) { #graph svg { min-width: 820px; } }
+svg { width: 100%; height: auto; display: block; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--node-line); background: var(--node); color: var(--text); cursor: pointer; }
+button:hover { border-color: var(--text); }
+button.primary { background: var(--control); color: #fff; border-color: var(--control); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--muted); margin-left: auto; }
+.legend label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.sw { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+aside { padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 120px); position: sticky; top: 12px; }
+@media (max-width: 1000px) { aside { position: static; max-height: none; } }
+.step-head { display: flex; gap: 10px; align-items: baseline; }
+.badge { font-weight: 700; font-size: 13px; color: #fff; border-radius: 999px; padding: 2px 9px; }
+#s-title { font-size: 17px; font-weight: 650; margin: 0; }
+#s-detail { margin: 0; }
+.kv { font-size: 13px; color: var(--muted); }
+.kv b { color: var(--text); font-weight: 600; }
+code { font-size: 12.5px; background: var(--zone); padding: 1px 5px; border-radius: 4px; word-break: break-all; }
+ol#steps { margin: 0; padding: 0; list-style: none; overflow: auto; border-top: 1px solid var(--line); padding-top: 8px; }
+ol#steps li { padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 13.5px; display: flex; gap: 8px; }
+ol#steps li:hover { background: var(--zone); }
+ol#steps li.on { background: var(--zone); font-weight: 650; }
+ol#steps li .n { min-width: 22px; text-align: right; color: var(--muted); }
+.states { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line); font-size: 12px; }
+.states span { padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.states span.on { background: var(--hl); color: #1f1f1d; border-color: var(--hl); font-weight: 700; }
+.states span.done { color: var(--text); border-color: var(--node-line); }
+.zone-label { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; fill: var(--muted); }
+.node rect { fill: var(--node); stroke: var(--node-line); stroke-width: 1.2; }
+.node.db rect { stroke-dasharray: 4 3; }
+.node text { fill: var(--text); font-size: 12.5px; pointer-events: none; }
+.node .sub { fill: var(--muted); font-size: 10.5px; }
+.node.active rect { stroke: var(--hl); stroke-width: 3; }
+.node { cursor: pointer; }
+.edge { fill: none; stroke-width: 1.6; opacity: .28; }
+.edge.on { opacity: 1; stroke-width: 3.2; }
+.edge.dim { opacity: .08; }
+.enum circle { stroke: var(--panel); stroke-width: 1.5; }
+.enum text { fill: #fff; font-size: 10px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.enum { cursor: pointer; opacity: .55; }
+.enum.on { opacity: 1; }
+.enum.dim { opacity: .12; }
+.tip { position: fixed; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; max-width: 320px; box-shadow: 0 6px 20px rgba(0,0,0,.15); display: none; z-index: 5; }
+.tip b { display: block; margin-bottom: 4px; }
+.note { font-size: 12.5px; color: var(--muted); padding: 8px 12px 12px; margin: 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>GRAMStack architecture and data flow</h1>
+  <p class="lede">Follow a SakhiCredit request from sign-in and consent to retrieval and audit. Play the sequence or select a numbered connection to see the request, participants, and state. Select a component to highlight its incoming and outgoing connections. Scroll the diagram horizontally on smaller screens.</p>
+</header>
+<div class="wrap">
+  <div class="card">
+    <div class="controls">
+      <button id="prev" aria-label="Previous step">◀</button>
+      <button id="play" class="primary">Play</button>
+      <button id="next" aria-label="Next step">▶</button>
+      <button id="all">Show all</button>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div id="graph"></div>
+    <div class="states" id="states" aria-label="Request lifecycle states"></div>
+    <p class="note">Lifecycle states come from <code>specs/0.3.0/lifecycle.json</code>. Other end states: REJECTED, DENIED, WITHDRAWN, EXPIRED, CANCELLED, FAILED, DELIVERY_UNKNOWN. Dashed grey lines show which component writes to which database. All identities and records in the demo are fictional.</p>
+  </div>
+  <aside class="card">
+    <div class="step-head"><span class="badge" id="s-badge">1</span><h2 id="s-title"></h2></div>
+    <p id="s-detail"></p>
+    <div class="kv" id="s-kv"></div>
+    <ol id="steps"></ol>
+  </aside>
+</div>
+<div class="tip" id="tip"></div>
+
+<script src="/static/d3.v7.min.js"></script>
+<script>
+const TYPES = {
+  control:  { label: "Control and status", v: "--control" },
+  identity: { label: "Identity and ownership", v: "--identity" },
+  consent:  { label: "Consent", v: "--consent" },
+  data:     { label: "Protected data", v: "--data" },
+  evidence: { label: "Evidence (metadata only)", v: "--evidence" },
 };
-show(0);
-</script></body></html>
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+const ZONES = [
+  { id: "person",   label: "Member",                  x: 10,  y: 110, w: 150, h: 560 },
+  { id: "consumer", label: "Consumer: SakhiCredit",   x: 175, y: 110, w: 200, h: 560 },
+  { id: "idp",      label: "Identity",                x: 390, y: 10,  w: 470, h: 90 },
+  { id: "core",     label: "GRAMStack core (gateway)",x: 390, y: 110, w: 470, h: 560 },
+  { id: "registry", label: "Registry boundary",       x: 875, y: 110, w: 315, h: 390 },
+  { id: "dedi",     label: "Public evidence",         x: 875, y: 515, w: 315, h: 155 },
+];
+
+const NODES = [
+  { id: "browser", z: "person", x: 85, y: 390, t: "Member's browser", s: "SakhiCredit tab + portal tab",
+    d: "Sunita uses one browser. SakhiCredit runs in one tab; GRAMStack sign-in and consent run in a separate first-party tab. The browser never receives consumer credentials or retrieval grants.", c: "apps/sakhicredit/internal/application/web/" },
+  { id: "backend", z: "consumer", x: 275, y: 250, t: "SakhiCredit backend", s: "Go service",
+    d: "Independent consumer product. It owns its applications and an encrypted copy of received data. It calls the OAuth control API and the private mTLS data API.", c: "apps/sakhicredit/ (service.go, client.go)" },
+  { id: "productdb", z: "consumer", x: 275, y: 520, t: "Product SQL", s: "PRODUCT database", db: true,
+    d: "Encrypted application input, the request binding, the fetch claim and the encrypted received result. A reload reads this copy; it does not fetch again.", c: "apps/sakhicredit/internal/application/schema.sql" },
+  { id: "hydra", z: "idp", x: 500, y: 58, t: "Ory Hydra", s: "OAuth / OIDC engine",
+    d: "Issues consumer access tokens (client credentials) and runs the OIDC protocol for person login. The admin API is private and is used to introspect tokens.", c: "infra/railway (hydra-public, hydra-admin)" },
+  { id: "esignet", z: "idp", x: 745, y: 58, t: "eSignet", s: "OIDC identity provider",
+    d: "Official MOSIP eSignet with a fictional identity backend and OTP. Login gives an issuer-qualified person; it does not prove that a registry record is hers.", c: "infra/esignet, mocks/identity" },
+  { id: "api", z: "core", x: 510, y: 170, t: "API and lifecycle", s: "/v1/access-requests",
+    d: "Consumer API perimeter. Validates the request, applies consumer policy and terms, and commits an immutable snapshot. Drives the request FSM (looplab/fsm + SQL version checks).", c: "services/gateway/internal/consumer, access" },
+  { id: "authn", z: "core", x: 510, y: 310, t: "AuthN and binding", s: "/auth/*, /interactions",
+    d: "Nested OIDC flows with PKCE, state and nonce. After login, asks the registry adapter to verify that the person owns the record (subject binding).", c: "services/gateway/internal/authn, subjectbinding" },
+  { id: "consent", z: "core", x: 510, y: 450, t: "Consent portal", s: "Consent Manager",
+    d: "Shows the exact immutable English notice and recipient terms. Records approve, reject and withdraw; serves receipts and consent history.", c: "services/gateway/internal/consentportal, consentmanager" },
+  { id: "workers", z: "core", x: 510, y: 590, t: "Durable workers", s: "sign · notify · clean",
+    d: "SQL-leased background loops. Sign the consent artefact (ES256), activate consent, project status, expire and clean up. At-least-once delivery with reconciliation.", c: "services/gateway/internal/consentworker" },
+  { id: "authz", z: "core", x: 745, y: 170, t: "AuthZ and grants", s: "grant + one-use redeem",
+    d: "Checks signed source policy, verified subject and ACTIVE consent, then issues a short-lived scoped grant. Private admission redeems it atomically, only once.", c: "services/gateway/internal/authorization, enforcement" },
+  { id: "retrieval", z: "core", x: 745, y: 310, t: "Private data listener", s: "TLS 1.3 mTLS",
+    d: "Accepts the original consumer certificate plus the grant on GET /v1/access-requests/{id}/data. Dispatches once to the adapter after a discovery check of the pinned descriptor.", c: "services/gateway/internal/retrieval, discovery" },
+  { id: "custody", z: "core", x: 745, y: 450, t: "Evidence custody", s: "signed receipts",
+    d: "Commits signed receipts, anchor state and outbox in one transaction. Release waits for this durable evidence. A batch worker anchors to DeDi later.", c: "services/gateway/internal/evidence/custody, anchoring" },
+  { id: "coredb", z: "core", x: 745, y: 590, t: "Core SQL", s: "CORE database", db: true,
+    d: "Requests, snapshots, notices, decisions, signed artefacts, grants, reservations, receipts and outbox. 16 checksummed migrations. Stores no source records.", c: "services/gateway/migrations/" },
+  { id: "adapter", z: "registry", x: 960, y: 310, t: "LokOS adapter", s: "Go adapter SDK",
+    d: "Runs under registry control. Verifies subject ownership, validates the grant and mTLS caller, redeems once, projects only approved fields and signs a receipt before release.", c: "adapters/lokos, sdk/go/adapter" },
+  { id: "lokos", z: "registry", x: 1110, y: 200, t: "LokOS source", s: "SHG records (mock)",
+    d: "Fictional LokOS service with demo membership and savings data. A real deployment would use LokOS APIs with approved credentials.", c: "mocks/lokos" },
+  { id: "adb", z: "registry", x: 1110, y: 430, t: "Adapter store", s: "ADAPTER database", db: true,
+    d: "Durable attempt and context store: concurrent or repeated attempts fetch at most once, and no replay after a crash.", c: "sdk/go/adapter/attempt_store.go" },
+  { id: "dedi", z: "dedi", x: 1030, y: 600, t: "DeDi node", s: "transparency log",
+    d: "Accepts signed commitments (hashes, not data) and returns an inclusion proof that can be checked offline.", c: "services/gateway/internal/evidence/dedi, infra/railway/dedi" },
+];
+
+const STEPS = [
+  { f: "browser", t: "backend", k: "control", st: null, title: "Start an application",
+    d: "Sunita picks the fields to share: membership status and, optionally, a savings summary. The request uses the product session and a CSRF token.", api: "SakhiCredit web form" },
+  { f: "backend", t: "productdb", k: "control", st: null, title: "Save the application first",
+    d: "SakhiCredit commits the encrypted application before it calls the platform, so a lost response can be recovered with the same idempotency key.", api: "Product SQL" },
+  { f: "backend", t: "hydra", k: "control", st: null, title: "Get a consumer token",
+    d: "The backend authenticates as client consumer-one with OAuth client credentials.", api: "Hydra token endpoint" },
+  { f: "backend", t: "api", k: "control", st: "AUTHENTICATION_PENDING", title: "Create the access request",
+    d: "The gateway introspects the token at the private Hydra admin API, checks purpose, fields and terms, and returns 202 with a first-party interaction URL.", api: "POST /v1/access-requests" },
+  { f: "api", t: "coredb", k: "control", st: "AUTHENTICATION_PENDING", title: "Commit an immutable snapshot",
+    d: "Snapshot, request, idempotency binding and outbox event commit atomically. No source record is stored.", api: "Core SQL" },
+  { f: "browser", t: "authn", k: "identity", st: "AUTHENTICATION_PENDING", title: "Open the GRAMStack tab and sign in",
+    d: "SakhiCredit hands Sunita to the gateway's interaction page in a separate tab.", api: "GET /interactions/{id} → /auth/login" },
+  { f: "authn", t: "esignet", k: "identity", st: "BINDING_PENDING", title: "Federated login at eSignet",
+    d: "OIDC code flow through Hydra with PKCE, state and nonce. Login proves who she is, not that the LokOS record is hers.", api: "/auth/provider/callback" },
+  { f: "authn", t: "adapter", k: "identity", st: "BINDING_PENDING", title: "Ask the registry to verify ownership",
+    d: "The gateway sends the verified person and the request to the adapter over mTLS.", api: "POST /internal/v1/subject-verifications" },
+  { f: "adapter", t: "lokos", k: "identity", st: "CONSENT_PENDING", title: "Registry confirms the member",
+    d: "The adapter maps the approved subject to her LokOS membership. Only then can she see the consent notice.", api: "LokOS native lookup" },
+  { f: "browser", t: "consent", k: "consent", st: "CONSENT_PENDING", title: "Read the exact notice and approve",
+    d: "The portal shows the fields, purpose, recipient terms and processors. She ticks the confirmation and approves, or rejects.", api: "POST /interactions/{id}/decision" },
+  { f: "consent", t: "workers", k: "consent", st: "CONSENTED", title: "Sign and activate the consent",
+    d: "A worker signs the consent artefact with ES256 and activates it. The receipt binds the notice fingerprint, channel and template version.", api: "Consent workers" },
+  { f: "backend", t: "api", k: "control", st: "CONSENTED", title: "Poll the request status",
+    d: "SakhiCredit checks progress with its OAuth token. It sees metadata only: ready, rejected, withdrawn, cancelled or expired.", api: "GET /v1/access-requests/{id}" },
+  { f: "backend", t: "authz", k: "control", st: "AUTHORIZED", title: "Ask for a retrieval grant",
+    d: "The backend asks for a grant with a stable idempotency key. The gateway checks signed source policy, the verified subject and ACTIVE consent, then signs a short-lived scoped grant.", api: "POST /v1/access-requests/{id}/grant" },
+  { f: "backend", t: "retrieval", k: "data", st: "AUTHORIZED", title: "Fetch over consumer mTLS",
+    d: "SakhiCredit commits one fixed-deadline fetch claim, then calls the private listener with its client certificate and the grant.", api: "GET /v1/access-requests/{id}/data" },
+  { f: "retrieval", t: "adapter", k: "data", st: "AUTHORIZED", title: "Dispatch once to the adapter",
+    d: "Before dispatch, the gateway checks the adapter's public manifest and keys against the pinned descriptor. Unknown keys or hosts stop here.", api: "POST /internal/v1/retrievals" },
+  { f: "adapter", t: "authz", k: "control", st: "REDEEMING", title: "Atomic one-use admission",
+    d: "The SDK validates the grant, issuer, audience and caller certificate, then redeems it. Withdrawal and redemption lock the same consent row, so only one can win.", api: "POST /internal/v1/grants/redeem" },
+  { f: "adapter", t: "lokos", k: "data", st: "REDEEMING", title: "Read the source and project fields",
+    d: "One native read. The adapter keeps only the approved fields; extra source fields cannot leak.", api: "LokOS native read" },
+  { f: "adapter", t: "custody", k: "evidence", st: "EVIDENCE_COMMITTED", title: "Store signed evidence before release",
+    d: "The adapter's signed receipt is committed to custody with a pending anchor. The data is not released until this succeeds.", api: "POST /internal/v1/evidence" },
+  { f: "adapter", t: "retrieval", k: "data", st: "RELEASE_ATTEMPTED", title: "Return the approved fields",
+    d: "Data stays in gateway and adapter memory only for this request.", api: "Adapter response" },
+  { f: "retrieval", t: "backend", k: "data", st: "COMPLETED", title: "Release to SakhiCredit",
+    d: "The approved fields and the receipt reference go back over the same mTLS connection. A second fetch with the same consent is refused.", api: "200 response" },
+  { f: "backend", t: "productdb", k: "data", st: "COMPLETED", title: "Store the encrypted result",
+    d: "SakhiCredit shows membership status and savings. It does not make a lending decision. A reload reads this encrypted copy.", api: "Product SQL" },
+  { f: "custody", t: "dedi", k: "evidence", st: "COMPLETED", title: "Anchor the commitment on DeDi",
+    d: "A batch worker publishes a signed commitment and verifies the inclusion proof. Until then the receipt shows \"DeDi anchoring pending\".", api: "DeDi publication API" },
+  { f: "backend", t: "custody", k: "evidence", st: "COMPLETED", title: "Report how the data is handled",
+    d: "The recipient reports retained, deleted or a retention exception (legal hold). This is recorded as the recipient's claim, not a verified deletion.", api: "PUT /v1/disclosures/{receipt}/handling-reports/{report}" },
+  { f: "browser", t: "consent", k: "consent", st: "COMPLETED", title: "Check history, withdraw or correct",
+    d: "After a fresh sign-in, she sees each request, the fields used, \"1 of 1 retrievals used\", the receipt, DeDi status, and can raise a correction case.", api: "GET /consent-history/{registry}" },
+];
+STEPS.forEach((s, i) => s.i = i);
+
+const STATES = ["AUTHENTICATION_PENDING", "BINDING_PENDING", "CONSENT_PENDING", "CONSENTED", "AUTHORIZED", "REDEEMING", "EVIDENCE_COMMITTED", "RELEASE_ATTEMPTED", "COMPLETED"];
+const NW = 150, NH = 46;
+const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
+
+const svg = d3.select("#graph").append("svg").attr("viewBox", "0 0 1200 680").attr("role", "img")
+  .attr("aria-label", "GRAMStack architecture: member browser, SakhiCredit consumer, identity, GRAMStack core, registry adapter and DeDi evidence");
+const defs = svg.append("defs");
+Object.keys(TYPES).forEach(k => {
+  defs.append("marker").attr("id", "m-" + k).attr("viewBox", "0 0 10 10").attr("refX", 9).attr("refY", 5)
+    .attr("markerWidth", 7).attr("markerHeight", 7).attr("orient", "auto-start-reverse")
+    .append("path").attr("d", "M0,0 L10,5 L0,10 z").attr("class", "mk-" + k);
+});
+
+svg.append("g").selectAll("g").data(ZONES).join("g").each(function (z) {
+  const g = d3.select(this);
+  g.append("rect").attr("x", z.x).attr("y", z.y).attr("width", z.w).attr("height", z.h).attr("rx", 10)
+    .attr("class", "zone").style("fill", "var(--zone)").style("stroke", "var(--line)");
+  g.append("text").attr("class", "zone-label").attr("x", z.x + 12).attr("y", z.y + 20).text(z.label);
+});
+
+// Edge geometry: from box border to box border, curved; parallel edges between the same pair are offset.
+function border(n, tx, ty) {
+  const dx = tx - n.x, dy = ty - n.y, hw = NW / 2 + 2, hh = NH / 2 + 2;
+  const s = Math.min(hw / Math.abs(dx || 1e-6), hh / Math.abs(dy || 1e-6));
+  return [n.x + dx * s, n.y + dy * s];
+}
+const pairCount = {};
+STEPS.forEach(s => {
+  const key = [s.f, s.t].sort().join("|");
+  pairCount[key] = (pairCount[key] || 0) + 1;
+  s.lane = pairCount[key];
+});
+STEPS.forEach(s => {
+  const a = byId[s.f], b = byId[s.t];
+  const key = [s.f, s.t].sort().join("|");
+  const total = pairCount[key];
+  const dir = s.f < s.t ? 1 : -1;
+  const bend = (s.lane - (total + 1) / 2) * 34 * dir + (total === 1 ? 18 : 0);
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+  const cx = mx + nx * bend, cy = my + ny * bend;
+  const p0 = border(a, cx, cy), p1 = border(b, cx, cy);
+  s.path = `M${p0[0]},${p0[1]} Q${cx},${cy} ${p1[0]},${p1[1]}`;
+  s.lx = 0.25 * p0[0] + 0.5 * cx + 0.25 * p1[0];
+  s.ly = 0.25 * p0[1] + 0.5 * cy + 0.25 * p1[1];
+});
+
+// Storage links: which component writes to which database (not numbered steps).
+const LINKS = [["consent", "coredb"], ["workers", "coredb"], ["authz", "coredb"], ["custody", "coredb"], ["adapter", "adb"], ["authn", "hydra"]];
+svg.append("g").selectAll("line").data(LINKS).join("line").each(function ([a, b]) {
+  const A = byId[a], B = byId[b], p0 = border(A, B.x, B.y), p1 = border(B, A.x, A.y);
+  d3.select(this).attr("x1", p0[0]).attr("y1", p0[1]).attr("x2", p1[0]).attr("y2", p1[1])
+    .style("stroke", "var(--node-line)").style("stroke-width", 1.2).style("stroke-dasharray", "3 4");
+});
+
+const edges = svg.append("g").selectAll("path").data(STEPS).join("path")
+  .attr("class", d => "edge e-" + d.k).attr("d", d => d.path)
+  .attr("marker-end", d => `url(#m-${d.k})`);
+
+const nodes = svg.append("g").selectAll("g").data(NODES).join("g")
+  .attr("class", d => "node" + (d.db ? " db" : "")).attr("transform", d => `translate(${d.x - NW / 2},${d.y - NH / 2})`);
+nodes.append("rect").attr("width", NW).attr("height", NH).attr("rx", d => d.db ? 14 : 7);
+nodes.append("text").attr("x", NW / 2).attr("y", 19).attr("text-anchor", "middle").attr("font-weight", 650).text(d => d.t);
+nodes.append("text").attr("class", "sub").attr("x", NW / 2).attr("y", 35).attr("text-anchor", "middle").text(d => d.s);
+
+const nums = svg.append("g").selectAll("g").data(STEPS).join("g").attr("class", "enum")
+  .attr("transform", d => `translate(${d.lx},${d.ly})`);
+nums.append("circle").attr("r", 9);
+nums.append("text").text(d => d.i + 1);
+
+const dot = svg.append("circle").attr("r", 6).style("fill", "var(--hl)").style("stroke", "#1f1f1d").style("display", "none");
+
+function paint() {
+  Object.keys(TYPES).forEach(k => {
+    const c = css(TYPES[k].v);
+    svg.selectAll(".e-" + k).style("stroke", c);
+    svg.selectAll(".mk-" + k).style("fill", c);
+  });
+  nums.select("circle").style("fill", d => css(TYPES[d.k].v));
+}
+
+// Legend with type filters
+const hidden = new Set();
+const legend = d3.select("#legend").selectAll("label").data(Object.entries(TYPES)).join("label");
+legend.append("input").attr("type", "checkbox").property("checked", true).on("change", (e, [k]) => {
+  e.target.checked ? hidden.delete(k) : hidden.add(k); render();
+});
+legend.append("span").attr("class", "sw").style("background", ([k, v]) => `var(${v.v})`);
+legend.append("span").text(([, v]) => v.label);
+
+// States strip
+const states = d3.select("#states").selectAll("span").data(STATES).join("span").text(d => d);
+
+// Step list
+const list = d3.select("#steps").selectAll("li").data(STEPS).join("li")
+  .attr("tabindex", 0)
+  .on("click", (e, d) => { stop(); go(d.i); })
+  .on("keydown", (e, d) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); stop(); go(d.i); }
+  });
+list.append("span").attr("class", "n").text(d => d.i + 1);
+list.append("span").text(d => d.title);
+
+let cur = 0, showAll = false, timer = null, nodeFocus = null;
+
+function render() {
+  const s = STEPS[cur];
+  const visible = d => !hidden.has(d.k);
+  edges.style("display", d => visible(d) ? null : "none")
+    .classed("on", d => !showAll && !nodeFocus && d.i === cur || (nodeFocus && (d.f === nodeFocus || d.t === nodeFocus)) || showAll)
+    .classed("dim", d => nodeFocus ? !(d.f === nodeFocus || d.t === nodeFocus) : (!showAll && d.i !== cur && d.i > cur));
+  nums.style("display", d => visible(d) ? null : "none")
+    .classed("on", d => d.i === cur || showAll || (nodeFocus && (d.f === nodeFocus || d.t === nodeFocus)))
+    .classed("dim", d => nodeFocus ? !(d.f === nodeFocus || d.t === nodeFocus) : (!showAll && d.i > cur));
+  nodes.classed("active", d => nodeFocus ? d.id === nodeFocus : (!showAll && (d.id === s.f || d.id === s.t)));
+  list.classed("on", d => d.i === cur).attr("aria-current", d => d.i === cur ? "step" : null);
+  const si = s.st ? STATES.indexOf(s.st) : -1;
+  states.classed("on", (d, i) => i === si).classed("done", (d, i) => i < si);
+
+  d3.select("#s-badge").text(cur + 1).style("background", `var(${TYPES[s.k].v})`);
+  d3.select("#s-title").text(s.title);
+  d3.select("#s-detail").text(s.d);
+  d3.select("#s-kv").html(
+    `<div><b>From → to:</b> ${byId[s.f].t} → ${byId[s.t].t}</div>` +
+    `<div><b>Kind:</b> ${TYPES[s.k].label}</div>` +
+    `<div><b>Interface:</b> <code>${s.api}</code></div>` +
+    (s.st ? `<div><b>Request state:</b> ${s.st}</div>` : `<div><b>Request state:</b> not created yet</div>`));
+  const activeStep = list.filter(d => d.i === cur).node();
+  const stepList = document.getElementById("steps");
+  if (activeStep && stepList.scrollHeight > stepList.clientHeight) {
+    if (activeStep.offsetTop < stepList.scrollTop + stepList.offsetTop ||
+        activeStep.offsetTop + activeStep.offsetHeight > stepList.scrollTop + stepList.offsetTop + stepList.clientHeight) {
+      stepList.scrollTop = activeStep.offsetTop - stepList.offsetTop;
+    }
+  }
+}
+
+function animate() {
+  const p = edges.filter(d => d.i === cur).node();
+  if (!p || hidden.has(STEPS[cur].k) || matchMedia("(prefers-reduced-motion: reduce)").matches) { dot.style("display", "none"); return; }
+  const L = p.getTotalLength();
+  dot.style("display", null).interrupt().transition().duration(900).ease(d3.easeCubicInOut)
+    .attrTween("transform", () => t => { const q = p.getPointAtLength(t * L); return `translate(${q.x},${q.y})`; })
+    .attr("cx", 0).attr("cy", 0);
+}
+
+function go(i) {
+  cur = (i + STEPS.length) % STEPS.length; showAll = false; nodeFocus = null;
+  render(); animate();
+}
+function stop() { clearInterval(timer); timer = null; d3.select("#play").text("Play"); }
+d3.select("#next").on("click", () => { stop(); go(cur + 1); });
+d3.select("#prev").on("click", () => { stop(); go(cur - 1); });
+d3.select("#all").on("click", () => { stop(); showAll = !showAll; nodeFocus = null; dot.style("display", "none"); render(); });
+d3.select("#play").on("click", () => {
+  if (timer) return stop();
+  d3.select("#play").text("Pause");
+  if (cur === STEPS.length - 1) go(0); else go(cur);
+  timer = setInterval(() => { if (cur === STEPS.length - 1) return stop(); go(cur + 1); }, 2600);
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { stop(); go(cur + 1); }
+  if (e.key === "ArrowLeft") { stop(); go(cur - 1); }
+});
+
+// Tooltips and node focus
+const tip = d3.select("#tip");
+function showTip(e, html) { tip.html(html).style("display", "block").style("left", Math.min(e.clientX + 14, innerWidth - 340) + "px").style("top", (e.clientY + 14) + "px"); }
+nodes.on("mousemove", (e, d) => showTip(e, `<b>${d.t}</b>${d.d}<div style="margin-top:6px"><code>${d.c}</code></div>`))
+  .on("mouseleave", () => tip.style("display", "none"))
+  .on("click", (e, d) => { stop(); nodeFocus = nodeFocus === d.id ? null : d.id; showAll = false; dot.style("display", "none"); render(); });
+edges.on("click", (e, d) => { stop(); go(d.i); });
+nums.on("click", (e, d) => { stop(); go(d.i); })
+  .on("mousemove", (e, d) => showTip(e, `<b>${d.i + 1}. ${d.title}</b><code>${d.api}</code>`))
+  .on("mouseleave", () => tip.style("display", "none"));
+
+paint(); go(0);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paint);
+</script>
+</body>
+</html>
