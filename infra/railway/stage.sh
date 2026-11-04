@@ -22,7 +22,9 @@ case "$service" in
 esac
 stage=$(mktemp -d /tmp/gramstack-railway-source.XXXXXX)
 trap 'rm -rf "$stage"' EXIT
-git archive "$revision" "${paths[@]}" | tar -xf - -C "$stage"
+# Keep source modes consistent even when the operator uses a private umask.
+# mktemp still keeps the upload directory itself accessible only to its owner.
+git archive "$revision" "${paths[@]}" | (umask 022; tar -xf - -C "$stage")
 if [[ -n $(find "$stage" -type l -print -quit) ]]; then
   echo 'Deployment source contains a symbolic link' >&2
   exit 1

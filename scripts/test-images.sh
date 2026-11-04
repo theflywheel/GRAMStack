@@ -21,7 +21,8 @@ for role in gateway adapter source product; do
   esac
   image="gramstack-$role:deployment-check"
   stage=$("$root/infra/railway/stage.sh" "$railway_service" "$revision")
-  docker build --progress=plain -f "$stage/$directory/Dockerfile" -t "$image" "$stage"
+  docker build --progress=plain -f "$stage/$directory/Dockerfile" \
+    --label "org.opencontainers.image.revision=$revision" -t "$image" "$stage"
   rm -rf "$stage"
   stage=''
   docker run --rm -e 'GRAMSTACK_FILES_JSON={"probe.txt":"cHJvYmU="}' "$image" /bin/sh -ec '

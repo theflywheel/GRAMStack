@@ -338,3 +338,10 @@ deployment images from the same committed source contexts used by Railway
 uploads. The command requires Docker and runs the resulting images locally.
 It checks non-root execution, runtime file permissions, fail-closed startup
 and graceful shutdown.
+
+After building the three application images for a revision, run
+`./infra/railway/check-database.sh HEAD` to verify their actual pre-deploy
+commands against the staged PostgreSQL 17 image. The test creates an
+isolated Docker network and volume with a `lost+found` directory, generates
+fixture credentials, verifies all five role databases are isolated, and
+applies gateway, LokOS adapter, SakhiCredit and pinned Hydra migrations twice.
