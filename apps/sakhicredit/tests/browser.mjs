@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { chromium } from "playwright-core";
+import { reportDemoLegalHold, showDemoLegalHold } from "./demo-handling.mjs";
 import {
   existsSync,
   mkdirSync,
@@ -305,6 +306,13 @@ async function run() {
       new URL(receipt.url()).pathname,
       `/interactions/${started.request_id}/receipt`,
     );
+    reportDemoLegalHold(
+      process.env.GRAMSTACK_TEST_AUTHZ_URL,
+      process.env.GRAMSTACK_TEST_CERTS,
+      await page.locator("#receipt-reference").textContent(),
+    );
+    await showDemoLegalHold(receipt);
+    await shot(receipt, "recipient-handling-report");
     const downloading = receipt.waitForEvent("download", { timeout: 5000 });
     await receipt
       .getByRole("link", { name: "Download your record", exact: true })
@@ -343,7 +351,7 @@ async function run() {
     await page.locator("#start:not([disabled])").waitFor();
     assert.equal(await page.locator("#approved-result").isHidden(), true);
     evidence.cases.push(
-      "approved result, one native read, encrypted reload recovery, protected receipt with exact rendered notice provenance and browser secret isolation",
+      "approved result, one native read, encrypted reload recovery, protected receipt with exact rendered notice provenance, recipient report and browser secret isolation",
     );
     await context.close();
   }

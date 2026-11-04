@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { chromium } from "playwright-core";
 import { setTimeout as delay } from "node:timers/promises";
 import { captureDemo } from "./demo-capture.mjs";
+import { reportDemoLegalHold, showDemoLegalHold } from "./demo-handling.mjs";
 const state = process.argv[2];
 assert.ok(
   state && process.env.CHROME_BIN,
@@ -42,8 +43,9 @@ async function showCapabilities(page) {
         .map((cell) => cell.trim().replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")),
     );
   assert.ok(rows.length > 0 && rows.every((row) => row.length === 3));
-  for (let index = 0; index < rows.length; index += 4) {
-    const segment = rows.slice(index, index + 4);
+  const rowsPerCard = 3;
+  for (let index = 0; index < rows.length; index += rowsPerCard) {
+    const segment = rows.slice(index, index + rowsPerCard);
     await page.setContent(`<!doctype html><meta charset="utf-8">
       <title>SakhiCredit capability report</title>
       <style>
@@ -54,7 +56,7 @@ async function showCapabilities(page) {
       th,td{text-align:left;vertical-align:top;padding:14px 12px;border-bottom:1px solid #dce6de}
       td:first-child{width:22%;font-weight:600}td:nth-child(2){width:20%}
       </style>
-      <main><p>SakhiCredit · Local rehearsal · ${index / 4 + 1} of ${Math.ceil(rows.length / 4)}</p>
+      <main><p>SakhiCredit · Local rehearsal · ${index / rowsPerCard + 1} of ${Math.ceil(rows.length / rowsPerCard)}</p>
       <h1>What this demo verifies</h1>
       <table><thead><tr><th>Capability</th><th>Status</th><th>Evidence and boundary</th></tr></thead><tbody></tbody></table></main>`);
     await page.locator("tbody").evaluate((body, values) => {
@@ -158,6 +160,14 @@ try {
   console.log(
     "PASS: standalone launcher completed official eSignet, explicit consent and exact SakhiCredit retrieval",
   );
+  await page.getByText("View sharing reference", { exact: true }).click();
+  reportDemoLegalHold(endpoints.data, join(state, "certs"), await page.locator("#receipt-reference").textContent());
+  recording?.pause();
+  await portal.bringToFront();
+  await showDemoLegalHold(portal);
+  await recording?.show(portal);
+  await hold(4000);
+  console.log("PASS: authenticated consent receipt shows the recipient-reported legal hold");
   if (recording) {
     const denied = await review();
     await denied.portal

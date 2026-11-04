@@ -41,7 +41,7 @@ Gate C: D07–D10 pass. Exactly approved fields cross the adapter boundary once 
   - [x] Trusted versioned purpose/processing profile bindings, bounded single-use access to the current summary, and recipient/processor responsibility metadata.
   - [x] Channel/language presentation evidence linked to exact notice and explicit confirmation for the English web channel. Assistance confers no authority.
   - [ ] Protected consent/disclosure history and machine-readable receipt export.
-  - [ ] Authenticated downstream handling receipts with reported/verified distinction and retention exceptions.
+  - [x] Authenticated downstream handling receipts with reported/verified distinction and retention exceptions.
   - [ ] Rights/grievance case creation, responsible-organisation routing and safe asynchronous status. No claim of registry mutation or guaranteed recipient deletion.
 
 Gate D: D11–D14 pass; a fresh environment runs the browser journey using the same documented commands. Do not mark a product ready based only on backend unit tests.
@@ -185,3 +185,5 @@ CI speed is part of each phase gate. Measure critical-path and total job time, r
 - D14 recipient handling checkpoint. On the private gateway listener, the recipient certificate can submit a disclosure-bound report against the original consent terms. The actual Hydra/PostgreSQL/mTLS integration passed acceptance of a legal-hold exception labelled reported, public and adapter denial, invalid exception rejection, identical retry and conflict on altered retry. The report caused no additional source read. Product presentation and any independent verification/processor trust remain open.
 
 - D14 protected handling display. The existing authenticated consent receipt shows up to ten recent recipient assertions with action, exception reason, and reported time. The live integration verified a real recipient-submitted legal-hold report was visible to the owner, hidden from a fresh anonymous request, excluded from the v1 JSON download, and caused no further native read. Browser recording and independent verification profiles remain open.
+
+- D14 handling rehearsal. Seven local browser scenarios passed. A fresh standalone environment with official eSignet, fictional identity and source records, and actual DeDi captured the consent, approved disclosure, protected recipient-reported legal hold, separate refusal, and verification of three retained commitments. The capability matrix fit four recorded cards. The 61.1-second 1280×800 H.264 recording decoded fully, played and sought successfully in Chrome, and the legal-hold frame was inspected. Independent verification of recipient actions remains unsupported. This is a local rehearsal before the final acceptance and recording gates.

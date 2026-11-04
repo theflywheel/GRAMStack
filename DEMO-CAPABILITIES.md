@@ -26,7 +26,8 @@ the acceptance gates.
    credentials.
 2. Show the requested fields, the eSignet handoff, registry verification, the
    exact consent notice and explicit approval. Show the two approved values
-   in SakhiCredit.
+   in SakhiCredit, then show the protected receipt with the fictional
+   legal-hold report and its verification boundary.
 3. Create a separate application and reject its notice. Show the rejected
    receipt and SakhiCredit's declined state with retrieval unavailable.
 4. The rehearsal shows the live read-only verifier's aggregate DeDi result,

@@ -38,7 +38,7 @@ CHROME_BIN=/path/to/chrome node apps/sakhicredit/tests/demo-smoke.mjs "$state/de
 ```
 
 The script exercises the actual product, identity UI and consent flow and
-saves the approved result screenshot in the private state directory.
+saves the approved result screenshot in the private state directory. It uses the local demo recipient certificate to submit a fictional legal-hold report and verifies that the protected consent page displays it as a recipient assertion.
 Use the existing integration runners for the full denial and outage suite.
 
 To rehearse recording the same browser journey, set
@@ -47,7 +47,7 @@ command. Use a working FFmpeg executable with the H.264 encoder available.
 `FFMPEG_BIN` can point to that executable. The capture follows the active
 browser tab, pauses during fixture credential entry, and creates an MP4
 without overwriting existing footage. Use `ffprobe` to check the video stream
-and play the file in a browser. This rehearsal covers approval and refusal in separate browser sessions,
+and play the file in a browser. This rehearsal covers approval and refusal in separate browser sessions, the recipient handling report,
 the actual aggregate proof verification result and the checked-in capability
 matrix. The final demo still requires the completed acceptance gates.
 See the [recording sequence and capability report](../../DEMO-CAPABILITIES.md).

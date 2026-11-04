@@ -14,8 +14,11 @@ def main():
     parser.add_argument("state", type=Path)
     state = parser.parse_args().state.resolve()
     tmp = Path("/tmp").resolve()
-    if state == tmp or not state.is_relative_to(tmp) or not state.relative_to(tmp).parts[0].startswith("gramstack-demo"):
+    if state == tmp or not state.is_relative_to(tmp) or not state.is_dir():
         parser.error("Expected an isolated GRAMStack demo state directory")
+    info = state.stat()
+    if info.st_uid != os.getuid() or info.st_mode & 0o077 or not (state / "endpoints.json").is_file():
+        parser.error("Expected a private state directory from the standalone launcher")
     endpoints = json.loads((state / "endpoints.json").read_text())
     pg = urlsplit(endpoints["pg"])
     if pg.hostname != "127.0.0.1" or not pg.port or not (state / f".s.PGSQL.{pg.port}").is_socket():
