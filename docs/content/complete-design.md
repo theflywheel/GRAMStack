@@ -911,6 +911,8 @@ A `202` acknowledges durable workflow acceptance, not a successful disclosure. L
 
 # API contracts
 
+[Open the Swagger API explorer](/api/) to browse the implemented service routes, payloads, responses and authentication. Select a service or the core protocol in the explorer. [Runtime catalogue](/specifications/runtime).
+
 > [!info] API conventions
 > This catalogue describes GRAMStack-facing interfaces. Payloads use illustrative identifiers and values. Native registry endpoints remain behind their adapters; subject-verification mechanisms follow each registry's approved integration profile.
 

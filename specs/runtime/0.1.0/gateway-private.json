@@ -1,0 +1,1137 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GRAMStack gateway \u2014 private mTLS",
+    "version": "0.1.0",
+    "description": "Private Railway listener. An approved client certificate and matching service or recipient identity are required. Use a trusted operator environment for calls."
+  },
+  "servers": [
+    {
+      "url": "https://gateway.railway.internal:8445"
+    }
+  ],
+  "paths": {
+    "/v1/access-requests/{id}/data": {
+      "get": {
+        "operationId": "retrieveData",
+        "summary": "retrieveData",
+        "tags": [
+          "Protected disclosure"
+        ],
+        "description": "Consumes one-use disclosure authority. Retrieval bearer grant and original recipient mTLS certificate must match. Never prefetch or blindly retry. Evidence is committed before release.",
+        "security": [
+          {
+            "retrievalGrant": [],
+            "presenterMTLS": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/DataResponse"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "required": true,
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          }
+        ]
+      }
+    },
+    "/internal/v1/grants/redeem": {
+      "post": {
+        "operationId": "redeemGrant",
+        "summary": "redeemGrant",
+        "tags": [
+          "Protected disclosure"
+        ],
+        "description": "AuthZ enforcement. Caller must own grant audience; atomic consent/status/use transaction.",
+        "security": [
+          {
+            "serviceMTLS": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/RedemptionResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../0.3.0/schemas.json#/$defs/RedemptionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/consents/{id}/status": {
+      "get": {
+        "operationId": "getConsentStatus",
+        "summary": "getConsentStatus",
+        "tags": [
+          "Protected disclosure"
+        ],
+        "description": "Consent module. ",
+        "security": [
+          {
+            "serviceMTLS": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/ConsentStatus"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          }
+        ]
+      }
+    },
+    "/internal/v1/evidence": {
+      "post": {
+        "operationId": "recordEvidence",
+        "summary": "recordEvidence",
+        "tags": [
+          "Protected disclosure"
+        ],
+        "description": "Evidence custodian. Verify approved adapter JWS; exact duplicate event returns same receipt, conflicting event returns 409.",
+        "security": [
+          {
+            "serviceMTLS": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/EvidenceAcknowledgement"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "jws": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "jws"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Gramstack-Contract-Version",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "0.3.0"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/disclosures/{receipt}/handling-reports/{report}": {
+      "put": {
+        "operationId": "reportHandling",
+        "summary": "Record a recipient handling assertion",
+        "tags": [
+          "Post-disclosure"
+        ],
+        "description": "Authenticated recipient report. Identical report retries retain the original. A reported deletion or retention exception has verification=reported.",
+        "security": [
+          {
+            "presenterMTLS": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "retained",
+                        "deleted",
+                        "retention_exception"
+                      ]
+                    },
+                    "exception_code": {
+                      "type": "string",
+                      "enum": [
+                        "legal_hold",
+                        "statutory_retention"
+                      ]
+                    },
+                    "occurred_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "receipt_id": {
+                      "type": "string"
+                    },
+                    "report_id": {
+                      "type": "string"
+                    },
+                    "producer_id": {
+                      "type": "string"
+                    },
+                    "terms_version": {
+                      "type": "string"
+                    },
+                    "terms_digest": {
+                      "type": "string"
+                    },
+                    "verification": {
+                      "type": "string",
+                      "const": "reported"
+                    },
+                    "recorded_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "action",
+                    "occurred_at"
+                  ],
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "action": {
+                            "const": "retention_exception"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "exception_code"
+                        ]
+                      },
+                      "else": {
+                        "not": {
+                          "required": [
+                            "exception_code"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Caller or route unavailable 404, invalid body 400, conflicting retry or state 409, dependency unavailable 503."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "retained",
+                      "deleted",
+                      "retention_exception"
+                    ]
+                  },
+                  "exception_code": {
+                    "type": "string",
+                    "enum": [
+                      "legal_hold",
+                      "statutory_retention"
+                    ]
+                  },
+                  "occurred_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "action",
+                  "occurred_at"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "action": {
+                          "const": "retention_exception"
+                        }
+                      }
+                    },
+                    "then": {
+                      "required": [
+                        "exception_code"
+                      ]
+                    },
+                    "else": {
+                      "not": {
+                        "required": [
+                          "exception_code"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "receipt",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "report",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/internal/v1/rights-cases/{role}/{actor}": {
+      "get": {
+        "operationId": "listOperatorCases",
+        "summary": "Poll up to 25 assigned queued or acknowledged cases",
+        "tags": [
+          "Rights operators"
+        ],
+        "description": "Role is registry or recipient. The pinned certificate must match that responsible party.",
+        "security": [
+          {
+            "serviceMTLS": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "case_id": {
+                        "type": "string"
+                      },
+                      "case_type": {
+                        "type": "string",
+                        "enum": [
+                          "access",
+                          "correction",
+                          "erasure",
+                          "grievance"
+                        ]
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "queued",
+                          "acknowledged",
+                          "resolved",
+                          "exception"
+                        ]
+                      },
+                      "status_version": {
+                        "type": "integer"
+                      },
+                      "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "due_at": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    },
+                    "required": [
+                      "case_id",
+                      "case_type",
+                      "status",
+                      "status_version",
+                      "created_at",
+                      "due_at"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Caller or route unavailable 404, invalid body 400, conflicting retry or state 409, dependency unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "role",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/internal/v1/rights-cases/{role}/{actor}/{case}/{event}": {
+      "put": {
+        "operationId": "updateOperatorCase",
+        "summary": "Acknowledge, resolve or report a case exception",
+        "tags": [
+          "Rights operators"
+        ],
+        "description": "Only queued \u2192 acknowledged \u2192 resolved or exception. An identical event retry returns its original acknowledgement.",
+        "security": [
+          {
+            "serviceMTLS": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "acknowledge",
+                        "resolve",
+                        "record_exception"
+                      ]
+                    },
+                    "exception_code": {
+                      "type": "string",
+                      "enum": [
+                        "legal_hold",
+                        "statutory_retention",
+                        "insufficient_information"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "acknowledged",
+                        "resolved",
+                        "exception"
+                      ]
+                    },
+                    "status_version": {
+                      "type": "integer"
+                    },
+                    "recorded_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "action"
+                  ],
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "action": {
+                            "const": "record_exception"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "exception_code"
+                        ]
+                      },
+                      "else": {
+                        "not": {
+                          "required": [
+                            "exception_code"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Caller or route unavailable 404, invalid body 400, conflicting retry or state 409, dependency unavailable 503."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "acknowledge",
+                      "resolve",
+                      "record_exception"
+                    ]
+                  },
+                  "exception_code": {
+                    "type": "string",
+                    "enum": [
+                      "legal_hold",
+                      "statutory_retention",
+                      "insufficient_information"
+                    ]
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "action": {
+                          "const": "record_exception"
+                        }
+                      }
+                    },
+                    "then": {
+                      "required": [
+                        "exception_code"
+                      ]
+                    },
+                    "else": {
+                      "not": {
+                        "required": [
+                          "exception_code"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "role",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "actor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "case",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "event",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "consumerBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Hydra consumer token, validated audience and registered client."
+      },
+      "browserSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-session"
+      },
+      "serviceMTLS": {
+        "type": "mutualTLS"
+      },
+      "presenterMTLS": {
+        "type": "mutualTLS",
+        "description": "Consumer certificate must match grant cnf thumbprint."
+      },
+      "retrievalGrant": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "historySession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-history",
+        "description": "Fresh registry-scoped sign-in. Separate from the interaction session."
+      },
+      "productSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-sakhi"
+      },
+      "oauthTransaction": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-flow",
+        "description": "One-time browser-bound OAuth transaction, state, nonce and PKCE. Provider callback uses its own upstream correlation cookie."
+      }
+    }
+  }
+}

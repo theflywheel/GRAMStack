@@ -1,0 +1,46 @@
+* { box-sizing: border-box; }
+:root { color-scheme: light; --bg: #fafbf8; --text: #142d26; --muted: #33463f; --line: #dfe5df; --accent: #116b57; --panel: #fff; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 Inter, system-ui, sans-serif; }
+a { color: var(--accent); text-underline-offset: 3px; }
+.site-header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; max-width: 1460px; margin: auto; padding: 20px 24px; border-bottom: 1px solid var(--line); }
+.site-header > a { font-size: 22px; font-weight: 700; text-decoration: none; }
+nav { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+.intro { max-width: 1460px; margin: auto; padding: 24px 24px 8px; }
+.intro p { max-width: 95ch; margin: 10px 0; }
+.eyebrow { color: var(--accent); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+h1 { margin: 6px 0; font-size: clamp(28px, 4vw, 40px); line-height: 1.2; }
+.note { padding: 12px 16px; background: rgba(17, 107, 87, .08); border-left: 3px solid var(--accent); }
+.swagger-ui .topbar { background: var(--accent); padding: 12px 0; }
+.swagger-ui .topbar .link { display: none; }
+.swagger-ui .topbar .download-url-wrapper { flex: 1; min-width: 0; }
+.swagger-ui .topbar .download-url-wrapper select { width: 100%; max-width: 100%; border-color: transparent; }
+.swagger-ui .wrapper { max-width: 1460px; padding: 0 24px; }
+.swagger-ui .opblock .opblock-summary { flex-wrap: wrap; gap: 4px; }
+.swagger-ui .opblock .opblock-summary-path { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.swagger-ui .opblock .opblock-summary-path a { overflow-wrap: anywhere; }
+.swagger-ui .opblock .opblock-summary-description { min-width: 100px; }
+.swagger-ui .opblock-body, .swagger-ui .responses-wrapper, .swagger-ui .parameters-container { overflow-x: auto; }
+.swagger-ui input { max-width: 100%; }
+.swagger-ui .filter-container { padding: 12px 0; }
+.swagger-ui .filter-container .filter { width: 100%; max-width: 100%; }
+.swagger-ui pre, .swagger-ui code, .swagger-ui .opblock-description-wrapper p { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .site-header, .intro { padding-left: 16px; padding-right: 16px; }
+  .swagger-ui .wrapper { padding: 0 16px; }
+  .swagger-ui .topbar .download-url-wrapper { display: block; }
+  .swagger-ui .topbar .download-url-wrapper .select-label { display: block; width: 100%; }
+  .swagger-ui .topbar .download-url-wrapper .select-label > span { display: block; }
+  .swagger-ui .opblock .opblock-summary-path { font-size: 13px; }
+  .swagger-ui .opblock .opblock-summary-description { flex-basis: 100%; padding-left: 6px; }
+  .swagger-ui .scheme-container .schemes { flex-wrap: wrap; gap: 10px; }
+}
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; --bg: #111c19; --text: #eef4ed; --muted: #c4d5ca; --line: #293e35; --accent: #85d6b3; --panel: #182820; }
+  .swagger-ui { color: var(--text); }
+  .swagger-ui .opblock-tag a, .swagger-ui .opblock .opblock-section-header h4, .swagger-ui .info .title, .swagger-ui .info p, .swagger-ui .info li, .swagger-ui .info a, .swagger-ui .opblock-tag, .swagger-ui .opblock .opblock-summary-description, .swagger-ui .opblock .opblock-summary-path, .swagger-ui .opblock-description-wrapper p, .swagger-ui .opblock-external-docs-wrapper p, .swagger-ui .opblock-title_normal p, .swagger-ui .tab li, .swagger-ui table thead tr th, .swagger-ui table thead tr td, .swagger-ui table tbody tr td, .swagger-ui .parameter__name, .swagger-ui .parameter__type, .swagger-ui .parameter__in, .swagger-ui .response-col_status, .swagger-ui .response-col_links, .swagger-ui .model-title, .swagger-ui .model, .swagger-ui label, .swagger-ui .btn { color: var(--text); }
+  .swagger-ui .scheme-container, .swagger-ui .opblock .opblock-section-header, .swagger-ui .dialog-ux .modal-ux { background: var(--panel); }
+  .swagger-ui select, .swagger-ui input[type="text"], .swagger-ui input { background: var(--panel); color: var(--text); }
+  .swagger-ui .topbar { background: #116b57; }
+  .swagger-ui .model-box { background: var(--panel); }
+  .swagger-ui svg, .swagger-ui svg path { fill: var(--text); }
+}

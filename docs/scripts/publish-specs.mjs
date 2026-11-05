@@ -38,3 +38,6 @@ await writeFile(new URL('adapter-discovery.md', target), front('Adapter discover
 const postDisclosure = await readFile(new URL('post-disclosure/0.1.0/README.md', source), 'utf8')
 const postDisclosureDownload = 'https://docs.gramstack.try-dough.com/static/specs/post-disclosure/0.1.0/README.md'
 await writeFile(new URL('post-disclosure.md', target), front('Post-disclosure profile') + postDisclosure + '\n[Download canonical profile](' + postDisclosureDownload + ')\n')
+
+const runtimeReadme = await readFile(new URL('runtime/0.1.0/README.md', source), 'utf8')
+await writeFile(new URL('runtime.md', target), front('Implemented API catalogue') + runtimeReadme)

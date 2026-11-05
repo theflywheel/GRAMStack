@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="same-origin">
+  <title>API explorer · GRAMStack</title>
+  <link rel="stylesheet" href="./swagger-ui.css">
+  <link rel="stylesheet" href="./explorer.css">
+</head>
+<body>
+  <header class="site-header">
+    <a href="/">GRAMStack</a>
+    <nav aria-label="Documentation"><a href="/07-api-contracts">API guide</a><a href="/specifications/">Specifications</a><a href="/sakhicredit-demo">Demo</a></nav>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">Developer reference</p>
+      <h1>API explorer</h1>
+      <p>Explore request and response schemas, authentication, and synchronous and asynchronous boundaries for each service.</p>
+      <p>The service selector separates implemented APIs from the core protocol. Private routes require approved mTLS identities. Browser routes use the product's session and CSRF flow.</p>
+      <p class="note">Request execution is disabled in this public reference. Use the live product for the browser journey and your configured client or operator environment for API calls.</p>
+      <p><a href="/specifications/runtime">Runtime catalogue and integration boundaries</a></p>
+    </section>
+    <div id="swagger-ui"></div>
+  </main>
+  <script src="./swagger-ui-bundle.js"></script>
+  <script src="./swagger-ui-standalone-preset.js"></script>
+  <script src="./explorer.js"></script>
+</body>
+</html>

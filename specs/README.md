@@ -19,6 +19,13 @@ Current specification version: **0.3.0**. Versions 0.1.0 and 0.2.0 remain unchan
 | [Lifecycle](0.3.0/lifecycle.json) | Allowed state transitions |
 | [Examples](0.3.0/examples.json) | Positive and negative message fixtures |
 
+## Implemented API explorer
+
+[Hosted Swagger UI](https://docs.gramstack.try-dough.com/api/) provides service
+catalogues for the public gateway, private gateway mTLS listener, LokOS adapter,
+and SakhiCredit product. The [runtime catalogue](/specifications/runtime) describes
+their deployment scope. The selector also includes the core 0.3.0 protocol.
+
 ## Independently versioned profiles
 
 [Registry subject verification 0.1.0](/specifications/subject-verification) defines the mTLS verifier exchange, bounded principal provenance, context custody and cancellation-safe idempotency. [Canonical profile source](https://github.com/theflywheel/GRAMStack/tree/main/specs/subject-verification/0.1.0). Core 0.1.0 and 0.2.0 remain unchanged.
