@@ -42,6 +42,9 @@ for (const [name] of catalogues) {
 for (const asset of ["swagger-ui.css", "swagger-ui-bundle.js", "swagger-ui-standalone-preset.js"]) {
   await copyFile(swaggerUI.getAbsoluteFSPath() + "/" + asset, new URL(asset, destination))
 }
+for (const asset of ["LICENSE", "NOTICE"]) {
+  await copyFile(swaggerUI.getAbsoluteFSPath() + "/" + asset, new URL("swagger-ui-" + asset + ".txt", destination))
+}
 for (const asset of ["index.html", "explorer.css", "explorer.js"]) {
   await copyFile(new URL("../api/" + asset, import.meta.url), new URL(asset, destination))
 }
