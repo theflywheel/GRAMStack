@@ -3,9 +3,33 @@ name: Verify design site
 on:
   push:
     branches: [main]
-    paths: ["docs/**", "specs/**", ".dockerignore", ".railwayignore", ".github/workflows/docs-check.yml"]
+    paths:
+      - "docs/**"
+      - "specs/**"
+      - ".dockerignore"
+      - ".railwayignore"
+      - ".github/workflows/docs-check.yml"
+      - "services/gateway/**/http.go"
+      - "services/gateway/internal/authn/service.go"
+      - "services/gateway/internal/consentportal/portal.go"
+      - "services/gateway/internal/rights/operator.go"
+      - "services/gateway/cmd/gramstack/*.go"
+      - "adapters/lokos/cmd/lokos-adapter/*.go"
+      - "apps/sakhicredit/internal/application/http.go"
   pull_request:
-    paths: ["docs/**", "specs/**", ".dockerignore", ".railwayignore", ".github/workflows/docs-check.yml"]
+    paths:
+      - "docs/**"
+      - "specs/**"
+      - ".dockerignore"
+      - ".railwayignore"
+      - ".github/workflows/docs-check.yml"
+      - "services/gateway/**/http.go"
+      - "services/gateway/internal/authn/service.go"
+      - "services/gateway/internal/consentportal/portal.go"
+      - "services/gateway/internal/rights/operator.go"
+      - "services/gateway/cmd/gramstack/*.go"
+      - "adapters/lokos/cmd/lokos-adapter/*.go"
+      - "apps/sakhicredit/internal/application/http.go"
   workflow_dispatch:
 
 concurrency:
@@ -30,6 +54,7 @@ jobs:
           cache: npm
           cache-dependency-path: docs/package-lock.json
       - run: npm ci
+      - run: npm run verify:api-routes
       - run: npm run build
       - run: npm run verify:content
       - run: npm run verify:server

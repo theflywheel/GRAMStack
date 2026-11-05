@@ -26,7 +26,8 @@
     "assemble": "node scripts/assemble-design.mjs",
     "verify:server": "node scripts/verify-server.mjs",
     "verify:specs": "node scripts/verify-specs.mjs",
-    "verify:diagrams": "node scripts/verify-diagrams.mjs"
+    "verify:diagrams": "node scripts/verify-diagrams.mjs",
+    "verify:api-routes": "node scripts/verify-api-routes.mjs"
   },
   "engines": {
     "npm": ">=10.9.2",
