@@ -38,6 +38,10 @@ func main() {
 		port = "8080"
 	}
 	mux := http.NewServeMux()
+	if directory := os.Getenv("GRAMSTACK_SWAGGER_DIR"); directory != "" {
+		mux.Handle("GET /swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir(directory))))
+	}
+
 	if runtime != nil && runtime.metadata != nil {
 		mux.Handle("GET /.well-known/gramstack-adapter", runtime.metadata)
 		mux.Handle("GET /.well-known/gramstack-adapter/jwks.json", runtime.metadata)

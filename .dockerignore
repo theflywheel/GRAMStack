@@ -1,6 +1,7 @@
 .git/
 **/node_modules/
 docs/public/
+tools/api-reference/public/
 docs/.quartz/
 docs/.quartz-cache/
 docs/content/specifications/

@@ -5,7 +5,7 @@ date: 2026-11-03
 ---
 # API contracts
 
-[Open the Swagger API explorer](/api/) to browse the implemented service routes, payloads, responses and authentication. Select a service or the core protocol in the explorer. [Runtime catalogue](/specifications/runtime).
+[Open the Swagger API explorer](https://gramstack-gateway-b9b69819.up.railway.app/swagger/) to browse the implemented service routes, payloads, responses and authentication. Select a service or the core protocol in the explorer. [Runtime catalogue](/specifications/runtime).
 
 > [!info] API conventions
 > This catalogue describes GRAMStack-facing interfaces. Payloads use illustrative identifiers and values. Native registry endpoints remain behind their adapters; subject-verification mechanisms follow each registry's approved integration profile.

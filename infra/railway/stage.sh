@@ -16,7 +16,7 @@ case "$service" in
   gateway|lokos-adapter|mock-lokos|sakhicredit)
     paths=(go.work services/gateway sdk/go/adapter adapters/auth/oidc adapters/lokos
       mocks/identity mocks/lokos apps/sakhicredit tools/runtimefiles/main.go
-      .dockerignore .railwayignore)
+      specs tools/api-reference .dockerignore .railwayignore)
     ;;
   *) echo "Unknown deployment service: $service" >&2; exit 1 ;;
 esac

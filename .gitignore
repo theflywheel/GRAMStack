@@ -1,6 +1,7 @@
 # Dependencies and generated output
 **/node_modules/
 docs/public/
+tools/api-reference/public/
 docs/.quartz/
 docs/.quartz-cache/
 docs/prof/

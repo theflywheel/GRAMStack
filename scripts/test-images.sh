@@ -50,6 +50,17 @@ for role in gateway adapter source product; do
   done
   if [[ "$ready" != true ]]; then docker logs "$container" >&2; exit 1; fi
   [[ $(curl --silent -o /dev/null -w '%{http_code}' "http://$port/readyz") == 503 ]]
+  curl --fail --silent "http://$port/swagger/" | grep -q 'API explorer'
+  curl --fail --silent "http://$port/swagger/openapi.json" > "$scratch/openapi.json"
+  python3 - "$scratch/openapi.json" "$railway_service" <<'PYTHON'
+import json, sys
+api = json.load(open(sys.argv[1]))
+assert api["openapi"] == "3.1.0"
+assert api["paths"]
+route = {"gateway": "/v1/access-requests", "lokos-adapter": "/internal/v1/subject-verifications", "sakhicredit": "/api/applications"}[sys.argv[2]]
+assert route in api["paths"]
+PYTHON
+  curl --fail --silent "http://$port/swagger/swagger-ui-bundle.js" -o /dev/null
   docker stop --time 15 "$container" >/dev/null
   [[ $(docker inspect --format '{{.State.ExitCode}}' "$container") == 0 ]]
   docker rm "$container" >/dev/null

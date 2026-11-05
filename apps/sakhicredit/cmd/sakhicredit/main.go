@@ -138,11 +138,17 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/", handler)
+	if directory := os.Getenv("GRAMSTACK_SWAGGER_DIR"); directory != "" {
+		mux.Handle("GET /swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir(directory))))
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8081"
 	}
-	server := &http.Server{Addr: net.JoinHostPort(os.Getenv("BIND_HOST"), port), Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384}
+	server := &http.Server{Addr: net.JoinHostPort(os.Getenv("BIND_HOST"), port), Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384}
 	workerCtx, cancelWorker := context.WithCancel(context.Background())
 	defer cancelWorker()
 	workerDone := make(chan struct{})

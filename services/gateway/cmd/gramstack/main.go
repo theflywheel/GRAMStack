@@ -42,6 +42,10 @@ func main() {
 		port = "8080"
 	}
 	mux := http.NewServeMux()
+	if directory := os.Getenv("GRAMSTACK_SWAGGER_DIR"); directory != "" {
+		mux.Handle("GET /swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir(directory))))
+	}
+
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte("ok\n"))

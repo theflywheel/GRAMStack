@@ -6,6 +6,7 @@ on:
     paths:
       - "docs/**"
       - "specs/**"
+      - "tools/api-reference/**"
       - ".dockerignore"
       - ".railwayignore"
       - ".github/workflows/docs-check.yml"
@@ -20,6 +21,7 @@ on:
     paths:
       - "docs/**"
       - "specs/**"
+      - "tools/api-reference/**"
       - ".dockerignore"
       - ".railwayignore"
       - ".github/workflows/docs-check.yml"
@@ -54,7 +56,7 @@ jobs:
           cache: npm
           cache-dependency-path: docs/package-lock.json
       - run: npm ci
-      - run: npm run verify:api-routes
+      - run: node ../tools/api-reference/verify-routes.mjs
       - run: npm run build
       - run: npm run verify:content
       - run: npm run verify:server

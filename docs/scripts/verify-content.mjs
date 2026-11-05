@@ -26,6 +26,7 @@ for(const file of walk('public').filter(f=>f.endsWith('.html'))){
 assert.ok(readFileSync('public/static/contentIndex.json','utf8').includes('Consent manager'))
 assert.ok(readFileSync('public/static/GRAMStack-Design.md','utf8').length>45000)
 assert.ok(!existsSync('public/reference'), 'Internal historical pages must not be published')
+assert.ok(!existsSync('public/api'), 'Swagger must be served by the API services')
 assert.doesNotMatch(readFileSync('public/static/contentIndex.json','utf8'), /Historical baseline|LLD|sign.off|parked|ChatGPT|Claude/i)
 console.log(`Verified ${sources.length} documents, ${diagrams} diagram blocks, ${json} JSON examples and ${links} local links/assets.`)
 

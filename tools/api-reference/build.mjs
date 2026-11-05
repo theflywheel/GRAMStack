@@ -4,8 +4,6 @@ import SwaggerParser from "@apidevtools/swagger-parser"
 import swaggerUI from "swagger-ui-dist"
 
 const source = new URL("../../specs/", import.meta.url)
-const destination = new URL("../public/api/", import.meta.url)
-await mkdir(destination, { recursive: true })
 const options = {
   resolve: {
     http: false,
@@ -16,13 +14,16 @@ const options = {
     },
   },
 }
-const catalogues = [
-  ["gateway", "Gateway · public and browser"],
-  ["gateway-private", "Gateway · private mTLS"],
-  ["adapter", "LokOS adapter"],
-  ["sakhicredit", "SakhiCredit product"],
-  ["protocol", "Protocol · core 0.3.0"],
-]
+const services = {
+  gateway: [["gateway", "Gateway · public and browser"], ["gateway-private", "Gateway · private mTLS"], ["protocol", "Protocol · core 0.3.0"]],
+  adapter: [["adapter", "LokOS adapter"]],
+  sakhicredit: [["sakhicredit", "SakhiCredit product"]],
+}
+const service = process.argv[2]
+const catalogues = services[service]
+assert.ok(catalogues, "Pass gateway, adapter, or sakhicredit")
+const destination = new URL("./public/" + service + "/", import.meta.url)
+await mkdir(destination, { recursive: true })
 for (const [name] of catalogues) {
   const path = name === "protocol" ? "0.3.0/openapi.json" : `runtime/0.1.0/${name}.json`
   const file = new URL(path, source).pathname
@@ -46,5 +47,7 @@ for (const asset of ["LICENSE", "NOTICE"]) {
   await copyFile(swaggerUI.getAbsoluteFSPath() + "/" + asset, new URL("swagger-ui-" + asset + ".txt", destination))
 }
 for (const asset of ["index.html", "explorer.css", "explorer.js"]) {
-  await copyFile(new URL("../api/" + asset, import.meta.url), new URL(asset, destination))
+  await copyFile(new URL("./ui/" + asset, import.meta.url), new URL(asset, destination))
 }
+await copyFile(new URL(catalogues[0][0] + ".json", destination), new URL("openapi.json", destination))
+await writeFile(new URL("catalogues.js", destination), "window.gramstackApiCatalogues = " + JSON.stringify(catalogues) + ";\n")

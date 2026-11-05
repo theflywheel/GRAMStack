@@ -1,0 +1,16 @@
+{
+  "name": "@gramstack/api-reference",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node verify-routes.mjs",
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "13.1.0",
+    "swagger-ui-dist": "5.34.1"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

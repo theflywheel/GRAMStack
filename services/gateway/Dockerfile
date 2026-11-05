@@ -1,3 +1,11 @@
+FROM node:24-bookworm-slim AS api-reference
+WORKDIR /src/tools/api-reference
+COPY tools/api-reference/package.json tools/api-reference/package-lock.json ./
+RUN npm ci --ignore-scripts --no-audit --no-fund
+COPY tools/api-reference/ ./
+COPY specs/ /src/specs/
+RUN node build.mjs gateway
+
 # Build from the repository root. Independent service image; no runtime compiler.
 FROM golang:1.26.8-bookworm@sha256:dc9ad6c05acc7a88e5b71bde60a5fe3bd4b9f0db209011711b464107438a8107 AS build
 WORKDIR /src
@@ -18,9 +26,10 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifica
 RUN mkdir -p /app /run/gramstack && chown 10001:10001 /run/gramstack && chmod 0700 /run/gramstack
 COPY --from=build /out/service /out/runtimefiles /app/
 COPY services/gateway/start.sh /app/start-gateway
+COPY --from=api-reference /src/tools/api-reference/public/gateway/ /app/swagger/
 USER 10001:10001
 WORKDIR /app
-ENV PORT=8080
+ENV PORT=8080 GRAMSTACK_SWAGGER_DIR=/app/swagger
 EXPOSE 8080
 ENTRYPOINT ["/app/runtimefiles"]
 CMD ["/app/start-gateway"]

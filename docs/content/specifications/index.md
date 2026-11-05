@@ -26,9 +26,10 @@ Current specification version: **0.3.0**. Versions 0.1.0 and 0.2.0 remain unchan
 
 ## Implemented API explorer
 
-[Hosted Swagger UI](https://docs.gramstack.try-dough.com/api/) provides service
-catalogues for the public gateway, private gateway mTLS listener, LokOS adapter,
-and SakhiCredit product. The [runtime catalogue](/specifications/runtime) describes
+[Hosted Swagger UI](https://gramstack-gateway-b9b69819.up.railway.app/swagger/) provides the gateway public and private catalogues. Each service hosts its own UI.
+[LokOS adapter Swagger](https://gramstack-adapter-b9b69819.up.railway.app/swagger/)
+and [SakhiCredit Swagger](https://sakhicredit-b9b69819.up.railway.app/swagger/)
+serve their respective API contracts. The [runtime catalogue](/specifications/runtime) describes
 their deployment scope. The selector also includes the core 0.3.0 protocol.
 
 ## Independently versioned profiles

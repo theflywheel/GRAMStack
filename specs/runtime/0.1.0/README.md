@@ -11,9 +11,14 @@ absent from the deployed HTTP catalogue. Health and static assets are operationa
 endpoints outside this business API catalogue. Hydra and eSignet expose their
 upstream OAuth/OIDC interfaces.
 
-Browse the same documents at [API explorer](https://docs.gramstack.try-dough.com/api/).
+Browse the same documents at [API explorer](https://gramstack-gateway-b9b69819.up.railway.app/swagger/).
 The published explorer has request execution disabled. Use the product for browser
 flows and an approved operator environment for private mTLS calls.
 
-Update these files alongside handler changes. The docs build validates OpenAPI,
-bundles references locally and checks the documented operations against route sources.
+Each API image bundles its own Swagger UI and local schema references, served
+by the Go server at `/swagger/`. Its primary OpenAPI document is at
+`/swagger/openapi.json`. The gateway also includes its private-listener catalogue
+and core protocol. The adapter and SakhiCredit each expose their own catalogue.
+
+Update these files alongside handler changes. API image builds validate OpenAPI
+and bundle references locally. CI checks documented operations against route sources.
