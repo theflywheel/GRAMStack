@@ -35,6 +35,7 @@ jobs:
         working-directory: .
         env:
           ESIGNET_DEMO_REDIS_PASSWORD: compose-validation-fixture
+          ESIGNET_DEMO_DB_PASSWORD: compose-validation-fixture
         run: |
           set -o pipefail
           bash -n infra/railway/check-esignet-images.sh
