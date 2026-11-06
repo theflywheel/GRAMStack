@@ -10,6 +10,19 @@ application authentication profile 0.1.0. Each consumer SDK is Apache-2.0 licens
 | JavaScript / TypeScript | `@gramstack/client` | Node.js 22+ |
 | Browser helper | `@gramstack/client/browser` | Modern browsers |
 
+## Install version 0.1.0
+
+```sh
+go get github.com/theflywheel/GRAMStack/sdk/go/client@v0.1.0
+python -m pip install https://github.com/theflywheel/GRAMStack/releases/download/client-sdks-v0.1.0/gramstack_client-0.1.0-py3-none-any.whl
+npm install https://github.com/theflywheel/GRAMStack/releases/download/client-sdks-v0.1.0/gramstack-client-0.1.0.tgz
+```
+
+Python wheels/source and the npm tarball are distributed through the
+[GitHub release](https://github.com/theflywheel/GRAMStack/releases/tag/client-sdks-v0.1.0).
+They are not published on PyPI or the npm registry. Go uses its independent module
+tag `sdk/go/client/v0.1.0`. Each package includes its Apache-2.0 license.
+
 The application SDKs are separate from the registry [Go adapter SDK](go/adapter/).
 Applications authenticate with consumer OAuth, request explicit fields, hand the
 person to GRAMStack's consent portal, observe status, obtain an opaque retrieval

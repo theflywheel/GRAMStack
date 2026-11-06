@@ -1,5 +1,9 @@
 # GRAMStack Python client
 
+```sh
+python -m pip install https://github.com/theflywheel/GRAMStack/releases/download/client-sdks-v0.1.0/gramstack_client-0.1.0-py3-none-any.whl
+```
+
 Requires Python 3.10+. Consumer OAuth and protected retrieval run on the backend.
 
 ```python

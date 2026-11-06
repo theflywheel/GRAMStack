@@ -1,5 +1,13 @@
 # GRAMStack JavaScript and TypeScript client
 
+```sh
+npm install https://github.com/theflywheel/GRAMStack/releases/download/client-sdks-v0.1.0/gramstack-client-0.1.0.tgz
+```
+
+This tarball installs `@gramstack/client`; it is distributed through GitHub
+Releases rather than the npm registry.
+
+
 Node.js 22+ backend SDK, with TypeScript declarations and a separate browser entry.
 
 ```js

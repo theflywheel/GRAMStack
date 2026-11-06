@@ -1,5 +1,9 @@
 # GRAMStack Go client
 
+```sh
+go get github.com/theflywheel/GRAMStack/sdk/go/client@v0.1.0
+```
+
 Independent application SDK module. Configure the registered consumer and trusted
 endpoints on the backend.
 

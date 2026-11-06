@@ -13,6 +13,10 @@ separate FastAPI product.
 | Python | `gramstack-client` (`import gramstack`) | Python 3.10+ |
 | JavaScript / TypeScript | `@gramstack/client` | Node.js 22+ |
 
+Install the Go module at `v0.1.0`. Python and JavaScript packages are downloadable
+from the [SDK release](https://github.com/theflywheel/GRAMStack/releases/tag/client-sdks-v0.1.0);
+they are not published on PyPI or the npm registry.
+
 [Source, installation and examples](https://github.com/theflywheel/GRAMStack/tree/main/sdk)
 include the independently publishable packages. The application SDKs are separate
 from the Go adapter SDK used to implement registry integrations.
