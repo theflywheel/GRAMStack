@@ -1,8 +1,8 @@
 # SakhiCredit
 
-Independent demo consumer product. This Go module imports no GRAMStack implementation package. It authenticates with Hydra, creates immutable platform requests, hands the person to the first-party consent portal, polls explicit progress, obtains a grant, and presents the original consumer certificate on the private data route. Credit review belongs here; no eligibility decision or product state is added to the gateway.
+Independent demo consumer product. This Go module uses the first-party Go application SDK, independently of gateway internals. It authenticates with Hydra, creates immutable platform requests, hands the person to the first-party consent portal, polls explicit progress, obtains a grant, and presents the original consumer certificate on the private data route. Credit review belongs here; no eligibility decision or product state is added to the gateway.
 
-The Go binary embeds the responsive product UI and serves it at `/`; no Node runtime or asset build is needed in production. Headless acceptance drives the real application, identity/consent portal and source stack. The synthetic demo uses browser possession as product-session ownership; it does not implement production customer accounts or replace the platform's IdP and registry subject verification. Use fictional fixtures only until a real product access model is supplied.
+The Go binary embeds the responsive product UI and serves it at `/`; no Node runtime or asset build is needed in production. Headless acceptance drives the real application, identity/consent portal and source stack. With standalone sign-in configured, the product binds its encrypted session to a verified application-scoped GRAMStack identity. Browser sessions rotate after sign-in and expire on sign-out. Identity sign-in does not approve sharing or replace registry subject verification. Without that configuration, isolated legacy tests use browser possession only. Use fictional fixtures only until a real product access model is supplied.
 
 ## Configuration and run
 
@@ -34,6 +34,26 @@ Set secrets through restricted runtime variables/files:
 - `PORT`: listener, default 8081.
 
 Start with `GOWORK=off go run ./cmd/sakhicredit`. Without a config file, only liveness is available and readiness/API remain unavailable. HTTPS is required; literal loopback HTTP for the public/token origins additionally requires `allow_loopback_http=true` and `SAKHI_ENV=development`. The data origin always requires TLS with the pinned service DNS identity and deployment CA. Redirects cannot forward consumer credentials.
+
+## Standalone application sign-in
+
+Enroll a separate OpenID-only application client and exact callback in Hydra and
+the gateway's `authentication.application_clients`. Add `login_issuer` (the exact
+Hydra issuer) and `login_client_id` to the product JSON, and set
+`SAKHI_LOGIN_CLIENT_SECRET` separately. Preserve the gateway's dedicated
+`GRAMSTACK_APPLICATION_SUBJECT_KEY` across deployments for stable pairwise IDs.
+The application client is distinct from `client_id`, which remains the consumer
+client for data requests.
+
+The Go SDK handles PKCE, state, nonce and ID-token validation. PostgreSQL stores
+encrypted, expiring one-use login transactions and identity sessions. Migration 2
+adds these tables without changing migration 1. The product's APIs require both
+the identity session and its bound browser owner when sign-in is configured.
+
+- `GET /api/identity`: whether sign-in is configured and this browser authenticated.
+- `GET /auth/gramstack/login`: start browser-bound application sign-in.
+- `GET /auth/gramstack/callback`: verify identity and rotate the product session.
+- `POST /auth/gramstack/logout`: Origin/CSRF-protected session invalidation.
 
 ## Product API 0.1.0
 

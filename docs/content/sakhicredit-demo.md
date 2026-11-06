@@ -14,6 +14,18 @@ Watch SakhiCredit request two fields, show an exact consent notice, and retrieve
 The recording alternates between the live product and the [interactive architecture walkthrough](02-architecture#interactive-architecture-walkthrough). After approval, follow sign-in, ownership verification, and consent activation through the system. After retrieval, see how the adapter enforces one use and stores signed evidence before release. The live audit starts at about 1:51, followed by DeDi anchoring and an operator verification result from a standalone demo record. The demo uses fictional identities, one-time codes, and source records.
 
 
+## Try standalone application sign-in
+
+The live product now also uses the Go application SDK for **Sign in with
+GRAMStack**. Choose UIN/VID in eSignet, enter fictional Sunita ID `9000000001`,
+and use demo OTP `111111`. The product then opens an authenticated session.
+Starting an application still requires a separate registry verification and an
+explicit sharing decision. **Sign out** invalidates the product session.
+
+The recording above shows the sharing and evidence walkthrough; this additional
+application sign-in step is available in the current live product. SDK setup and
+cross-language examples are in [[sdks]].
+
 ## Try the access audit
 
 1. Start a new application and uncheck **Savings summary** so the request contains just membership status. Sign in using the fictional identity shown in SakhiCredit, verify membership, and approve the notice.
