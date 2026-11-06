@@ -24,6 +24,7 @@ jobs:
           cache-dependency-path: |
             services/gateway/go.*
             sdk/go/adapter/go.*
+            sdk/go/client/go.*
             adapters/lokos/go.*
             adapters/auth/oidc/go.*
             mocks/identity/go.*
@@ -50,6 +51,7 @@ jobs:
           cache-dependency-path: |
             gramstack/services/gateway/go.*
             gramstack/adapters/auth/oidc/go.*
+            gramstack/sdk/go/client/go.*
             dedi/go.*
       - name: Test actual DeDi publication and proof verification
         working-directory: gramstack
@@ -86,6 +88,7 @@ jobs:
           cache-dependency-path: |
             services/gateway/go.*
             sdk/go/adapter/go.*
+            sdk/go/client/go.*
             adapters/lokos/go.*
             adapters/auth/oidc/go.*
             mocks/identity/go.*

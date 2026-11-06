@@ -88,3 +88,13 @@ for (const name of Object.keys(discoverySchemas.$defs)) {
   for (const example of discoveryCases.filter(e => e.schema === name)) assert.equal(validate(example.value), example.valid, `${example.name}: ${ajv.errorsText(validate.errors)}`)
 }
 console.log(`Verified adapter discovery profile 0.1.0 and ${discoveryCases.length} fixtures.`)
+
+const authRoot = new URL('../../specs/application-auth/0.1.0/', import.meta.url)
+const authSchemas = JSON.parse(readFileSync(new URL('schemas.json', authRoot), 'utf8'))
+ajv.addSchema(authSchemas)
+const identity = ajv.getSchema(`${authSchemas.$id}#/$defs/Identity`)
+const example = { issuer: 'https://identity.example/', subject: 'app_example', authenticated_at: '2026-11-06T00:00:00Z', expires_at: '2026-11-06T01:00:00Z' }
+assert.equal(identity(example), true)
+assert.equal(identity({ ...example, subject: '' }), false)
+assert.equal(identity({ ...example, access_token: 'forbidden' }), false)
+console.log('Verified application authentication profile 0.1.0.')

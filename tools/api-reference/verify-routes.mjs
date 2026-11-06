@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises"
 // Compare the business route registrations with the implemented catalogue.
 const runtime = new Set()
 for (const name of ["gateway", "gateway-private", "adapter", "sakhicredit"]) {
-  const api = JSON.parse(await readFile(new URL("../../specs/runtime/0.1.0/" + name + ".json", import.meta.url), "utf8"))
+  const api = JSON.parse(await readFile(new URL("../../specs/runtime/0.2.0/" + name + ".json", import.meta.url), "utf8"))
   for (const [path, methods] of Object.entries(api.paths)) {
     for (const method of Object.keys(methods)) runtime.add(method.toUpperCase() + " " + path)
   }
@@ -21,6 +21,7 @@ const routeFiles = [
   "adapters/lokos/cmd/lokos-adapter/main.go",
   "adapters/lokos/cmd/lokos-adapter/retrieval.go",
   "apps/sakhicredit/internal/application/http.go",
+  "apps/sakhicredit/internal/application/login.go",
 ]
 for (const filename of routeFiles) {
   const code = await readFile(new URL("../../" + filename, import.meta.url), "utf8")

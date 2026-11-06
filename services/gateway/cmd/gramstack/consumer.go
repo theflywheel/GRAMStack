@@ -53,10 +53,11 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 		Consent               *consentConfig               `json:"consent"`
 		Authorization         *authorizationConfig         `json:"authorization"`
 		Authentication        *struct {
-			ClientID     string              `json:"client_id"`
-			HydraAdmin   string              `json:"hydra_admin_url"`
-			Provider     oidcadapter.Profile `json:"provider"`
-			DemoUpstream bool                `json:"demo_upstream"`
+			ClientID           string              `json:"client_id"`
+			ApplicationClients map[string][]string `json:"application_clients,omitempty"`
+			HydraAdmin         string              `json:"hydra_admin_url"`
+			Provider           oidcadapter.Profile `json:"provider"`
+			DemoUpstream       bool                `json:"demo_upstream"`
 		} `json:"authentication"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
@@ -137,7 +138,21 @@ func configureConsumers(ctx context.Context, mux *http.ServeMux) (func(), error)
 				return nil, errors.New("invalid upstream assertion key size")
 			}
 		}
-		federation, err := authn.New(ctx, authn.Config{Pool: pool, Store: store, Origin: config.PublicOrigin, HydraAdmin: c.HydraAdmin, AllowLoopback: config.AllowLoopbackHTTP, VerificationEnabled: len(config.Registries) > 0, ConsentPortalEnabled: config.Consent != nil, Hydra: authn.ProviderConfig{Issuer: config.HydraIssuer, ClientID: c.ClientID, ClientSecret: os.Getenv("GRAMSTACK_PORTAL_CLIENT_SECRET")}, UpstreamProfile: c.Provider, UpstreamCredentials: credentials, AllowDemoUpstream: c.DemoUpstream})
+		var applicationSubjectKey []byte
+		for client := range c.ApplicationClients {
+			if _, exists := config.Consumers[client]; exists {
+				pool.Close()
+				return nil, errors.New("application and consumer OAuth clients must be separate")
+			}
+		}
+		if len(c.ApplicationClients) > 0 {
+			applicationSubjectKey, err = base64.StdEncoding.DecodeString(os.Getenv("GRAMSTACK_APPLICATION_SUBJECT_KEY"))
+			if err != nil || len(applicationSubjectKey) != 32 {
+				pool.Close()
+				return nil, errors.New("application subject derivation key required")
+			}
+		}
+		federation, err := authn.New(ctx, authn.Config{ApplicationClients: c.ApplicationClients, ApplicationSubjectKey: applicationSubjectKey, Pool: pool, Store: store, Origin: config.PublicOrigin, HydraAdmin: c.HydraAdmin, AllowLoopback: config.AllowLoopbackHTTP, VerificationEnabled: len(config.Registries) > 0, ConsentPortalEnabled: config.Consent != nil, Hydra: authn.ProviderConfig{Issuer: config.HydraIssuer, ClientID: c.ClientID, ClientSecret: os.Getenv("GRAMSTACK_PORTAL_CLIENT_SECRET")}, UpstreamProfile: c.Provider, UpstreamCredentials: credentials, AllowDemoUpstream: c.DemoUpstream})
 		if err != nil {
 			pool.Close()
 			return nil, err

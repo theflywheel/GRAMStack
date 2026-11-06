@@ -14,7 +14,7 @@ case "$service" in
   esignet-ui) paths=(infra/railway/esignet-ui) ;;
   esignet-redis) paths=(infra/railway/esignet-redis) ;;
   gateway|lokos-adapter|mock-lokos|sakhicredit)
-    paths=(go.work services/gateway sdk/go/adapter adapters/auth/oidc adapters/lokos
+    paths=(go.work services/gateway sdk/go/adapter sdk/go/client adapters/auth/oidc adapters/lokos
       mocks/identity mocks/lokos apps/sakhicredit tools/runtimefiles/main.go
       specs tools/api-reference .dockerignore .railwayignore)
     ;;

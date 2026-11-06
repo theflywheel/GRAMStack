@@ -6,6 +6,7 @@ const terminal = new Set([
   "EXPIRED",
   "CANCELLED",
 ]);
+let authEnabled = false, signInRequired = true;
 let app = null,
   csrf = "",
   busy = false,
@@ -110,9 +111,10 @@ function render() {
     );
   }
   const hasApplication = !!app || !!storedID();
-  show("new-application", !hasApplication);
+  show("sign-in-panel", signInRequired && authEnabled);
+  show("new-application", !hasApplication && !signInRequired);
   show("application-progress", hasApplication);
-  $("start").disabled = busy || !csrf;
+  $("start").disabled = busy || !csrf || signInRequired;
   $("start").textContent = pendingCreate
     ? "Retry the same application →"
     : "Start application →";
@@ -282,6 +284,17 @@ function render() {
   }
 }
 function failure(error) {
+  if (error.status === 401 && authEnabled) {
+    clearTimeout(timer);
+    clearTimeout(expiryTimer);
+    app = null;
+    pendingCreate = null;
+    csrf = "";
+    signInRequired = true;
+    remember("");
+    render();
+    return;
+  }
   if (error.application) adopt(error.application);
   if (operation === "retrieve") needsOutcomeCheck = true;
   if (error.status === 404 || error.status === 401) {
@@ -362,8 +375,20 @@ function schedule() {
   }, delay);
 }
 async function initialize() {
+  await refreshIdentity();
+  if (new URLSearchParams(location.search).has("signed_in")) {
+    remember("");
+    history.replaceState(null,"",location.pathname);
+  }
   const session = await api("/api/session");
   csrf = session.csrf_token;
+  if (signInRequired) {
+    app = null;
+    pendingCreate = null;
+    remember("");
+    render();
+    return;
+  }
   if (storedID()) await check();
   else render();
 }
@@ -436,3 +461,19 @@ document.addEventListener("visibilitychange", () => {
 });
 render();
 action(initialize);
+
+async function refreshIdentity() {
+  const identity = await api("/api/identity");
+  authEnabled = identity.enabled;
+  signInRequired = identity.enabled && !identity.authenticated;
+  $("gramstack-login").hidden = !signInRequired;
+  $("gramstack-identity").hidden = !identity.authenticated;
+  $("gramstack-logout").hidden = !identity.authenticated;
+}
+$("gramstack-logout").addEventListener("click", () => action(async () => {
+  await api("/auth/gramstack/logout","POST");
+  app = null;
+  pendingCreate = null;
+  remember("");
+  await initialize();
+}));

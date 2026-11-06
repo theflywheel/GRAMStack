@@ -25,7 +25,7 @@ assert.ok(catalogues, "Pass gateway, adapter, or sakhicredit")
 const destination = new URL("./public/" + service + "/", import.meta.url)
 await mkdir(destination, { recursive: true })
 for (const [name] of catalogues) {
-  const path = name === "protocol" ? "0.3.0/openapi.json" : `runtime/0.1.0/${name}.json`
+  const path = name === "protocol" ? "0.3.0/openapi.json" : `runtime/0.2.0/${name}.json`
   const file = new URL(path, source).pathname
   await SwaggerParser.validate(file, options)
   const api = await SwaggerParser.bundle(file, options)

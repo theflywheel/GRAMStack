@@ -16,9 +16,12 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/theflywheel/GRAMStack/apps/sakhicredit/internal/application"
+	gramstack "github.com/theflywheel/GRAMStack/sdk/go/client"
 )
 
 type config struct {
+	LoginIssuer       string `json:"login_issuer,omitempty"`
+	LoginClientID     string `json:"login_client_id,omitempty"`
 	PublicOrigin      string `json:"public_origin"`
 	GatewayOrigin     string `json:"gateway_origin"`
 	GatewayDataOrigin string `json:"gateway_data_origin"`
@@ -43,6 +46,7 @@ func readFile(path string) ([]byte, error) {
 func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+	var login *gramstack.AuthClient
 	var service *application.Service
 	var store *application.Store
 	var pool *pgxpool.Pool
@@ -125,6 +129,12 @@ func run() error {
 		if err != nil {
 			return err
 		}
+		if c.LoginClientID != "" || c.LoginIssuer != "" {
+			login, err = gramstack.NewAuth(ctx, gramstack.AuthConfig{Issuer: c.LoginIssuer, ClientID: c.LoginClientID, ClientSecret: os.Getenv("SAKHI_LOGIN_CLIENT_SECRET"), RedirectURL: c.PublicOrigin + "/auth/gramstack/callback", CA: ca, AllowLoopback: c.AllowLoopback}, store)
+			if err != nil {
+				return errors.New("GRAMStack application login configuration unavailable")
+			}
+		}
 		service, err = application.NewService(store, client)
 		if err != nil {
 			return err
@@ -134,7 +144,7 @@ func run() error {
 		c.PublicOrigin = "http://127.0.0.1"
 		c.AllowLoopback = true
 	}
-	handler, err := application.Handler(service, c.PublicOrigin, c.AllowLoopback)
+	handler, err := application.Handler(service, c.PublicOrigin, c.AllowLoopback, login)
 	if err != nil {
 		return err
 	}

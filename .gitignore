@@ -26,3 +26,11 @@ docs/.github/
 
 # Local Railway CLI state/import scratch (canonical config is infra/railway/railway.ts)
 **/.railway/
+
+# Client SDK package output
+sdk/python/dist/
+sdk/python/build/
+sdk/python/src/*.egg-info/
+**/__pycache__/
+.pytest_cache/
+sdk/javascript/*.tgz

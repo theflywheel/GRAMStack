@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.gramstack.try-dough.com/static/specs/application-auth/0.1.0/schemas.json",
+  "$defs": {
+    "Identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["issuer", "subject", "authenticated_at", "expires_at"],
+      "properties": {
+        "issuer": {"type": "string", "format": "uri"},
+        "subject": {"type": "string", "minLength": 1, "maxLength": 1024},
+        "authenticated_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}

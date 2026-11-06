@@ -25,6 +25,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	gramstack "github.com/theflywheel/GRAMStack/sdk/go/client"
 )
 
 func database(t *testing.T) *pgxpool.Pool {
@@ -152,7 +153,7 @@ func setup(t *testing.T) *fixture {
 			id := "req-" + strings.TrimPrefix(r.Header.Get("Idempotency-Key"), "sakhi-create-")
 			// The URL's origin is assigned below before this handler can be called.
 			origin := "http://" + r.Host
-			writeJSON(w, 202, Accepted{id, "AUTHENTICATION_PENDING", origin + "/v1/access-requests/" + id, origin + "/interactions/" + id, time.Unix(1900000000, 0).UTC()})
+			writeJSON(w, 202, Accepted{RequestID: id, Status: "AUTHENTICATION_PENDING", StatusURL: origin + "/v1/access-requests/" + id, InteractionURL: origin + "/interactions/" + id, ExpiresAt: time.Unix(1900000000, 0).UTC()})
 			return
 		}
 		parts := strings.Split(r.URL.Path, "/")
@@ -166,7 +167,7 @@ func setup(t *testing.T) *fixture {
 				w.WriteHeader(int(code))
 				return
 			}
-			writeJSON(w, 200, grantResponse{"signed-grant", time.Now().Add(time.Minute).UTC(), "Bearer"})
+			writeJSON(w, 200, map[string]any{"grant": "signed-grant", "expires_at": time.Now().Add(time.Minute).UTC(), "token_type": "Bearer"})
 			return
 		}
 		if code := f.statusCode.Load(); code != 0 {
@@ -177,7 +178,7 @@ func setup(t *testing.T) *fixture {
 		if strings.HasSuffix(r.URL.Path, "/cancel") {
 			status = "CANCELLED"
 		}
-		writeJSON(w, 200, PlatformStatus{id, status, 5, "wait", time.Unix(1900000000, 0).UTC()})
+		writeJSON(w, 200, PlatformStatus{RequestID: id, Status: status, Version: 5, NextAction: "wait", ExpiresAt: time.Unix(1900000000, 0).UTC()})
 	}))
 	t.Cleanup(public.Close)
 	ca, cert, keyPEM, pair := certificates(t)
@@ -561,5 +562,55 @@ func TestCancellationOutageReportsItsCommittedFence(t *testing.T) {
 	cancelled, err := f.service.Cancel(ctx, f.owner, app.ID)
 	if err != nil || cancelled.State != "CANCELLED" {
 		t.Fatal("durable cancellation did not recover", cancelled.State, err)
+	}
+}
+
+func TestSDKLoginStateAndIdentityCustody(t *testing.T) {
+	f := setup(t)
+	ctx := context.Background()
+	transaction := gramstack.LoginTransaction{State: rand.Text(), Nonce: rand.Text(), Verifier: strings.Repeat("v", 43), StartedAt: time.Now().UTC(), ExpiresAt: time.Now().Add(time.Minute).UTC()}
+	binding := rand.Text()
+	if err := f.service.store.SaveLogin(ctx, transaction.State, binding, transaction); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.service.store.TakeLogin(ctx, transaction.State, rand.Text()); err == nil {
+		t.Fatal("foreign browser consumed login")
+	}
+	restarted, err := NewStore(f.pool, bytes.Repeat([]byte{7}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := restarted.TakeLogin(ctx, transaction.State, binding)
+	if err != nil || recovered.Verifier != transaction.Verifier {
+		t.Fatal("login state did not survive restart", err)
+	}
+	if _, err := restarted.TakeLogin(ctx, transaction.State, binding); err == nil {
+		t.Fatal("login state replay accepted")
+	}
+	identity := gramstack.Identity{Issuer: "https://issuer.example/", Subject: "app_opaque", AuthenticatedAt: time.Now().UTC(), ExpiresAt: time.Now().Add(time.Hour).UTC()}
+	token, browser, _, err := restarted.identitySession(ctx, identity, f.token, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := restarted.Session(ctx, f.token); err == nil {
+		t.Fatal("old browser session survived login rotation")
+	}
+	owner, _, err := restarted.Session(ctx, browser)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := restarted.identity(ctx, token, f.owner); err == nil {
+		t.Fatal("identity accepted in old owner session")
+	}
+	value, err := restarted.identity(ctx, token, owner)
+	if err != nil || value.Subject != identity.Subject {
+		t.Fatal("bound identity unavailable", err)
+	}
+	var stored []byte
+	if err := f.pool.QueryRow(ctx, `SELECT payload FROM sakhi_identity_sessions WHERE token_hash=$1`, ownerOf(token)).Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(stored, []byte(identity.Subject)) {
+		t.Fatal("plaintext identity persisted")
 	}
 }

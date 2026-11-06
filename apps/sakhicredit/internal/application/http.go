@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	gramstack "github.com/theflywheel/GRAMStack/sdk/go/client"
 	"io"
 	"mime"
 	"net/http"
@@ -36,7 +37,7 @@ func problem(w http.ResponseWriter, err error, app Application) {
 	}
 	writeJSON(w, status, value)
 }
-func Handler(service *Service, origin string, allowLoopback bool) (http.Handler, error) {
+func Handler(service *Service, origin string, allowLoopback bool, login ...*gramstack.AuthClient) (http.Handler, error) {
 	if !trustedURL(origin, allowLoopback, true) {
 		return nil, errors.New("trusted product public origin required")
 	}
@@ -80,6 +81,10 @@ func Handler(service *Service, origin string, allowLoopback bool) (http.Handler,
 		http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: secure, SameSite: http.SameSiteLaxMode, MaxAge: 7200})
 		writeJSON(w, 200, map[string]string{"csrf_token": csrf})
 	})
+	var auth *gramstack.AuthClient
+	if len(login) > 0 {
+		auth = login[0]
+	}
 	authenticate := func(w http.ResponseWriter, r *http.Request) (string, bool) {
 		if service == nil {
 			problem(w, ErrUnavailable, Application{})
@@ -99,12 +104,28 @@ func Handler(service *Service, origin string, allowLoopback bool) (http.Handler,
 			}
 			return "", false
 		}
+		if auth != nil {
+			identityCookie := "__Host-sakhi-identity"
+			if !secure {
+				identityCookie = "sakhi_identity_dev"
+			}
+			cookies := r.CookiesNamed(identityCookie)
+			if len(cookies) != 1 {
+				writeJSON(w, 401, map[string]string{"error": "SIGN_IN_REQUIRED"})
+				return "", false
+			}
+			if _, err := service.store.identity(r.Context(), cookies[0].Value, owner); err != nil {
+				writeJSON(w, 401, map[string]string{"error": "SIGN_IN_REQUIRED"})
+				return "", false
+			}
+		}
 		if r.Method != "GET" && (len(r.Header.Values("Origin")) != 1 || len(r.Header.Values("X-CSRF-Token")) != 1 || r.Header.Get("Origin") != origin || subtle.ConstantTimeCompare([]byte(r.Header.Get("X-CSRF-Token")), []byte(csrf)) != 1) {
 			writeJSON(w, 403, map[string]string{"error": "REQUEST_VERIFICATION_FAILED"})
 			return "", false
 		}
 		return owner, true
 	}
+	registerLogin(mux, service, auth, origin, cookieName, authenticate)
 	// Product concurrency is bounded independently of the platform's disclosure gate.
 	slots := make(chan struct{}, 8)
 	endpoint := func(fn func(string, http.ResponseWriter, *http.Request)) http.HandlerFunc {

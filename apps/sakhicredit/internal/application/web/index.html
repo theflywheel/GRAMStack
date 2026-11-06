@@ -13,10 +13,17 @@
   <a class="skip" href="#main">Skip to application</a>
   <header class="topbar">
     <a class="brand" href="/" aria-label="SakhiCredit home"><span class="brand-mark" aria-hidden="true">s.</span><span>Sakhi<span class="brand-light">Credit</span><small>A little clarity. A new possibility.</small></span></a>
+    <a id="gramstack-login" class="how-link" href="/auth/gramstack/login" hidden>Sign in</a>
+    <span id="gramstack-identity" class="how-link" hidden>Signed in with GRAMStack</span>
+    <button id="gramstack-logout" class="text-button" type="button" hidden>Sign out</button>
     <a class="how-link" href="#sharing-info">How sharing works <span aria-hidden="true">↗</span></a>
     <span class="demo-label"><span class="dot" aria-hidden="true"></span> Fictional data demo</span>
   </header>
   <main id="main">
+    <section id="sign-in-panel" class="notice" role="status" hidden>
+      <p>Sign in to start your SakhiCredit session. You will review and approve data sharing separately.</p>
+      <a class="button primary" href="/auth/gramstack/login">Sign in with GRAMStack</a>
+    </section>
     <section class="intro" aria-labelledby="page-title">
       <div><p class="eyebrow">MEMBER CREDIT REVIEW</p><h1 id="page-title" tabindex="-1">Your next step,<br><em>on your terms.</em></h1><p class="intro-copy">Bring your SHG membership details into your credit review. Choose what to request, review the sharing notice, and decide for yourself.</p></div>
       <div class="intro-note"><span class="seal" aria-hidden="true">✓</span><p>Your permission comes first.<br><strong>No details are fetched until you approve.</strong></p></div>

@@ -25,28 +25,32 @@ import (
 )
 
 type Config struct {
-	Pool                 *pgxpool.Pool
-	Store                *Store
-	Origin, HydraAdmin   string
-	Hydra                ProviderConfig
-	UpstreamProfile      oidcadapter.Profile
-	UpstreamCredentials  oidcadapter.Credentials
-	AllowDemoUpstream    bool
-	AllowLoopback        bool
-	VerificationEnabled  bool
-	ConsentPortalEnabled bool
+	ApplicationClients    map[string][]string
+	ApplicationSubjectKey []byte
+	Pool                  *pgxpool.Pool
+	Store                 *Store
+	Origin, HydraAdmin    string
+	Hydra                 ProviderConfig
+	UpstreamProfile       oidcadapter.Profile
+	UpstreamCredentials   oidcadapter.Credentials
+	AllowDemoUpstream     bool
+	AllowLoopback         bool
+	VerificationEnabled   bool
+	ConsentPortalEnabled  bool
 }
 type Service struct {
-	pool                 *pgxpool.Pool
-	store                *Store
-	origin, admin        string
-	hydra                *provider
-	upstream             *oidcadapter.Adapter
-	client               *http.Client
-	secure               bool
-	verificationEnabled  bool
-	consentPortalEnabled bool
-	historyClientID      string
+	applicationClients    map[string][]string
+	applicationSubjectKey []byte
+	pool                  *pgxpool.Pool
+	store                 *Store
+	origin, admin         string
+	hydra                 *provider
+	upstream              *oidcadapter.Adapter
+	client                *http.Client
+	secure                bool
+	verificationEnabled   bool
+	consentPortalEnabled  bool
+	historyClientID       string
 }
 type flow struct {
 	RequestID, Digest, State, Nonce, Verifier, PrincipalRef string
@@ -82,7 +86,24 @@ func New(ctx context.Context, c Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{c.Pool, c.Store, origin, strings.TrimSuffix(c.HydraAdmin, "/"), hydra, upstream, &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, strings.HasPrefix(origin, "https://"), c.VerificationEnabled, c.ConsentPortalEnabled, c.UpstreamProfile.ClientID}, nil
+	if len(c.ApplicationClients) > 128 || (len(c.ApplicationClients) > 0 && len(c.ApplicationSubjectKey) != 32) {
+		return nil, ErrAuthentication
+	}
+	applicationClients := make(map[string][]string, len(c.ApplicationClients))
+	for client, redirects := range c.ApplicationClients {
+		if !historyRegistry.MatchString(client) || client == c.Hydra.ClientID || len(redirects) < 1 || len(redirects) > 8 {
+			return nil, ErrAuthentication
+		}
+		seen := map[string]bool{}
+		for _, redirect := range redirects {
+			if !trustedURL(redirect, c.AllowLoopback) || strings.ContainsAny(redirect, "?#") || seen[redirect] {
+				return nil, ErrAuthentication
+			}
+			seen[redirect] = true
+		}
+		applicationClients[client] = append([]string(nil), redirects...)
+	}
+	return &Service{applicationClients, append([]byte(nil), c.ApplicationSubjectKey...), c.Pool, c.Store, origin, strings.TrimSuffix(c.HydraAdmin, "/"), hydra, upstream, &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, strings.HasPrefix(origin, "https://"), c.VerificationEnabled, c.ConsentPortalEnabled, c.UpstreamProfile.ClientID}, nil
 }
 func (s *Service) loadRequest(ctx context.Context, id string) (request, error) {
 	var result request
@@ -257,6 +278,10 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		fail(w)
 		return
 	}
+	if request.Client.ID != s.hydra.config.ClientID {
+		s.applicationLogin(w, r, challenge, request)
+		return
+	}
 	outer, binding, err := s.outerFlow(r, request)
 	if err != nil {
 		fail(w)
@@ -287,6 +312,9 @@ func (s *Service) upstreamCallback(w http.ResponseWriter, r *http.Request) {
 	state, code, parseErr := callbackParameters(r)
 	if parseErr != nil {
 		fail(w)
+		return
+	}
+	if s.completeApplication(w, r, state, code) {
 		return
 	}
 	if s.completeHistory(w, r, state, code) {
@@ -365,6 +393,10 @@ func (s *Service) oauthConsent(w http.ResponseWriter, r *http.Request) {
 	var request hydraRequest
 	if s.hydraJSON(r.Context(), "GET", "/admin/oauth2/auth/requests/consent?consent_challenge="+url.QueryEscape(challenge), nil, &request) != nil {
 		fail(w)
+		return
+	}
+	if request.Client.ID != s.hydra.config.ClientID {
+		s.applicationConsent(w, r, challenge, request)
 		return
 	}
 	outer, _, err := s.outerFlow(r, request)

@@ -1,0 +1,615 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SakhiCredit product",
+    "version": "0.2.0",
+    "description": "Product API. Session ownership, exact product Origin and X-CSRF-Token bind mutations. The browser obtains the CSRF token from GET /api/session."
+  },
+  "servers": [
+    {
+      "url": "https://sakhicredit-b9b69819.up.railway.app"
+    }
+  ],
+  "paths": {
+    "/api/session": {
+      "get": {
+        "operationId": "productSession",
+        "summary": "Create or resume a product session and obtain its CSRF token",
+        "tags": [
+          "Product session"
+        ],
+        "description": "Create or resume a product session and obtain its CSRF token",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "csrf_token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "csrf_token"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "JSON error code and, when available, current application. Input 400, missing session 401, CSRF or Origin 403, ownership 404, state 409, busy 429, unavailable 503."
+          }
+        }
+      }
+    },
+    "/api/applications": {
+      "post": {
+        "operationId": "createApplication",
+        "summary": "Create an application and begin sharing",
+        "tags": [
+          "Applications"
+        ],
+        "description": "Create an application and begin sharing",
+        "security": [
+          {
+            "productSession": [],
+            "applicationIdentity": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "JSON error code and, when available, current application. Input 400, missing session 401, CSRF or Origin 403, ownership 404, state 409, busy 429, unavailable 503."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "member_reference": {
+                    "type": "string",
+                    "example": "member-12345"
+                  },
+                  "include_savings": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "member_reference",
+                  "include_savings"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/applications/{id}": {
+      "get": {
+        "operationId": "getApplication",
+        "summary": "Read the session-owned application and cached result",
+        "tags": [
+          "Applications"
+        ],
+        "description": "Read the session-owned application and cached result",
+        "security": [
+          {
+            "productSession": [],
+            "applicationIdentity": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "JSON error code and, when available, current application. Input 400, missing session 401, CSRF or Origin 403, ownership 404, state 409, busy 429, unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/applications/{id}/refresh": {
+      "post": {
+        "operationId": "refreshApplication",
+        "summary": "Poll authoritative platform status",
+        "tags": [
+          "Applications"
+        ],
+        "description": "Poll authoritative platform status. Request body must be empty.",
+        "security": [
+          {
+            "productSession": [],
+            "applicationIdentity": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "JSON error code and, when available, current application. Input 400, missing session 401, CSRF or Origin 403, ownership 404, state 409, busy 429, unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/applications/{id}/retrieve": {
+      "post": {
+        "operationId": "retrieveApplication",
+        "summary": "Retrieve approved data once and retain the owned result",
+        "tags": [
+          "Applications"
+        ],
+        "description": "Retrieve approved data once and retain the owned result. Request body must be empty.",
+        "security": [
+          {
+            "productSession": [],
+            "applicationIdentity": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "JSON error code and, when available, current application. Input 400, missing session 401, CSRF or Origin 403, ownership 404, state 409, busy 429, unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/applications/{id}/cancel": {
+      "post": {
+        "operationId": "cancelApplication",
+        "summary": "Cancel unadmitted sharing authority",
+        "tags": [
+          "Applications"
+        ],
+        "description": "Cancel unadmitted sharing authority. Request body must be empty.",
+        "security": [
+          {
+            "productSession": [],
+            "applicationIdentity": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Application"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "JSON error code and, when available, current application. Input 400, missing session 401, CSRF or Origin 403, ownership 404, state 409, busy 429, unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/identity": {
+      "get": {
+        "operationId": "getApplicationIdentity",
+        "summary": "Read application sign-in availability and current identity",
+        "tags": [
+          "Application sign-in"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Identity is included only for a valid, bound product and identity session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "enabled",
+                    "authenticated"
+                  ],
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "authenticated": {
+                      "type": "boolean"
+                    },
+                    "identity": {
+                      "$ref": "../../application-auth/0.1.0/schemas.json#/$defs/Identity"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/gramstack/login": {
+      "get": {
+        "operationId": "startApplicationLogin",
+        "summary": "Start standalone GRAMStack sign-in",
+        "tags": [
+          "Application sign-in"
+        ],
+        "security": [],
+        "responses": {
+          "302": {
+            "description": "Set browser-binding cookie and redirect to Hydra authorization."
+          },
+          "404": {
+            "description": "Application sign-in is not configured."
+          }
+        }
+      }
+    },
+    "/auth/gramstack/callback": {
+      "get": {
+        "operationId": "completeApplicationLogin",
+        "summary": "Consume login state, verify identity and rotate the application session",
+        "tags": [
+          "Application sign-in"
+        ],
+        "security": [],
+        "responses": {
+          "303": {
+            "description": "Redirect to the product after creating bound sessions."
+          },
+          "403": {
+            "description": "Invalid, expired or replayed browser transaction."
+          }
+        },
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/auth/gramstack/logout": {
+      "post": {
+        "operationId": "endApplicationSession",
+        "summary": "Invalidate the application identity and browser session",
+        "tags": [
+          "Application sign-in"
+        ],
+        "security": [
+          {
+            "productSession": [],
+            "applicationIdentity": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sessions invalidated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "authenticated"
+                  ],
+                  "properties": {
+                    "authenticated": {
+                      "type": "boolean",
+                      "const": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-CSRF-Token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "consumerBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Hydra consumer token, validated audience and registered client."
+      },
+      "browserSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-session"
+      },
+      "serviceMTLS": {
+        "type": "mutualTLS"
+      },
+      "presenterMTLS": {
+        "type": "mutualTLS",
+        "description": "Consumer certificate must match grant cnf thumbprint."
+      },
+      "retrievalGrant": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "historySession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-history",
+        "description": "Fresh registry-scoped sign-in. Separate from the interaction session."
+      },
+      "productSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-sakhi"
+      },
+      "oauthTransaction": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-flow",
+        "description": "One-time browser-bound OAuth transaction, state, nonce and PKCE. Provider callback uses its own upstream correlation cookie."
+      },
+      "applicationIdentity": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-sakhi-identity",
+        "description": "Verified SDK-backed application identity, bound to the current product session."
+      }
+    },
+    "schemas": {
+      "Application": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "CONNECTING",
+              "WAITING",
+              "READY",
+              "FETCHING",
+              "COMPLETE",
+              "UNKNOWN",
+              "BLOCKED",
+              "EXPIRED",
+              "CANCELLING",
+              "CANCELLED"
+            ]
+          },
+          "platform_status": {
+            "type": "string"
+          },
+          "interaction_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "result": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "request_id": {
+                "type": "string"
+              },
+              "data": {
+                "type": "object",
+                "description": "Exactly the approved membership and optional savings fields.",
+                "additionalProperties": true
+              },
+              "receipt_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "request_id",
+              "data",
+              "receipt_id"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "platform_status",
+          "created_at",
+          "expires_at"
+        ]
+      }
+    }
+  }
+}

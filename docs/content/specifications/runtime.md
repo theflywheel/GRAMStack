@@ -3,7 +3,7 @@ title: Implemented API catalogue
 description: Versioned GRAMStack implementation contracts and conformance requirements.
 ---
 
-# Implemented HTTP API catalogue 0.1.0
+# Implemented HTTP API catalogue 0.2.0
 
 These OpenAPI 3.1 documents describe the configured reference runtime and accompany
 core 0.3.0 and its independently versioned profiles. The immutable protocol remains
@@ -27,3 +27,5 @@ and core protocol. The adapter and SakhiCredit each expose their own catalogue.
 
 Update these files alongside handler changes. API image builds validate OpenAPI
 and bundle references locally. CI checks documented operations against route sources.
+
+Standalone application sign-in follows [application-auth 0.1.0](/specifications/application-auth). SakhiCredit exposes SDK-backed login, callback, identity and logout routes when its application-login profile is configured.

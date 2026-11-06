@@ -14,7 +14,7 @@ if [[ "$operation" == build ]]; then touch "$CI_RUNNER_TRACE.unsafe-build"; exit
 if [[ "$module" == *"$CI_RUNNER_FAIL_MODULE" && "$operation" == "$CI_RUNNER_FAIL_OPERATION" ]]; then exit 42; fi
 FAKE
 chmod +x "$scratch/go"
-for fault in 'services/gateway test' 'sdk/go/adapter test' 'sdk/go/adapter vet' 'adapters/auth/oidc test' 'adapters/auth/oidc vet' 'mocks/lokos test' 'mocks/lokos vet' 'apps/sakhicredit test' 'apps/sakhicredit vet'; do
+for fault in 'services/gateway test' 'sdk/go/adapter test' 'sdk/go/adapter vet' 'adapters/auth/oidc test' 'adapters/auth/oidc vet' 'mocks/lokos test' 'mocks/lokos vet' 'sdk/go/client test' 'sdk/go/client vet' 'apps/sakhicredit test' 'apps/sakhicredit vet'; do
   read -r fail_module fail_operation <<< "$fault"
   export CI_RUNNER_FAIL_MODULE="$fail_module" CI_RUNNER_FAIL_OPERATION="$fail_operation" CI_RUNNER_TRACE="$scratch/trace"
   : > "$CI_RUNNER_TRACE"

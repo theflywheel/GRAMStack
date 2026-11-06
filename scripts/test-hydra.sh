@@ -38,6 +38,7 @@ cleanup(){
 trap cleanup EXIT
 source "$root/scripts/gateway-module.sh"
 prepare_gateway_module "$root" "$scratch"
+prepare_product_module "$root" "$scratch"
 "$PG_BIN/initdb" -D "$scratch/pg" -U gramstack --auth-local=trust --auth-host=scram-sha-256 > "$scratch/initdb.log"
 "$PG_BIN/pg_ctl" -D "$scratch/pg" -l "$scratch/pg.log" -o "-k $scratch -p 55438 -c listen_addresses=''" -w start >/dev/null
 for db in gramstack_core hydra; do "$PG_BIN/createdb" -h "$scratch" -p 55438 -U gramstack "$db"; done
@@ -49,6 +50,9 @@ public_port=$(free_port)
 admin_port=$(free_port)
 gateway_port=$(free_port)
 idp_port=$(free_port)
+export GRAMSTACK_TEST_PRODUCT_URL="http://127.0.0.1:$(free_port)"
+export SAKHI_LOGIN_CLIENT_SECRET=isolated-application-login-secret
+export GRAMSTACK_APPLICATION_SUBJECT_KEY=$(python3 -c 'import base64,secrets;print(base64.b64encode(secrets.token_bytes(32)).decode())')
 export GRAMSTACK_TEST_GATEWAY_URL="http://127.0.0.1:$gateway_port"
 export URLS_LOGIN="$GRAMSTACK_TEST_GATEWAY_URL/auth/login" URLS_CONSENT="$GRAMSTACK_TEST_GATEWAY_URL/auth/oauth-consent"
 export GRAMSTACK_TEST_HYDRA_PUBLIC="http://127.0.0.1:$public_port"
@@ -83,12 +87,11 @@ config=dict(public_origin='http://127.0.0.1:'+os.environ['PORT'],hydra_introspec
 pathlib.Path(os.environ['GRAMSTACK_CONFIG_FILE']).write_text(json.dumps(config))
 PY
 setup_product(){
- GOWORK=off go -C "$root/apps/sakhicredit" build -o "$scratch/sakhicredit" ./cmd/sakhicredit
+ product_go build -o "$scratch/sakhicredit" ./cmd/sakhicredit
  "$PG_BIN/createdb" -h "$scratch" -p 55438 -U gramstack sakhicredit
  export SAKHI_DATABASE_URL="postgres://gramstack@localhost/sakhicredit?host=$scratch&port=55438&sslmode=disable"
  "$scratch/sakhicredit" migrate
- local product_port=$(free_port)
- export GRAMSTACK_TEST_PRODUCT_URL="http://127.0.0.1:$product_port" GRAMSTACK_TEST_PRODUCT_RESUME="$scratch/product-resume.json"
+ export GRAMSTACK_TEST_PRODUCT_RESUME="$scratch/product-resume.json"
  export SAKHI_CONFIG_FILE="$scratch/product.json" SAKHI_STORAGE_KEY_FILE="$scratch/product-storage.key" SAKHI_ENV=development
  export SAKHI_SERVICE_CA_FILE="$SERVICE_CA_FILE" SAKHI_CONSUMER_CERT_FILE="$scratch/certs/consumer-one.pem" SAKHI_CONSUMER_KEY_FILE="$scratch/certs/consumer-one.key"
  export SAKHI_CLIENT_SECRET='isolated-synthetic-secret'
@@ -181,7 +184,7 @@ if [[ "${GRAMSTACK_TEST_AUTHN:-}" == 1 ]]; then
   "$scratch/esignet-demo" -callback "$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback" -directory "$scratch"
  else
   export GRAMSTACK_TEST_IDP_URL="http://127.0.0.1:$idp_port"
-  export OIDC_FORM_RETURN_ORIGINS="$GRAMSTACK_TEST_HYDRA_PUBLIC" OIDC_ISSUER="$GRAMSTACK_TEST_IDP_URL" OIDC_CLIENT_ID="gramstack-upstream" OIDC_CLIENT_SECRET="isolated-upstream-secret" OIDC_REDIRECT_URI="$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback"
+  export OIDC_FORM_RETURN_ORIGINS="$GRAMSTACK_TEST_HYDRA_PUBLIC,$GRAMSTACK_TEST_PRODUCT_URL" OIDC_ISSUER="$GRAMSTACK_TEST_IDP_URL" OIDC_CLIENT_ID="gramstack-upstream" OIDC_CLIENT_SECRET="isolated-upstream-secret" OIDC_REDIRECT_URI="$GRAMSTACK_TEST_GATEWAY_URL/auth/provider/callback"
   export GRAMSTACK_UPSTREAM_CLIENT_SECRET="$OIDC_CLIENT_SECRET"
   unset GRAMSTACK_UPSTREAM_PRIVATE_KEY_FILE
   GOWORK=off go -C "$root/mocks/identity" build -o "$scratch/demo-idp" ./cmd/demo-idp
@@ -202,6 +205,11 @@ if os.environ.get('GRAMSTACK_TEST_ESIGNET')=='1':
 else:
  provider=dict(schema_version='gramstack.auth.oidc/v1',issuer=os.environ['GRAMSTACK_TEST_IDP_URL'],client_id='gramstack-upstream',token_endpoint_auth_method='client_secret_basic',id_token_algorithms=['RS256'])
 config['authentication']=dict(client_id='gramstack-portal',hydra_admin_url=os.environ['GRAMSTACK_TEST_HYDRA_ADMIN'],provider=provider,demo_upstream=True)
+if os.environ.get('GRAMSTACK_TEST_PRODUCT')=='1':
+ callback=os.environ['GRAMSTACK_TEST_PRODUCT_URL']+'/auth/gramstack/callback'
+ config['authentication']['application_clients']={'sakhicredit-login':[callback]}
+ body=dict(client_id='sakhicredit-login',client_secret=os.environ['SAKHI_LOGIN_CLIENT_SECRET'],grant_types=['authorization_code'],response_types=['code'],scope='openid',redirect_uris=[callback],token_endpoint_auth_method='client_secret_basic')
+ with urllib.request.urlopen(urllib.request.Request(os.environ['GRAMSTACK_TEST_HYDRA_ADMIN']+'/admin/clients',data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})) as response: assert response.status==201
 path.write_text(json.dumps(config))
 body=dict(client_id='gramstack-portal',client_secret=os.environ['GRAMSTACK_PORTAL_CLIENT_SECRET'],grant_types=['authorization_code'],response_types=['code'],scope='openid',redirect_uris=[os.environ['GRAMSTACK_TEST_GATEWAY_URL']+'/auth/callback'],token_endpoint_auth_method='client_secret_basic')
 with urllib.request.urlopen(urllib.request.Request(os.environ['GRAMSTACK_TEST_HYDRA_ADMIN']+'/admin/clients',data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})) as response: assert response.status==201
@@ -320,6 +328,17 @@ PYW
  fi
  if [[ "${GRAMSTACK_TEST_PRODUCT_UI:-}" == 1 ]]; then
   node "$root/apps/sakhicredit/tests/browser.mjs"
+  stop_product
+  python3 - <<'PYLOGIN'
+import json,os,pathlib
+path=pathlib.Path(os.environ['SAKHI_CONFIG_FILE'])
+config=json.loads(path.read_text())
+config.update(login_issuer=os.environ['GRAMSTACK_TEST_HYDRA_PUBLIC']+'/',login_client_id='sakhicredit-login')
+path.write_text(json.dumps(config))
+PYLOGIN
+  start_product
+  node "$root/apps/sakhicredit/tests/login.mjs"
+
   if [[ "${GRAMSTACK_TEST_ANCHORING:-}" == 1 ]]; then
    gateway_go test -race -count=1 -v -run '^TestActualEvidenceAnchoringProcess$' ./internal/authn
   fi

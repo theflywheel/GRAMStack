@@ -73,7 +73,7 @@ func TestClientOriginsRedirectsAndRevokedTokenRecovery(t *testing.T) {
 			http.Redirect(w, r, target.URL, 302)
 		default:
 			w.Header().Set("Gramstack-Contract-Version", "0.3.0")
-			writeJSON(w, 200, PlatformStatus{"request-1", "CONSENT_PENDING", 3, "review_consent", time.Unix(1900000000, 0).UTC()})
+			writeJSON(w, 200, PlatformStatus{RequestID: "request-1", Status: "CONSENT_PENDING", Version: 3, NextAction: "review_consent", ExpiresAt: time.Unix(1900000000, 0).UTC()})
 		}
 	}))
 	defer server.Close()

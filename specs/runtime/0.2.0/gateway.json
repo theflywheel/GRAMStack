@@ -1,0 +1,1793 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GRAMStack gateway \u2014 public and browser",
+    "version": "0.2.0",
+    "description": "Implemented runtime catalogue. Core 0.3.0 plus versioned portal and post-disclosure profiles. Browser forms require sessions, exact Origin and CSRF obtained through the application. Protected retrieval is on the private listener."
+  },
+  "servers": [
+    {
+      "url": "https://gramstack-gateway-b9b69819.up.railway.app"
+    }
+  ],
+  "paths": {
+    "/v1/access-requests": {
+      "post": {
+        "operationId": "createAccessRequest",
+        "summary": "createAccessRequest",
+        "tags": [
+          "Consumer requests"
+        ],
+        "description": "Gateway. Creates immutable snapshot; asynchronous human journey follows.",
+        "security": [
+          {
+            "consumerBearer": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/RequestAccepted"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../0.3.0/schemas.json#/$defs/AccessRequest"
+              },
+              "example": {
+                "registry": "lokos",
+                "resource": "shg.membership",
+                "subject_hint": {
+                  "type": "member_reference",
+                  "value": "member-12345"
+                },
+                "fields": [
+                  "membership_status",
+                  "savings_summary"
+                ],
+                "purpose": "credit_eligibility",
+                "access": {
+                  "mode": "single_use",
+                  "valid_for_seconds": 300
+                },
+                "recipient_terms": {
+                  "retention_policy_id": "sakhi-retention-v1"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/access-requests/{id}": {
+      "get": {
+        "operationId": "getAccessRequest",
+        "summary": "getAccessRequest",
+        "tags": [
+          "Consumer requests"
+        ],
+        "description": "Gateway. Only owning consumer; status metadata without business data.",
+        "security": [
+          {
+            "consumerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/RequestStatus"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/access-requests/{id}/cancel": {
+      "post": {
+        "operationId": "cancelAccessRequest",
+        "summary": "Cancel an unadmitted access request",
+        "tags": [
+          "Consumer requests"
+        ],
+        "description": "Gateway. Owning consumer only. Idempotent cancellation under shared request/consent locks. Returns CANCELLED; 409 if admission has already occurred or the terminal state cannot be cancelled. Does not recall prior disclosure.",
+        "security": [
+          {
+            "consumerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/RequestStatus"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/access-requests/{id}/grant": {
+      "post": {
+        "operationId": "issueGrant",
+        "summary": "issueGrant",
+        "tags": [
+          "Consumer requests"
+        ],
+        "description": "Gateway. Explicit idempotent issuance after active consent and policy checks.",
+        "security": [
+          {
+            "consumerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/GrantResponse"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            },
+            "headers": {
+              "Gramstack-Contract-Version": {
+                "description": "Implemented core request lifecycle contract. Independent profiles retain their own version headers.",
+                "schema": {
+                  "type": "string",
+                  "const": "0.3.0"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+            }
+          }
+        ]
+      }
+    },
+    "/interactions/{id}": {
+      "get": {
+        "operationId": "openInteraction",
+        "summary": "Start or resume the request-bound interaction",
+        "tags": [
+          "Consent portal"
+        ],
+        "description": "Start or resume the request-bound interaction",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-rendered HTML"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Redirect to sign-in or the request-bound record"
+          },
+          "default": {
+            "description": "HTML or plain-text failure. Invalid input 400, forbidden 403, unknown 404, state conflict 409, expired 410, unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/interactions/{id}/consent": {
+      "get": {
+        "operationId": "viewNotice",
+        "summary": "Read the exact consent notice",
+        "tags": [
+          "Consent portal"
+        ],
+        "description": "Read the exact consent notice",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-rendered HTML"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Redirect to sign-in or the request-bound record"
+          },
+          "default": {
+            "description": "HTML or plain-text failure. Invalid input 400, forbidden 403, unknown 404, state conflict 409, expired 410, unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "en"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/interactions/{id}/receipt": {
+      "get": {
+        "operationId": "viewConsentRecord",
+        "summary": "View or download the request-bound consent record",
+        "tags": [
+          "Consent portal"
+        ],
+        "description": "View or download the request-bound consent record",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-rendered HTML"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "../../consent-portal/0.1.0/schemas.json#/$defs/Record"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Redirect to sign-in or the request-bound record"
+          },
+          "default": {
+            "description": "HTML or plain-text failure. Invalid input 400, forbidden 403, unknown 404, state conflict 409, expired 410, unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/interactions/{id}/decision": {
+      "post": {
+        "operationId": "recordDecision",
+        "summary": "Record explicit approval or refusal",
+        "tags": [
+          "Consent portal"
+        ],
+        "description": "Record explicit approval or refusal",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Redirect to the request-bound record"
+          },
+          "default": {
+            "description": "HTML or plain-text failure. Invalid input 400, forbidden 403, unknown 404, state conflict 409, expired 410, unavailable 503."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "csrf": {
+                    "type": "string"
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approve",
+                      "reject"
+                    ]
+                  },
+                  "request_digest": {
+                    "type": "string"
+                  },
+                  "notice_digest": {
+                    "type": "string"
+                  },
+                  "notice_version": {
+                    "type": "string"
+                  },
+                  "language": {
+                    "type": "string",
+                    "const": "en"
+                  },
+                  "presentation_id": {
+                    "type": "string"
+                  },
+                  "confirmation": {
+                    "type": "string",
+                    "const": "yes",
+                    "description": "Required for approval."
+                  }
+                },
+                "required": [
+                  "csrf",
+                  "decision",
+                  "request_digest",
+                  "notice_digest",
+                  "notice_version",
+                  "language",
+                  "presentation_id"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        ]
+      }
+    },
+    "/interactions/{id}/verify": {
+      "post": {
+        "operationId": "verifySubjectFromPortal",
+        "summary": "Verify the registry subject for this request",
+        "tags": [
+          "Consent portal"
+        ],
+        "description": "Verify the registry subject for this request",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Redirect to the request-bound record"
+          },
+          "default": {
+            "description": "HTML or plain-text failure. Invalid input 400, forbidden 403, unknown 404, state conflict 409, expired 410, unavailable 503."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "csrf": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "csrf"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        ]
+      }
+    },
+    "/consents/{id}/withdrawal": {
+      "post": {
+        "operationId": "withdrawConsent",
+        "summary": "Withdraw before the disclosure admission cutoff",
+        "tags": [
+          "Consent portal"
+        ],
+        "description": "Withdraw before the disclosure admission cutoff",
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Redirect to the request-bound record"
+          },
+          "default": {
+            "description": "HTML or plain-text failure. Invalid input 400, forbidden 403, unknown 404, state conflict 409, expired 410, unavailable 503."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "csrf": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "csrf"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        ]
+      }
+    },
+    "/consent-history/{registry}": {
+      "get": {
+        "operationId": "viewHistory",
+        "summary": "List up to 25 owned consent records",
+        "tags": [
+          "History and rights"
+        ],
+        "description": "List up to 25 owned consent records",
+        "security": [
+          {
+            "historySession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-rendered HTML"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Redirect to sign-in or the request-bound record"
+          },
+          "default": {
+            "description": "HTML or plain-text failure. Invalid input 400, forbidden 403, unknown 404, state conflict 409, expired 410, unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "registry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/consent-history/{registry}/{id}/receipt": {
+      "get": {
+        "operationId": "downloadHistoryRecord",
+        "summary": "Download an owned consent record",
+        "tags": [
+          "History and rights"
+        ],
+        "description": "Download an owned consent record",
+        "security": [
+          {
+            "historySession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../consent-portal/0.1.0/schemas.json#/$defs/Record"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Redirect to sign-in or the request-bound record"
+          },
+          "default": {
+            "description": "HTML or plain-text failure. Invalid input 400, forbidden 403, unknown 404, state conflict 409, expired 410, unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "registry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/consent-history/{registry}/{id}/rights": {
+      "get": {
+        "operationId": "viewRightsCases",
+        "summary": "View the intake form and case status",
+        "tags": [
+          "History and rights"
+        ],
+        "description": "View the intake form and case status",
+        "security": [
+          {
+            "historySession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-rendered HTML"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Redirect to sign-in or the request-bound record"
+          },
+          "default": {
+            "description": "HTML or plain-text failure. Invalid input 400, forbidden 403, unknown 404, state conflict 409, expired 410, unavailable 503."
+          }
+        },
+        "parameters": [
+          {
+            "name": "registry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createRightsCase",
+        "summary": "Submit a routed rights case",
+        "tags": [
+          "History and rights"
+        ],
+        "description": "Submit a routed rights case",
+        "security": [
+          {
+            "historySession": []
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Durably accepted; redirect to the owned case page"
+          },
+          "default": {
+            "description": "HTML or plain-text failure. Invalid input 400, forbidden 403, unknown 404, state conflict 409, expired 410, unavailable 503."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "csrf": {
+                    "type": "string"
+                  },
+                  "case_id": {
+                    "type": "string",
+                    "pattern": "^[A-Z2-7]{26}$"
+                  },
+                  "case_type": {
+                    "type": "string",
+                    "enum": [
+                      "access",
+                      "correction",
+                      "erasure",
+                      "grievance"
+                    ]
+                  }
+                },
+                "required": [
+                  "csrf",
+                  "case_id",
+                  "case_type"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "registry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        ]
+      }
+    },
+    "/auth/history/{registry}": {
+      "get": {
+        "operationId": "startHistorySignIn",
+        "summary": "Browser OAuth redirect and correlation",
+        "tags": [
+          "Browser authentication"
+        ],
+        "description": "Browser-driven OAuth route. State and cookies are issued and consumed by the configured flow. Start from the product or history page.",
+        "security": [],
+        "responses": {
+          "302": {
+            "description": "OAuth redirect"
+          },
+          "303": {
+            "description": "Redirect to the original interaction or history"
+          },
+          "default": {
+            "description": "Invalid or expired browser transaction"
+          }
+        },
+        "parameters": [
+          {
+            "name": "registry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/auth/login": {
+      "get": {
+        "operationId": "completeHydraLogin",
+        "summary": "Browser OAuth redirect and correlation",
+        "tags": [
+          "Browser authentication"
+        ],
+        "description": "Browser-driven OAuth route. State and cookies are issued and consumed by the configured flow. Start from the product or history page. Enrolled standalone application clients follow application-auth profile 0.1.0 with isolated browser state and OpenID-only authority.",
+        "security": [
+          {
+            "oauthTransaction": []
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "OAuth redirect"
+          },
+          "303": {
+            "description": "Redirect to the original interaction or history"
+          },
+          "default": {
+            "description": "Invalid or expired browser transaction"
+          }
+        },
+        "parameters": [
+          {
+            "name": "login_challenge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/auth/oauth-consent": {
+      "get": {
+        "operationId": "completeHydraConsent",
+        "summary": "Browser OAuth redirect and correlation",
+        "tags": [
+          "Browser authentication"
+        ],
+        "description": "Browser-driven OAuth route. State and cookies are issued and consumed by the configured flow. Start from the product or history page. Enrolled standalone application clients follow application-auth profile 0.1.0 with isolated browser state and OpenID-only authority.",
+        "security": [
+          {
+            "oauthTransaction": []
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "OAuth redirect"
+          },
+          "303": {
+            "description": "Redirect to the original interaction or history"
+          },
+          "default": {
+            "description": "Invalid or expired browser transaction"
+          }
+        },
+        "parameters": [
+          {
+            "name": "consent_challenge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/auth/provider/callback": {
+      "get": {
+        "operationId": "upstreamIdentityCallback",
+        "summary": "Browser OAuth redirect and correlation",
+        "tags": [
+          "Browser authentication"
+        ],
+        "description": "Browser-driven OAuth route. State and cookies are issued and consumed by the configured flow. Start from the product or history page. Enrolled standalone application clients follow application-auth profile 0.1.0 with isolated browser state and OpenID-only authority.",
+        "security": [
+          {
+            "oauthTransaction": []
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "OAuth redirect"
+          },
+          "303": {
+            "description": "Redirect to the original interaction or history"
+          },
+          "default": {
+            "description": "Invalid or expired browser transaction"
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/auth/callback": {
+      "get": {
+        "operationId": "portalOAuthCallback",
+        "summary": "Browser OAuth redirect and correlation",
+        "tags": [
+          "Browser authentication"
+        ],
+        "description": "Browser-driven OAuth route. State and cookies are issued and consumed by the configured flow. Start from the product or history page.",
+        "security": [
+          {
+            "oauthTransaction": []
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "OAuth redirect"
+          },
+          "303": {
+            "description": "Redirect to the original interaction or history"
+          },
+          "default": {
+            "description": "Invalid or expired browser transaction"
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/.well-known/gramstack-jwks.json": {
+      "get": {
+        "operationId": "gatewayKeys",
+        "summary": "Read public grant verification keys",
+        "tags": [
+          "Public metadata"
+        ],
+        "description": "Read public grant verification keys",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../adapter-discovery/0.1.0/schemas.json#/$defs/PublicKeySet"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "consumerBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Hydra consumer token, validated audience and registered client."
+      },
+      "browserSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-session"
+      },
+      "serviceMTLS": {
+        "type": "mutualTLS"
+      },
+      "presenterMTLS": {
+        "type": "mutualTLS",
+        "description": "Consumer certificate must match grant cnf thumbprint."
+      },
+      "retrievalGrant": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "historySession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-history",
+        "description": "Fresh registry-scoped sign-in. Separate from the interaction session."
+      },
+      "productSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-sakhi"
+      },
+      "oauthTransaction": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-flow",
+        "description": "One-time browser-bound OAuth transaction, state, nonce and PKCE. Provider callback uses its own upstream correlation cookie."
+      }
+    }
+  }
+}

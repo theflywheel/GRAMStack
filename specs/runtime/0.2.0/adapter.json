@@ -1,0 +1,393 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LokOS adapter",
+    "version": "0.2.0",
+    "description": "SDK-backed adapter. Public discovery and keys, private mTLS verification and retrieval. Fictional source records in the demo."
+  },
+  "servers": [
+    {
+      "url": "https://gramstack-adapter-b9b69819.up.railway.app"
+    }
+  ],
+  "paths": {
+    "/.well-known/gramstack-adapter": {
+      "get": {
+        "operationId": "getAdapterManifest",
+        "summary": "getAdapterManifest",
+        "tags": [
+          "Public metadata"
+        ],
+        "description": "Registry adapter. Manifest must match approved operator descriptor; discovery does not establish trust.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/AdapterManifest"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/gramstack-adapter/jwks.json": {
+      "get": {
+        "operationId": "adapterKeys",
+        "summary": "Read public adapter evidence keys",
+        "tags": [
+          "Public metadata"
+        ],
+        "description": "Read public adapter evidence keys",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../adapter-discovery/0.1.0/schemas.json#/$defs/PublicKeySet"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/retrievals": {
+      "post": {
+        "operationId": "retrieveFromAdapter",
+        "summary": "retrieveFromAdapter",
+        "tags": [
+          "Private mTLS"
+        ],
+        "description": "Registry adapter. Authenticate gateway; independently verify and redeem grant; fetch once; durable evidence before release.",
+        "security": [
+          {
+            "serviceMTLS": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/DataResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Protocol error; see protocol.md for status mapping.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or non-owned object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After applies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../0.3.0/schemas.json#/$defs/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../0.3.0/schemas.json#/$defs/RetrievalRequest"
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://lokos-adapter.railway.internal:8443"
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Gramstack-Contract-Version",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "0.3.0"
+            }
+          }
+        ]
+      }
+    },
+    "/internal/v1/subject-verifications": {
+      "post": {
+        "operationId": "verifyRegistrySubject",
+        "summary": "Verify the authenticated person against a registry subject",
+        "tags": [
+          "Private mTLS"
+        ],
+        "description": "Verify the authenticated person against a registry subject",
+        "security": [
+          {
+            "serviceMTLS": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../../subject-verification/0.1.0/schemas.json#/$defs/VerificationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Invalid 400, untrusted 403, binding mismatch 409, expired 410, unavailable 503."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../../subject-verification/0.1.0/schemas.json#/$defs/VerificationRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Gramstack-Subject-Verification-Version",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "const": "0.1.0"
+            }
+          }
+        ],
+        "servers": [
+          {
+            "url": "https://lokos-adapter.railway.internal:8443"
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "consumerBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Hydra consumer token, validated audience and registered client."
+      },
+      "browserSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-session"
+      },
+      "serviceMTLS": {
+        "type": "mutualTLS"
+      },
+      "presenterMTLS": {
+        "type": "mutualTLS",
+        "description": "Consumer certificate must match grant cnf thumbprint."
+      },
+      "retrievalGrant": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "historySession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-history",
+        "description": "Fresh registry-scoped sign-in. Separate from the interaction session."
+      },
+      "productSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-sakhi"
+      },
+      "oauthTransaction": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-gramstack-flow",
+        "description": "One-time browser-bound OAuth transaction, state, nonce and PKCE. Provider callback uses its own upstream correlation cookie."
+      }
+    }
+  }
+}

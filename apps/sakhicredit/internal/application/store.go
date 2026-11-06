@@ -23,6 +23,9 @@ import (
 //go:embed schema.sql
 var schema string
 
+//go:embed schema-auth.sql
+var authSchema string
+
 type Store struct {
 	pool *pgxpool.Pool
 	box  cipher.AEAD
@@ -71,34 +74,41 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 		if _, err := tx.Exec(ctx, `CREATE TABLE IF NOT EXISTS sakhi_schema(version integer PRIMARY KEY,checksum text NOT NULL)`); err != nil {
 			return err
 		}
-		digest := sha256.Sum256([]byte(schema))
-		checksum := hex.EncodeToString(digest[:])
-		var current string
-		err := tx.QueryRow(ctx, `SELECT checksum FROM sakhi_schema WHERE version=1`).Scan(&current)
-		if err == nil {
-			if current != checksum {
-				return errors.New("product migration checksum changed")
+		for index, source := range []string{schema, authSchema} {
+			version := index + 1
+			digest := sha256.Sum256([]byte(source))
+			checksum := hex.EncodeToString(digest[:])
+			var current string
+			err := tx.QueryRow(ctx, `SELECT checksum FROM sakhi_schema WHERE version=$1`, version).Scan(&current)
+			if err == nil {
+				if current != checksum {
+					return errors.New("product migration checksum changed")
+				}
+				continue
 			}
-			return nil
+			if !errors.Is(err, pgx.ErrNoRows) {
+				return err
+			}
+			if _, err = tx.Exec(ctx, source); err != nil {
+				return err
+			}
+			if _, err = tx.Exec(ctx, `INSERT INTO sakhi_schema VALUES($1,$2)`, version, checksum); err != nil {
+				return err
+			}
 		}
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return err
-		}
-		if _, err := tx.Exec(ctx, schema); err != nil {
-			return err
-		}
-		_, err = tx.Exec(ctx, `INSERT INTO sakhi_schema VALUES(1,$1)`, checksum)
-		return err
+		return nil
 	})
 }
 func (s *Store) Ready(ctx context.Context) error {
-	var checksum string
-	if err := s.pool.QueryRow(ctx, `SELECT checksum FROM sakhi_schema WHERE version=1`).Scan(&checksum); err != nil {
-		return err
-	}
-	digest := sha256.Sum256([]byte(schema))
-	if checksum != hex.EncodeToString(digest[:]) {
-		return errors.New("product migration mismatch")
+	for index, source := range []string{schema, authSchema} {
+		var checksum string
+		if err := s.pool.QueryRow(ctx, `SELECT checksum FROM sakhi_schema WHERE version=$1`, index+1).Scan(&checksum); err != nil {
+			return err
+		}
+		digest := sha256.Sum256([]byte(source))
+		if checksum != hex.EncodeToString(digest[:]) {
+			return errors.New("product migration mismatch")
+		}
 	}
 	return nil
 }
@@ -341,6 +351,17 @@ func (s *Store) finish(ctx context.Context, owner, id string, result *Result) er
 // Maintain never retries a source read. It conservatively closes abandoned
 // fetches and physically removes at most 32 expired records and sessions per pass.
 func (s *Store) Maintain(ctx context.Context) error {
+	for _, table := range []string{"sakhi_login_flows", "sakhi_identity_sessions"} {
+		key := "state_hash"
+		if table == "sakhi_identity_sessions" {
+			key = "token_hash"
+		}
+		query := "DELETE FROM " + table + " WHERE " + key + " IN (SELECT " + key + " FROM " + table + " WHERE expires_at<=clock_timestamp() ORDER BY expires_at LIMIT 32)"
+		if _, err := s.pool.Exec(ctx, query); err != nil {
+			return err
+		}
+	}
+
 	if err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		rows, err := tx.Query(ctx, `SELECT application_id FROM sakhi_applications WHERE state='FETCHING' AND fetch_deadline<=clock_timestamp() ORDER BY fetch_deadline FOR UPDATE SKIP LOCKED LIMIT 32`)
 		if err != nil {
@@ -375,6 +396,6 @@ func (s *Store) Maintain(ctx context.Context) error {
 	if _, err := s.pool.Exec(ctx, `DELETE FROM sakhi_applications WHERE application_id IN (SELECT application_id FROM sakhi_applications WHERE expires_at<=clock_timestamp() ORDER BY expires_at LIMIT 32)`); err != nil {
 		return err
 	}
-	_, err := s.pool.Exec(ctx, `DELETE FROM sakhi_sessions WHERE owner_hash IN (SELECT owner_hash FROM sakhi_sessions s WHERE expires_at<=clock_timestamp() AND NOT EXISTS(SELECT 1 FROM sakhi_applications a WHERE a.owner_hash=s.owner_hash) ORDER BY expires_at LIMIT 32)`)
+	_, err := s.pool.Exec(ctx, `DELETE FROM sakhi_sessions WHERE owner_hash IN (SELECT owner_hash FROM sakhi_sessions s WHERE expires_at<=clock_timestamp() AND NOT EXISTS(SELECT 1 FROM sakhi_applications a WHERE a.owner_hash=s.owner_hash) AND NOT EXISTS(SELECT 1 FROM sakhi_identity_sessions i WHERE i.owner_hash=s.owner_hash) ORDER BY expires_at LIMIT 32)`)
 	return err
 }

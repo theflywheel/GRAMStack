@@ -2,6 +2,7 @@
 
 Read-only, consent-first interoperability for Indian DPI registries. GRAMStack coordinates federated authentication, registry-specific subject verification, human consent, scoped retrieval grants and verifiable access evidence.
 
+- [Application SDKs](sdk/README.md) — Go, Python and JavaScript, Apache-2.0
 - [Architecture site](https://docs.gramstack.try-dough.com/)
 - [Implementation specifications](https://docs.gramstack.try-dough.com/specifications/)
 - [Complete architecture](https://docs.gramstack.try-dough.com/complete-design)
@@ -14,6 +15,9 @@ Read-only, consent-first interoperability for Indian DPI registries. GRAMStack c
 | `apps/sakhicredit/` | Independent Go consumer product, browser ownership and encrypted result storage |
 | `infra/railway/` | Project-level Railway configuration and isolated deployment tooling |
 | `services/gateway/` | Independent Go core module, including Consent Manager and enforcement |
+| `sdk/go/client/` | Independent Go application SDK: sign-in, consent and retrieval |
+| `sdk/python/` | Python application SDK (`gramstack-client`) |
+| `sdk/javascript/` | JavaScript / TypeScript application SDK (`@gramstack/client`) |
 | `sdk/go/adapter/` | Independent adapter Go SDK module |
 | `adapters/lokos/` | Reference adapter implemented using the SDK |
 | `mocks/identity/` | Separately runnable fictional OIDC provider for demo/protocol tests |

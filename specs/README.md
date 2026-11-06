@@ -27,6 +27,8 @@ and [SakhiCredit Swagger](https://sakhicredit-b9b69819.up.railway.app/swagger/)
 serve their respective API contracts. The [runtime catalogue](/specifications/runtime) describes
 their deployment scope. The selector also includes the core 0.3.0 protocol.
 
+[Standalone application authentication 0.1.0](/specifications/application-auth) defines enrolled OpenID clients, pairwise identities and isolated sign-in. [Application SDKs](https://docs.gramstack.try-dough.com/sdks) cover Go, Python and JavaScript.
+
 ## Independently versioned profiles
 
 [Registry subject verification 0.1.0](/specifications/subject-verification) defines the mTLS verifier exchange, bounded principal provenance, context custody and cancellation-safe idempotency. [Canonical profile source](https://github.com/theflywheel/GRAMStack/tree/main/specs/subject-verification/0.1.0). Core 0.1.0 and 0.2.0 remain unchanged.

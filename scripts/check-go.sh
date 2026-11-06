@@ -13,6 +13,7 @@ cleanup(){
 trap cleanup EXIT
 source "$root/scripts/gateway-module.sh"
 prepare_gateway_module "$root" "$scratch"
+prepare_product_module "$root" "$scratch"
 cmp "$root/specs/0.3.0/lifecycle.json" "$root/services/gateway/internal/access/testdata/lifecycle.json"
 # Check this commit’s SDK source alongside LokOS without the workspace.
 cp "$root/adapters/lokos/go.mod" "$scratch/lokos.mod"
@@ -61,7 +62,8 @@ check_devcerts_tool(){
   GOWORK=off go -C "$root" vet "$root/tools/devcerts/main.go"
 }
 check_product(){
-  check_module apps/sakhicredit
+  check_module sdk/go/client
+  check_module apps/sakhicredit -modfile="$gramstack_product_modfile"
   check_devcerts_tool
   local runtime_files=("$root"/tools/runtimefiles/*.go)
   GOWORK=off go test -race -vet=off "${runtime_files[@]}"
@@ -73,7 +75,7 @@ wait_checks
 launch gateway-build gateway_go build -o "$scratch/gateway" ./cmd/gramstack
 launch lokos-build env GOWORK=off go -C "$root/adapters/lokos" build -modfile="$scratch/lokos.mod" -o "$scratch/lokos-adapter" ./cmd/lokos-adapter
 wait_checks
-GOWORK=off go -C "$root/apps/sakhicredit" build -o "$scratch/sakhicredit" ./cmd/sakhicredit
+product_go build -o "$scratch/sakhicredit" ./cmd/sakhicredit
 
 for executable in gateway lokos-adapter sakhicredit; do
   port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')

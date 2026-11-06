@@ -72,6 +72,7 @@ footer {
 }
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 40px;
   min-height: 112px;
@@ -834,3 +835,6 @@ footer > span:last-child {
 .result-grid:has(.savings[hidden]) {
   grid-template-columns: 1fr;
 }
+
+#sign-in-panel { flex-wrap: wrap; }
+.topbar #gramstack-logout { white-space: nowrap; }

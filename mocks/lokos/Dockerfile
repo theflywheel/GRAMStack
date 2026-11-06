@@ -4,6 +4,7 @@ WORKDIR /src
 COPY go.work ./
 COPY services/gateway/ services/gateway/
 COPY sdk/go/adapter/ sdk/go/adapter/
+COPY sdk/go/client/ sdk/go/client/
 COPY adapters/auth/oidc/ adapters/auth/oidc/
 COPY adapters/lokos/ adapters/lokos/
 COPY mocks/identity/ mocks/identity/

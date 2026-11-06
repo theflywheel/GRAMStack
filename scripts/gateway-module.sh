@@ -15,3 +15,18 @@ gateway_go(){
   shift
   GOWORK=off go -C "$gramstack_gateway_root" "$operation" -modfile="$gramstack_gateway_modfile" "$@"
 }
+
+prepare_product_module(){
+  local repository_root=$1 temporary_directory=$2
+  gramstack_product_root="$repository_root/apps/sakhicredit"
+  gramstack_product_modfile="$temporary_directory/product.mod"
+  cp "$gramstack_product_root/go.mod" "$gramstack_product_modfile"
+  cp "$gramstack_product_root/go.sum" "$temporary_directory/product.sum"
+  GOWORK=off go -C "$gramstack_product_root" mod edit -modfile="$gramstack_product_modfile" \
+    -replace="github.com/theflywheel/GRAMStack/sdk/go/client=$repository_root/sdk/go/client"
+}
+product_go(){
+  local operation=$1
+  shift
+  GOWORK=off go -C "$gramstack_product_root" "$operation" -modfile="$gramstack_product_modfile" "$@"
+}
