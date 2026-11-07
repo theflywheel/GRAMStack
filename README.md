@@ -41,7 +41,7 @@ npm run verify:server
 npm start
 ```
 
-The site runs on `http://localhost:8080`. Edit the numbered Markdown chapters in `docs/content/`; the build regenerates the complete document and Markdown download. See [authoring and deployment instructions](docs/README.md).
+The site runs on `http://localhost:8080`. Edit the numbered Markdown chapters in `docs/content/architecture/`; the build regenerates the complete document and Markdown download. See [authoring and deployment instructions](docs/README.md).
 
 ## Deployment
 

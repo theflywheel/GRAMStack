@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { JSDOM } from 'jsdom'
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 const walk = d => readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : [`${d}/${e.name}`])
@@ -34,5 +35,22 @@ for (const file of walk('../specs')) {
  const published = file.replace('../specs/', 'public/static/specs/')
  assert.equal(readFileSync(published, 'utf8'), readFileSync(file, 'utf8'), `Stale specification export: ${file}`)
 }
-assert.ok(readFileSync('public/specifications/index.html','utf8').includes('Implementation specifications'))
+assert.ok(readFileSync('public/developers/specifications/index.html','utf8').includes('Specifications'))
+const redirects = JSON.parse(readFileSync('redirects.json', 'utf8'))
+for (const [old, target] of Object.entries(redirects)) {
+ const html = readFileSync('public' + old + '.html', 'utf8')
+ assert.ok(html.includes('href="' + target + '"'), 'Missing canonical legacy fallback: ' + old)
+ assert.ok(html.includes('location.search + location.hash'), 'Legacy fragment/query loss: ' + old)
+}
+const index = JSON.parse(readFileSync('public/static/contentIndex.json', 'utf8'))
+for (const old of Object.keys(redirects)) assert.ok(!(old.slice(1) in (index.content ?? index)), 'Legacy page leaked into navigation: ' + old)
 console.log('Verified exact canonical specification downloads and specification index.')
+
+const home = new JSDOM(readFileSync('public/index.html', 'utf8'))
+const functions = JSON.parse(home.window.document.querySelector('.explorer').dataset.dataFns)
+// Explorer evaluates the serialized comparator in a fresh browser scope.
+const sort = new Function('return (' + functions.sortFn + ')')()
+const sections = ['demos', 'developers', 'implementation', 'architecture'].map(name => ({slug: name + '/index', displayName: name}))
+assert.deepEqual(sections.sort(sort).map(node => node.displayName), ['architecture', 'implementation', 'developers', 'demos'])
+home.window.close()
+console.log('Verified serialized sidebar reading order.')

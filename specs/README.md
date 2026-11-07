@@ -41,7 +41,7 @@ their deployment scope. The selector also includes the core 0.3.0 protocol.
 
 ## Maintaining the contracts
 
-Edit this directory; Quartz generates its specification pages and downloadable files from it. Do not edit generated copies under `docs/content/specifications/`. Run `cd docs && npm ci && npm run verify:specs && npm run build && npm run verify:content`.
+Edit this directory; Quartz generates its specification pages and downloadable files from it. Do not edit generated copies under `docs/content/developers/specifications/`. Run `cd docs && npm ci && npm run verify:specs && npm run build && npm run verify:content`.
 
 Changes to required fields, meaning, authorization behavior or allowed transitions require a new specification version. Unknown security-sensitive input fields are rejected. Optional additive capabilities require explicit negotiation; a recipient must never silently widen fields or purpose. Keep published releases immutable once implementations target them.
 

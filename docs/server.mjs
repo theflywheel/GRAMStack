@@ -3,6 +3,7 @@ import { readFile, stat } from "node:fs/promises"
 import { resolve, extname, sep } from "node:path"
 
 const root = resolve("public")
+const redirects = JSON.parse(await readFile(resolve(root, "static/redirects.json"), "utf8"))
 const types = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".mp4": "video/mp4", ".ico": "image/x-icon", ".woff2": "font/woff2", ".xml": "application/xml", ".md": "text/markdown; charset=utf-8", ".txt": "text/plain; charset=utf-8" }
 const server = http.createServer(async (req, res) => {
   if (!["GET", "HEAD"].includes(req.method)) { res.writeHead(405, { Allow: "GET, HEAD" }); res.end(); return }
@@ -13,6 +14,12 @@ const server = http.createServer(async (req, res) => {
     if (pathname.includes("\0") || pathname.includes("\\")) { res.writeHead(400); res.end(); return }
     const base = resolve(root, "." + pathname)
     if (base !== root && !base.startsWith(root + sep)) { res.writeHead(403); res.end(); return }
+    const legacyPath = pathname.replace(/\.html$/, "").replace(/\/$/, "").replace(/\/index$/, "")
+    if (Object.hasOwn(redirects, legacyPath)) {
+      res.writeHead(308, { Location: redirects[legacyPath] + url.search, "Cache-Control": "public, max-age=3600" })
+      res.end()
+      return
+    }
     let file
     for (const candidate of [base, base + ".html", resolve(base, "index.html")]) {
       try { if ((await stat(candidate)).isFile()) { file = candidate; break } } catch {}

@@ -1,11 +1,11 @@
 configuration:
   pageTitle: GRAMStack
-  pageTitleSuffix: " · Design"
+  pageTitleSuffix: " · Docs"
   enableSPA: true
   enablePopovers: false
   analytics: null
   locale: en-US
-  baseUrl: design-site-production-2e14.up.railway.app
+  baseUrl: docs.gramstack.try-dough.com
   ignorePatterns:
     - private
     - templates
@@ -130,6 +130,11 @@ plugins:
     enabled: true
   - source: "@quartz-community/explorer"
     enabled: true
+    options:
+      title: Documentation
+      folderDefaultState: collapsed
+      folderClickBehavior: link
+      useSavedState: false
     layout:
       position: left
       priority: 50
@@ -202,8 +207,8 @@ plugins:
     options:
       links:
         Source: https://github.com/theflywheel/GRAMStack
-        Full design: /complete-design
-        References: /12-references
+        Full design: /architecture/complete-design
+        References: /architecture/12-references
         Quartz: https://quartz.jzhao.xyz
     layout:
       position: footer

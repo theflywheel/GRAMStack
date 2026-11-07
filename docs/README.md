@@ -1,4 +1,4 @@
-# GRAMStack design site
+# GRAMStack documentation
 
 Source: [theflywheel/GRAMStack](https://github.com/theflywheel/GRAMStack).
 
@@ -12,7 +12,7 @@ Public architecture documentation built on [Quartz 5](https://github.com/jackyzh
 
 ## Authoring
 
-Edit `content/01-*.md` through `content/12-*.md`. Run `npm run assemble` to regenerate the continuous reading page, then build. The build emits a downloadable Markdown document. Original design artefacts and internal review notes are retained locally under `design/` and `internal/`. They are excluded from publication.
+Edit `content/architecture/01-*.md` through `content/architecture/12-*.md`. Run `npm run assemble` to regenerate the continuous reading page, then build. The build emits a downloadable Markdown document. Original design artefacts and internal review notes are retained locally under `design/` and `internal/`. They are excluded from publication.
 
 The public site presents the architecture directly. Illustrative payloads and technical security requirements remain explicit. Internal approval and delivery tracking are maintained separately. Raw private transcripts, credentials and team-chat attachments are not published.
 
@@ -43,6 +43,12 @@ Dependency audit after non-breaking fixes: two moderate advisories remain in ups
 
 ## Versioned specifications
 
-Edit `../specs/` for normative contracts. `npm run verify:specs` checks the OpenAPI document, schema references, fixtures and lifecycle. The build generates `content/specifications/` from those sources and copies exact downloads to `public/static/specs/`. Generated Markdown is committed alongside the architecture export; public build output is ignored by Git. Do not edit generated specification pages.
+Edit `../specs/` for normative contracts. `npm run verify:specs` checks the OpenAPI document, schema references, fixtures and lifecycle. The build generates `content/developers/specifications/` from those sources and copies exact downloads to `public/static/specs/`. Generated Markdown is committed alongside the architecture export; public build output is ignored by Git. Do not edit generated specification pages.
 
 See [Railway infrastructure and service onboarding](../infra/railway/README.md). The docs service has its own build, watch paths and health check; other monorepo services use independent settings.
+
+## Documentation structure
+
+`content/index.md` is the overview. Architecture chapters and their generated complete document live in `content/architecture/`; running-code guides in `content/implementation/`; quickstart, SDKs, API links and generated specifications in `content/developers/`; stakeholder walkthroughs in `content/demos/`. Keep `content/media/` stable for existing video downloads.
+
+`redirects.json` maps every pre-reorganisation page to its canonical route. The build emits static fallback pages and the server issues permanent redirects while preserving query strings; browsers retain section fragments. Add a mapping whenever an existing page moves. Section landing pages and the Explorer ordering in `quartz.ts` control navigation. Canonical contract sources remain in `../specs/`.

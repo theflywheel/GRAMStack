@@ -1,12 +1,22 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 const port=18081
 const child=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:String(port)},stdio:['ignore','pipe','pipe']})
 try {
  await new Promise((ok,fail)=>{child.stdout.once('data',ok);child.once('error',fail);child.once('exit',c=>fail(new Error(`server exited ${c}`)))})
  const base=`http://127.0.0.1:${port}`
- for(const path of ['/','/02-architecture','/04-consent','/09-dry-runs','/complete-design','/static/contentIndex.json','/healthz']){
+ for(const path of ['/','/architecture','/implementation','/developers','/developers/sdks/go','/demos/sakhicredit','/02-architecture','/04-consent','/09-dry-runs','/complete-design','/static/contentIndex.json','/healthz']){
    const r=await fetch(base+path);assert.equal(r.status,200,path)
+ }
+ for (const [old, target] of Object.entries(JSON.parse(readFileSync('redirects.json', 'utf8')))) {
+   for (const variant of [old, old + '.html', old + '/', ...(old === '/specifications' ? [old + '/index.html'] : [])]) {
+     const response = await fetch(base + variant + '?from=legacy', { redirect: 'manual' })
+     assert.equal(response.status, 308, variant)
+     assert.equal(response.headers.get('location'), target + '?from=legacy', variant)
+     const destination = await fetch(new URL(response.headers.get('location'), base))
+     assert.equal(destination.status, 200, target)
+   }
  }
  let r=await fetch(base+'/reference/baseline-hld');assert.equal(r.status,404)
  r=await fetch(base+'/missing-page');assert.equal(r.status,404);assert.match(r.headers.get('content-type'),/text\/html/)

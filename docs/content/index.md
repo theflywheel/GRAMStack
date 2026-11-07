@@ -1,56 +1,32 @@
 ---
-title: GRAMStack — System Architecture
-description: Read-only, consent-first interoperability for Indian DPI registries. Architecture, contracts, state and evidence.
-date: 2026-11-04
+title: Overview
 ---
-<div class="hero-kicker">System architecture / v0.15</div>
+
+<div class="hero-kicker">GRAMStack documentation</div>
 <div class="hero-title">One request.<br>Explicit consent.<br>Verifiable access.</div>
-<p class="hero-summary">GRAMStack connects applications to authoritative Indian DPI registries through common read APIs, federated authentication, registry-specific subject verification, human consent and narrowly scoped retrieval grants.</p>
-<div class="design-meta"><span>Architecture and protocols</span><span>4 November 2026</span><span>Read-only interoperability</span></div>
+<p class="hero-summary">Connect applications to authoritative registries through federated authentication, verified ownership, explicit consent and scoped retrieval.</p>
 
-## Watch the demo
+<div class="docs-paths">
+<a class="docs-path" href="/architecture"><span class="path-label">Understand</span><strong>Explore the architecture ↗</strong><span>Follow the 12 chapters, diagrams and end-to-end dry runs.</span></a>
+<a class="docs-path" href="/developers"><span class="path-label">Build</span><strong>Build with GRAMStack ↗</strong><span>Use the SDKs, implement an adapter, or inspect the API contracts.</span></a>
+<a class="docs-path" href="/demos"><span class="path-label">Try</span><strong>See the platform working ↗</strong><span>Try SakhiCredit, watch the recording and check the demo boundaries.</span></a>
+</div>
 
-[Watch or download the SakhiCredit walkthrough](sakhicredit-demo) to see consent and scoped disclosure on the live stack.
+## Find your starting point
 
-## Explore the architecture
-
-Start with the [purpose and scenario](01-purpose), then the [architecture](02-architecture). For a continuous read, open the [complete document](complete-design), or [download the Markdown document](static/gramstack-design.txt).
-
-| Chapter | What it covers |
+| You want to… | Start here |
 |---|---|
-| [01 · Purpose and scenario](01-purpose) | Scope, actors and architectural invariants |
-| [02 · High-level architecture](02-architecture) | Components, trust boundaries, deployment and request paths |
-| [03 · Authentication](03-authentication) | Hydra, IdP adapters, browser sessions, eSignet and Indian identity integrations |
-| [04 · Consent manager](04-consent) | Purpose/processing profiles, notice evidence, consent, cancellation and rights |
-| [05 · Authorization and grants](05-authorization) | Policy, single-use access, withdrawal ordering and sender binding |
-| [06 · Request lifecycle](06-lifecycle) | Sync/async boundaries, transitions, deadlines, retries and recovery |
-| [07 · API contracts](07-api-contracts) | Endpoint catalogue and illustrative requests/responses |
-| [08 · State and evidence](08-state-and-evidence) | Storage, downstream handling, retention, evidence custody and DeDi guarantees |
-| [09 · Dry runs and screens](09-dry-runs) | SakhiCredit → Sunita → LokOS, including assisted interaction |
-| [10 · Failure and security](10-failures) | Negative cases, concurrency, threat boundaries and conformance |
-| [11 · Architecture choices](11-decisions) | Component responsibilities, registry integration and deployment profiles |
-| [12 · Standards and references](12-references) | Protocol standards, implementation references and integration sources |
+| Understand the design and trust model | [Architecture](/architecture) |
+| Work on this repository or operate the deployment | [Implementation](/implementation) |
+| Integrate an application | [Integration quickstart](/developers/quickstart) |
+| Build a registry adapter | [Building adapters](/developers/adapters) |
+| Inspect accepted messages and versioned contracts | [Specifications](/developers/specifications) |
+| Review the live product and its evidence trail | [SakhiCredit demo](/demos/sakhicredit) |
 
-## Implementation specifications
+## The trust path
 
-The [versioned contract set](specifications/) defines the HTTP APIs, message schemas, consent and grant rules, independently hosted adapter contract, evidence and lifecycle behavior. It includes downloadable OpenAPI and JSON Schema files, example payloads and conformance scenarios, generated directly from the repository’s `specs/` directory.
+Authentication establishes an identity. Registry verification establishes the relationship to a source record. Consent approves an exact disclosure. Authorization checks policy and scope. Retrieval produces access evidence.
 
-## The central distinction
+Each step is enforced separately. Application sign-in does not grant data access, and a valid token alone does not prove that a disclosure occurred.
 
-```mermaid
-graph LR
-    A["Authenticate the actors"] --> B["Verify the registry subject"]
-    B --> C["Collect explicit consent"]
-    C --> D["Authorize the disclosure"]
-    D --> E["Retrieve and record evidence"]
-```
-
-Each step answers a different trust question. A successful login is not proof of record ownership. Consent does not override source policy. A valid token is not proof that a disclosure occurred.
-
-## Architecture at a glance
-
-**Federated identity:** external identity authorities authenticate citizens; GRAMStack does not provision persistent citizen accounts or maintain a cross-registry identity graph.
-
-**Consent-first retrieval:** the person approves an exact disclosure. AuthZ checks that approval alongside registry policy, then issues a short-lived grant enforced independently by the adapter.
-
-**Minimal state, accountable evidence:** the gateway coordinates bounded asynchronous workflows. Consent and redemption share transactional enforcement. Business records remain at their source, while DeDi anchors protected evidence of authorization and access.
+[Complete architecture document](/architecture/complete-design) · [Source repository](https://github.com/theflywheel/GRAMStack)
