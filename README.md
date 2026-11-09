@@ -13,6 +13,7 @@ Read-only, consent-first interoperability for Indian DPI registries. GRAMStack c
 | Path | Contents |
 |---|---|
 | `apps/sakhicredit/` | Independent Go consumer product, browser ownership and encrypted result storage |
+| `infra/helm/gramstack/` | Helm chart for the platform services on Kubernetes |
 | `infra/railway/` | Project-level Railway configuration and isolated deployment tooling |
 | `services/gateway/` | Independent Go core module, including Consent Manager and enforcement |
 | `sdk/go/client/` | Independent Go application SDK: sign-in, consent and retrieval |
@@ -44,6 +45,8 @@ npm start
 The site runs on `http://localhost:8080`. Edit the numbered Markdown chapters in `docs/content/architecture/`; the build regenerates the complete document and Markdown download. See [authoring and deployment instructions](docs/README.md).
 
 ## Deployment
+
+For Kubernetes, use the [GRAMStack Helm chart](infra/helm/gramstack/README.md).
 
 Railway project: `gramstack-design`; current service: `docs`. [Infrastructure configuration and onboarding examples](infra/railway/README.md) cover code-built services, upstream container images and per-service deployment settings.
 

@@ -1,0 +1,43 @@
+# Build the local image tags below, or use images in your registry.
+imagePullPolicy: IfNotPresent
+imagePullSecrets: []
+networkPolicy:
+  enabled: true
+
+gateway:
+  enabled: true
+  image: gramstack-gateway:local
+  existingSecret: gramstack-gateway
+  fileSecret: ""
+  migrationSecret: ""
+  replicas: 1
+  resources: {}
+  # Additional NetworkPolicyPeer entries for clients of the mTLS listener.
+  privatePeers: []
+  ingress:
+    host: ""
+    className: ""
+    tlsSecret: ""
+
+lokosAdapter:
+  enabled: true
+  image: gramstack-lokos-adapter:local
+  existingSecret: gramstack-lokos-adapter
+  fileSecret: ""
+  migrationSecret: ""
+  replicas: 1
+  resources: {}
+  privatePeers: []
+  ingress:
+    host: ""
+    className: ""
+    tlsSecret: ""
+
+mockLokos:
+  enabled: false
+  image: gramstack-mock-lokos:local
+  existingSecret: gramstack-mock-lokos
+  fileSecret: ""
+  replicas: 1
+  resources: {}
+  privatePeers: []

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: gramstack
+description: GRAMStack gateway, LokOS adapter and optional fictional LokOS source
+type: application
+version: 0.1.0
+home: https://docs.gramstack.try-dough.com/
+sources:
+  - https://github.com/theflywheel/GRAMStack

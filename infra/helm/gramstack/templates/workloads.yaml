@@ -1,0 +1,170 @@
+{{- $components := list
+  (dict "name" "gateway" "settings" .Values.gateway "http" true "private" 8445 "migrate" true "peers" (list "lokos-adapter"))
+  (dict "name" "lokos-adapter" "settings" .Values.lokosAdapter "http" true "private" 8443 "migrate" true "peers" (list "gateway"))
+  (dict "name" "mock-lokos" "settings" .Values.mockLokos "private" 8444 "peers" (list "lokos-adapter"))
+-}}
+{{- range $component := $components }}
+{{- if $component.settings.enabled }}
+{{- $settings := $component.settings }}
+{{- $secret := required (printf "%s existingSecret is required" $component.name) $settings.existingSecret }}
+{{- $context := merge $component (dict "root" $ "secret" $secret) }}
+{{- $name := include "gramstack.name" $context }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "gramstack.selector" $context | nindent 4 }}
+spec:
+  replicas: {{ $settings.replicas }}
+  selector:
+    matchLabels:
+      {{- include "gramstack.selector" $context | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gramstack.selector" $context | nindent 8 }}
+    spec:
+      {{- include "gramstack.pod" $context | nindent 6 }}
+      containers:
+        - name: {{ $component.name }}
+          {{- include "gramstack.container" $context | nindent 10 }}
+          env:
+            {{- if $component.http }}
+            - name: PORT
+              value: "8080"
+            {{- end }}
+            {{- if eq $component.name "lokos-adapter" }}
+            - name: ADAPTER_TLS_PORT
+              value: "8443"
+            {{- end }}
+            {{- if eq $component.name "mock-lokos" }}
+            - name: SOURCE_TLS_PORT
+              value: "8444"
+            {{- end }}
+          ports:
+            {{- if $component.http }}
+            - name: http
+              containerPort: 8080
+            {{- end }}
+            {{- if $component.private }}
+            - name: private
+              containerPort: {{ $component.private }}
+            {{- end }}
+          startupProbe:
+            {{- include "gramstack.probe" (dict "http" $component.http "path" "/healthz") | nindent 12 }}
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            {{- include "gramstack.probe" (dict "http" $component.http "path" (ternary "/readyz" "/healthz" (default false $component.migrate))) | nindent 12 }}
+          livenessProbe:
+            {{- include "gramstack.probe" (dict "http" $component.http "path" "/healthz") | nindent 12 }}
+{{- if $component.http }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "gramstack.selector" $context | nindent 4 }}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+{{- end }}
+{{- if $component.private }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}{{ if $component.http }}-private{{ end }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "gramstack.selector" $context | nindent 4 }}
+  ports:
+    - name: private
+      port: {{ $component.private }}
+      targetPort: private
+{{- end }}
+{{- if $component.migrate }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}-migrate
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    spec:
+      restartPolicy: Never
+      {{- include "gramstack.pod" $context | nindent 6 }}
+      containers:
+        - name: migrate
+          {{- include "gramstack.container" (merge (dict "secret" (default $secret $settings.migrationSecret)) $context) | nindent 10 }}
+          args: ["/app/service", "migrate"]
+{{- end }}
+{{- with $settings.ingress }}
+{{- if .host }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $name }}
+spec:
+  {{- with .className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  tls:
+    - hosts: [{{ .host | quote }}]
+      secretName: {{ required (printf "%s ingress.tlsSecret is required when ingress.host is set" $component.name) .tlsSecret | quote }}
+  rules:
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $name }}
+                port:
+                  name: http
+{{- end }}
+{{- end }}
+{{- if and $.Values.networkPolicy.enabled $component.private }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $name }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "gramstack.selector" $context | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    {{- if $component.http }}
+    - ports:
+        - port: http
+    {{- end }}
+    - ports:
+        - port: private
+      from:
+        {{- range $peer := $component.peers }}
+        - podSelector:
+            matchLabels:
+              {{- include "gramstack.selector" (dict "root" $ "name" $peer) | nindent 14 }}
+        {{- end }}
+        {{- with $settings.privatePeers }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
