@@ -1,7 +1,0 @@
-# GHCR release 0.1.0. Published for linux/amd64 and linux/arm64.
-gateway:
-  image: ghcr.io/theflywheel/gramstack-gateway:0.1.0@sha256:d1db1c0cdc80bb79a4f38bae0d4e54924fe39e88c494b0e4f8d1cd3af4db4f33
-lokosAdapter:
-  image: ghcr.io/theflywheel/gramstack-lokos-adapter:0.1.0@sha256:5170a3bac5394246132e6154cbc88dd6e7355f35bc4cbd268126406792b2b3fd
-mockLokos:
-  image: ghcr.io/theflywheel/gramstack-mock-lokos:0.1.0@sha256:f96e049f2dfad3e70114e86579f2052ac2e24ebd08912bc513b5786afde74ae6

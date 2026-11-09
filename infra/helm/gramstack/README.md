@@ -37,20 +37,10 @@ cluster, publish the images to your registry and set `gateway.image`,
 Configure `imagePullSecrets` as a list of Kubernetes Secret references when
 your registry requires authentication.
 
-For public Docker Hub images, include
+For the public images in the `flywheelai` Docker Hub workspace, include
 `-f infra/helm/gramstack/values-dockerhub.yaml` before your deployment-specific
 values file. The file pins the 0.1.0 image indexes for Linux AMD64 and ARM64.
 Omit the `image` keys in your deployment-specific values to use those pins.
-
-To use the published GHCR images, include `-f infra/helm/gramstack/values-ghcr.yaml`
-before your deployment-specific values file. This pins the 0.1.0 image indexes
-for Linux AMD64 and ARM64. The optional fictional source still requires
-`mockLokos.enabled=true`.
-
-For private GHCR packages, create a registry pull Secret in the release namespace
-with an account that has package access and configure it in `imagePullSecrets`.
-Public packages can be pulled anonymously. See
-[GitHub Container Registry authentication](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry).
 
 ## Configure service Secrets
 
