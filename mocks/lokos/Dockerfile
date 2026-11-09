@@ -1,5 +1,5 @@
 # Build from the repository root. Independent service image; no runtime compiler.
-FROM golang:1.26.8-bookworm@sha256:dc9ad6c05acc7a88e5b71bde60a5fe3bd4b9f0db209011711b464107438a8107 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26.8-bookworm@sha256:dc9ad6c05acc7a88e5b71bde60a5fe3bd4b9f0db209011711b464107438a8107 AS build
 WORKDIR /src
 COPY go.work ./
 COPY services/gateway/ services/gateway/
@@ -11,8 +11,10 @@ COPY mocks/identity/ mocks/identity/
 COPY mocks/lokos/ mocks/lokos/
 COPY apps/sakhicredit/ apps/sakhicredit/
 COPY tools/runtimefiles/main.go tools/runtimefiles/main.go
-RUN CGO_ENABLED=0 go build -mod=readonly -trimpath -o /out/service ./mocks/lokos/cmd/mock-lokos && \
-    GOWORK=off CGO_ENABLED=0 go build -trimpath -o /out/runtimefiles ./tools/runtimefiles/main.go
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go build -mod=readonly -trimpath -o /out/service ./mocks/lokos/cmd/mock-lokos && \
+    GOWORK=off CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go build -trimpath -o /out/runtimefiles ./tools/runtimefiles/main.go
 
 FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
