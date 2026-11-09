@@ -1,6 +1,6 @@
 # Go service images
 
-Build each service from the repository root using its own Dockerfile:
+Build each service with Docker BuildKit from the repository root using its own Dockerfile:
 
 | Role | Dockerfile | HTTP listener | Protected listener |
 |---|---|---|---|
@@ -9,7 +9,7 @@ Build each service from the repository root using its own Dockerfile:
 | Fictional LokOS source | `mocks/lokos/Dockerfile` | None | `SOURCE_TLS_PORT` (8444), adapter mTLS |
 | SakhiCredit | `apps/sakhicredit/Dockerfile` | `PORT` (8080), product UI/API | Outbound consumer mTLS |
 
-For example: `docker build -f services/gateway/Dockerfile -t gramstack-gateway .`.
+For example: `docker buildx build --load -f services/gateway/Dockerfile -t gramstack-gateway .`.
 The pinned Go 1.26.8 builder resolves the current monorepo workspace. The final pinned Debian image contains the selected service, a standard-library file entrypoint and CA trust roots. It runs as UID/GID 10001 with no compiler, Node dependency or embedded deployment secret. SDK publication and independent versioned dependency verification remain a separate release gate.
 
 ## Railway file configuration

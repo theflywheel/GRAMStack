@@ -25,10 +25,10 @@ generate credentials, register OAuth clients or install registry policies.
 From the repository root:
 
 ```sh
-docker build -f services/gateway/Dockerfile -t gramstack-gateway:local .
-docker build -f adapters/lokos/Dockerfile -t gramstack-lokos-adapter:local .
+docker buildx build --load -f services/gateway/Dockerfile -t gramstack-gateway:local .
+docker buildx build --load -f adapters/lokos/Dockerfile -t gramstack-lokos-adapter:local .
 # Optional fictional source
-docker build -f mocks/lokos/Dockerfile -t gramstack-mock-lokos:local .
+docker buildx build --load -f mocks/lokos/Dockerfile -t gramstack-mock-lokos:local .
 ```
 
 On kind, load the selected tags with `kind load docker-image`. For a remote
@@ -36,6 +36,11 @@ cluster, publish the images to your registry and set `gateway.image`,
 `lokosAdapter.image`, and optionally `mockLokos.image` to immutable references.
 Configure `imagePullSecrets` as a list of Kubernetes Secret references when
 your registry requires authentication.
+
+For public Docker Hub images, include
+`-f infra/helm/gramstack/values-dockerhub.yaml` before your deployment-specific
+values file. The file pins the 0.1.0 image indexes for Linux AMD64 and ARM64.
+Omit the `image` keys in your deployment-specific values to use those pins.
 
 To use the published GHCR images, include `-f infra/helm/gramstack/values-ghcr.yaml`
 before your deployment-specific values file. This pins the 0.1.0 image indexes

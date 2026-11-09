@@ -1,0 +1,7 @@
+# Public Docker Hub release 0.1.0 for Linux AMD64 and ARM64.
+gateway:
+  image: docker.io/techsavvyash/gramstack-gateway:0.1.0@sha256:bca0a8c61ff747143ed3312fc068d49e04e553929bd7e38bdebdf1e674c18e64
+lokosAdapter:
+  image: docker.io/techsavvyash/gramstack-lokos-adapter:0.1.0@sha256:7344cf31a1b9941c20f6db85aab11ea2f48d4ff1e0711b18ceaaf0577816247f
+mockLokos:
+  image: docker.io/techsavvyash/gramstack-mock-lokos:0.1.0@sha256:6b4e99a691c94a5b978b43bc7755583b4e75a6f793741f7b13821c97565423aa
