@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { JSDOM } from 'jsdom'
@@ -16,13 +17,18 @@ function excerpt(text, limit) {
   return (lastSpace > limit * 0.8 ? shortened.slice(0, lastSpace) : shortened) + '…'
 }
 
-async function textLayer(text, { color, font, height }) {
+async function textLayer(text, { color, size, bold = false, height }) {
+  const weight = bold ? 'Bold' : 'Regular'
+  const systemFont = `/usr/share/fonts/truetype/liberation/LiberationSans-${weight}.ttf`
+  const fontfile = existsSync(systemFont) ? systemFont : undefined
+  const family = fontfile ? 'Liberation Sans' : 'Arial'
   const escaped = text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
   const width = 1004
   const rendered = await sharp({
     text: {
       text: `<span foreground="${color}">${escaped}</span>`,
-      font,
+      font: `${family}${bold ? " Bold" : ""} ${size}`,
+      fontfile,
       width,
       wrap: 'word-char',
       rgba: true,
@@ -52,12 +58,12 @@ export async function renderShareCards(root = 'public') {
       const title = meta('og:title').content.replace(/ · GRAMStack Docs$/, '')
       const description = meta('og:description').content
       const layers = [{
-        input: await textLayer(excerpt(title, 126), { color: '#eef4ed', font: 'Sans Bold 82', height: 164 }),
+        input: await textLayer(excerpt(title, 126), { color: '#eef4ed', size: 82, bold: true, height: 164 }),
         top: 205, left: 98,
       }]
       if (description.trim()) {
         layers.push({
-          input: await textLayer(excerpt(description, 220), { color: '#c4d5ca', font: 'Sans 36', height: 102 }),
+          input: await textLayer(excerpt(description, 220), { color: '#c4d5ca', size: 36, height: 102 }),
           top: 376, left: 98,
         })
       }
