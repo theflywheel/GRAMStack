@@ -1,5 +1,5 @@
 FROM node:24-bookworm-slim AS build
-RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates fontconfig fonts-liberation && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/docs
 COPY docs/package.json docs/package-lock.json docs/.npmrc ./
 RUN npm ci

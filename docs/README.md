@@ -16,6 +16,10 @@ Edit `content/architecture/01-*.md` through `content/architecture/12-*.md`. Run 
 
 The public site presents the architecture directly. Illustrative payloads and technical security requirements remain explicit. Internal approval and delivery tracking are maintained separately. Raw private transcripts, credentials and team-chat attachments are not published.
 
+The build generates a dark green share card from each page's title and
+description. Set `socialDescription` in the page frontmatter to override the
+description for link previews.
+
 ## Railway
 
 Project: `gramstack-design`; service: `docs`.

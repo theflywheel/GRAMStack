@@ -1,5 +1,6 @@
 import { mkdir, writeFile, cp, stat } from 'node:fs/promises'
 import { readFileSync, readdirSync } from 'node:fs'
+import { renderShareCards } from './render-share-cards.mjs'
 const chapters = readdirSync('content/architecture').filter(n => /^\d\d-.*\.md$/.test(n)).sort()
 const body = chapters.map(n => readFileSync(`content/architecture/${n}`, 'utf8').replace(/^---\n[\s\S]*?\n---\n/, '')).join('\n\n---\n\n')
 await mkdir('public/static', { recursive: true })
@@ -25,6 +26,8 @@ for (const slug of ['architecture/02-architecture', 'architecture/complete-desig
   if (!placeholder.test(html)) throw new Error(`Walkthrough placeholder missing from ${slug}`)
   await writeFile(path, html.replace(placeholder, walkthrough))
 }
+
+await renderShareCards()
 
 // Legacy routes work on the Railway server and static-only Quartz previews.
 const redirects = JSON.parse(readFileSync('redirects.json', 'utf8'))
