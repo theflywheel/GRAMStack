@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { JSDOM } from 'jsdom'
+import sharp from 'sharp'
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 const walk = d => readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : [`${d}/${e.name}`])
@@ -54,3 +55,31 @@ const sections = ['demos', 'developers', 'implementation', 'architecture'].map(n
 assert.deepEqual(sections.sort(sort).map(node => node.displayName), ['architecture', 'implementation', 'developers', 'demos'])
 home.window.close()
 console.log('Verified serialized sidebar reading order.')
+
+const shareImage = '/static/gramstack-share-v1.png'
+const preview = await sharp('public' + shareImage).metadata()
+assert.equal(preview.format, 'png')
+assert.equal(preview.width, 1200)
+assert.equal(preview.height, 630)
+const favicon = await sharp('public/static/icon.png').metadata()
+assert.equal(favicon.width, 64)
+assert.equal(favicon.height, 64)
+for (const [file, slug, title] of [
+ ['index.html', '/', 'GRAMStack Docs'],
+ ['architecture/01-purpose.html', '/architecture/01-purpose', '01 · Purpose and scenario · GRAMStack Docs'],
+ ['developers/sdks/index.html', '/developers/sdks/', 'Application SDKs · GRAMStack Docs'],
+]) {
+ const dom = new JSDOM(readFileSync('public/' + file, 'utf8'))
+ const head = dom.window.document.head
+ const property = name => head.querySelector(`meta[property="${name}"]`)?.content
+ const canonical = 'https://docs.gramstack.try-dough.com' + slug
+ assert.equal(property('og:site_name'), 'GRAMStack', file)
+ assert.equal(property('og:title'), title, file)
+ assert.equal(property('og:url'), canonical, file)
+ assert.equal(head.querySelector('link[rel="canonical"]')?.getAttribute('href'), canonical, file)
+ assert.equal(property('og:image'), 'https://docs.gramstack.try-dough.com' + shareImage, file)
+ assert.equal(property('og:image:type'), 'image/png', file)
+ assert.match(head.querySelector('link[rel="icon"]')?.getAttribute('href'), /static\/icon\.png\?v=gramstack-1$/, file)
+ dom.window.close()
+}
+console.log('Verified branded share metadata, favicon and image dimensions.')

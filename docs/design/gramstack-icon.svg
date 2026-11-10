@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>GRAMStack</title>
+  <rect width="64" height="64" rx="15" fill="#111c19"/>
+  <path d="M12 40 32 51 52 40M12 31 32 42 52 31" fill="none" stroke="#85d6b3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M12 22 32 11 52 22 32 33Z" fill="#85d6b3" stroke="#85d6b3" stroke-width="2" stroke-linejoin="round"/>
+</svg>

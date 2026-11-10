@@ -1,6 +1,6 @@
 configuration:
   pageTitle: GRAMStack
-  pageTitleSuffix: " · Docs"
+  pageTitleSuffix: " · GRAMStack Docs"
   enableSPA: true
   enablePopovers: false
   analytics: null
@@ -209,7 +209,6 @@ plugins:
         Source: https://github.com/theflywheel/GRAMStack
         Full design: /architecture/complete-design
         References: /architecture/12-references
-        Quartz: https://quartz.jzhao.xyz
     layout:
       position: footer
       priority: 50

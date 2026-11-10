@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <title>GRAMStack Documentation</title>
+  <rect width="1200" height="630" fill="#111c19"/>
+  <path d="M861 98 1046 198 1231 98M861 145 1046 245 1231 145M861 192 1046 292 1231 192" fill="none" stroke="#213b32" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="32" y="32" width="1136" height="566" rx="25" fill="none" stroke="#365548" stroke-width="2"/>
+  <g transform="translate(95 92) scale(1.22)">
+    <rect width="64" height="64" rx="15" fill="#223b32"/>
+    <path d="M12 40 32 51 52 40M12 31 32 42 52 31" fill="none" stroke="#85d6b3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M12 22 32 11 52 22 32 33Z" fill="#85d6b3" stroke="#85d6b3" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+  <g font-family="Arial, sans-serif">
+    <text x="201" y="140" fill="#85d6b3" font-weight="700" font-size="25" letter-spacing="4">DOCUMENTATION</text>
+    <text x="91" y="311" fill="#eef4ed" font-weight="700" font-size="112" letter-spacing="-4">GRAMStack</text>
+    <text x="98" y="393" fill="#c4d5ca" font-size="39">Consent-first data sharing</text>
+    <text x="98" y="443" fill="#c4d5ca" font-size="39">for public infrastructure.</text>
+    <path d="M98 498H1102" stroke="#365548" stroke-width="2"/>
+    <text x="98" y="549" fill="#85d6b3" font-weight="700" font-size="24">Architecture · Specifications · SDKs</text>
+  </g>
+</svg>

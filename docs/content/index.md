@@ -1,5 +1,6 @@
 ---
 title: Overview
+description: Architecture, specifications, and SDKs for consent-first data sharing in public infrastructure.
 ---
 
 <div class="hero-kicker">GRAMStack documentation</div>

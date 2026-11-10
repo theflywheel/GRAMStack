@@ -3,6 +3,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 const chapters = readdirSync('content/architecture').filter(n => /^\d\d-.*\.md$/.test(n)).sort()
 const body = chapters.map(n => readFileSync(`content/architecture/${n}`, 'utf8').replace(/^---\n[\s\S]*?\n---\n/, '')).join('\n\n---\n\n')
 await mkdir('public/static', { recursive: true })
+// Older share previews may still request the original image URL.
+await cp('public/static/gramstack-share-v1.png', 'public/static/og-image.png')
 await writeFile('public/static/GRAMStack-Design.md', '# GRAMStack — System Design\n\nVersion 0.15 · 4 November 2026 · System architecture\n\n' + body)
 await writeFile('public/static/gramstack-design.txt', '# GRAMStack — System Design\n\nVersion 0.15 · 4 November 2026 · System architecture\n\n' + body)
 await writeFile('public/robots.txt', 'User-agent: *\nDisallow: /\n')
